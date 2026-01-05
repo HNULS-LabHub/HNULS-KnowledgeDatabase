@@ -1,6 +1,8 @@
-import './assets/main.css'
+import { createApp } from 'vue';
+import App from './App.vue';
 
-import { createApp } from 'vue'
-import App from './App.vue'
+// 创建 Vue 应用实例
+const app = createApp(App);
 
-createApp(App).mount('#app')
+// 挂载应用
+app.mount('#app');

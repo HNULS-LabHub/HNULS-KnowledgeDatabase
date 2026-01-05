@@ -25,7 +25,7 @@ src/
 ├── service/          # [服务层] 封装服务与纯函数工具
 │   ├── downloader/   # 可能持有底层状态的服务
 │   └── parser/       # 纯函数计算服务
-├── types/            # [公共类型] 全局类型定义 (Vue 与 Rust 交互契约)
+├── types/            # [公共类型] 全局类型定义 (Vue 与其他端 交互契约)
 │   ├── file/         # 按业务域分类
 │   └── setting/
 ├── App.vue
