@@ -23,6 +23,7 @@
   align-items: center;
   justify-content: center;
   animation: fadeIn 300ms;
+  box-sizing: border-box;
 }
 
 @keyframes fadeIn {

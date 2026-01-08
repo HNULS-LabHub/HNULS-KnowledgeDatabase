@@ -95,6 +95,9 @@ const setActive = (item: string) => {
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(12px);
   z-index: 40;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .nav-logo {

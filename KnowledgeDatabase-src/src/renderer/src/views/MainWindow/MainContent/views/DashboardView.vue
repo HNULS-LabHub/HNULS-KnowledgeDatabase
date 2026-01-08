@@ -116,6 +116,7 @@
   animation: fadeIn 500ms;
   overflow-y: auto;
   height: 100%;
+  box-sizing: border-box;
 }
 
 @keyframes fadeIn {

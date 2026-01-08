@@ -168,6 +168,7 @@ const simulateSearch = () => {
   padding: 2rem;
   animation: fadeIn 500ms;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 @keyframes fadeIn {

@@ -55,7 +55,40 @@ const handleNavigate = (page: string) => {
 
 .content-panel {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
   background: #f8fafc;
+}
+</style>
+
+<style>
+/* 自定义滚动条样式 - 全局应用 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(203, 213, 225, 0.3);
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(100, 116, 139, 0.5);
+}
+
+/* Firefox 滚动条样式 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(203, 213, 225, 0.4) transparent;
 }
 </style>
