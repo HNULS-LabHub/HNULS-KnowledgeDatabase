@@ -1,2 +1,1 @@
-export { AppService } from './app-service';
-export { WindowService } from './window-service';
+export { AppService, WindowService } from './base-service';
