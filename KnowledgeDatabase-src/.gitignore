@@ -4,3 +4,4 @@ out
 .DS_Store
 .eslintcache
 vendor/python-3.12.0-embed-amd64
+data
