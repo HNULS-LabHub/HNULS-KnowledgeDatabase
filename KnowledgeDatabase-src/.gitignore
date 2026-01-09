@@ -3,5 +3,4 @@ dist
 out
 .DS_Store
 .eslintcache
-*.log*
 vendor/python-3.12.0-embed-amd64

@@ -132,7 +132,7 @@
     - 添加 LoggerService 导出
     - _需求: 9.1_
 
-- [ ] 12. Checkpoint - 验证 SurrealDB 服务
+- [x] 12. Checkpoint - 验证 SurrealDB 服务
   - 确保 SurrealDBService 可以独立启动和关闭
   - 验证端口分配和清理逻辑
   - 如有问题请询问用户
@@ -152,7 +152,7 @@
     - 添加 vendor/surrealdb 到 extraResources
     - _需求: 1.3_
 
-- [ ] 15. 最终验证
+- [x] 15. 最终验证
   - 运行 `pnpm run dev` 验证开发环境
   - 验证 SurrealDB 服务正常启动
   - 验证日志输出到控制台和文件

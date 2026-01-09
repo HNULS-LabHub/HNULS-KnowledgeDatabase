@@ -205,7 +205,7 @@ export class SurrealDBService implements ISurrealDBService {
 
     return [
       'start',
-      `rocksdb:${dbPath}`, // 使用 RocksDB 后端
+      `surrealkv:${dbPath}`, // 使用 SurrealKV 后端
       '--bind', `127.0.0.1:${port}`,
       '--user', username,
       '--pass', password,

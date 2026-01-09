@@ -29,22 +29,31 @@ export class SchemaManager {
     logger.info('Initializing database schema');
 
     // 1. 检查模式是否存在
+    logger.debug('Checking if schema exists...');
     const schemaExists = await this.checkSchemaExists(serverUrl, config);
+    logger.info(`Schema exists: ${schemaExists}`);
 
     if (!schemaExists) {
       // 2. 导入模式
+      logger.info('Schema does not exist, importing...');
       await this.importSchema(serverUrl, config);
       this.hookSystem.emit('schema:initialized', {});
+      logger.info('Schema initialization completed');
     } else {
       // 3. 验证模式
+      logger.debug('Schema exists, validating...');
       const isValid = await this.validateSchema(serverUrl, config);
       this.hookSystem.emit('schema:validated', { isValid });
+      logger.info(`Schema validation result: ${isValid}`);
 
       if (!isValid) {
         // 4. 模式不一致时重新导入
         logger.warn('Schema mismatch detected, re-importing schema');
         await this.importSchema(serverUrl, config);
         this.hookSystem.emit('schema:overwritten', {});
+        logger.info('Schema re-import completed');
+      } else {
+        logger.info('Schema is valid, no import needed');
       }
     }
   }
@@ -64,9 +73,34 @@ export class SchemaManager {
         serverUrl,
         config
       );
-      // 如果返回结果包含表信息，说明模式存在
-      return result.includes('tables');
-    } catch {
+      
+      logger.debug(`INFO FOR DB result: ${result.substring(0, 200)}...`);
+      
+      // 检查是否有具体的表定义（不是空的 tables: {}）
+      // 方法1: 检查是否包含 DEFINE TABLE 关键字
+      if (result.includes('DEFINE TABLE')) {
+        logger.debug('Schema exists: found DEFINE TABLE statements');
+        return true;
+      }
+      
+      // 方法2: 检查特定表是否存在
+      if (result.includes('TABLE user') || result.includes('TABLE document')) {
+        logger.debug('Schema exists: found user or document table');
+        return true;
+      }
+      
+      // 方法3: 检查 tables 是否为空对象
+      // INFO FOR DB 返回格式: tables: { user: "DEFINE TABLE...", ... }
+      const tablesMatch = result.match(/tables:\s*\{([^}]*)\}/);
+      if (tablesMatch && tablesMatch[1].trim().length > 0) {
+        logger.debug('Schema exists: tables object is not empty');
+        return true;
+      }
+      
+      logger.debug('Schema does not exist: no tables found');
+      return false;
+    } catch (error) {
+      logger.error('Error checking schema existence', error);
       return false;
     }
   }
@@ -84,8 +118,18 @@ export class SchemaManager {
 
     logger.info(`Importing ${schemaDefinitions.length} schema definitions`);
 
-    for (const schemaSql of schemaDefinitions) {
-      await this.executeSchema(schemaSql, serverUrl, config);
+    for (let i = 0; i < schemaDefinitions.length; i++) {
+      const schemaSql = schemaDefinitions[i];
+      logger.debug(`Executing schema ${i + 1}/${schemaDefinitions.length}`);
+      logger.debug(`Schema SQL preview: ${schemaSql.substring(0, 100)}...`);
+      
+      try {
+        await this.executeSchema(schemaSql, serverUrl, config);
+        logger.info(`Schema ${i + 1}/${schemaDefinitions.length} executed successfully`);
+      } catch (error) {
+        logger.error(`Failed to execute schema ${i + 1}/${schemaDefinitions.length}`, error);
+        throw error;
+      }
     }
 
     logger.info('Schema import completed');
@@ -117,7 +161,7 @@ export class SchemaManager {
         '--hide-welcome'
       ];
 
-      logger.debug('Executing schema SQL');
+      logger.debug(`Executing schema SQL with args: ${args.join(' ')}`);
 
       const proc = spawn(this.exePath, args);
 
@@ -129,25 +173,32 @@ export class SchemaManager {
       let errorOutput = '';
 
       proc.stdout?.on('data', (data) => {
-        output += data.toString();
+        const text = data.toString();
+        output += text;
+        logger.debug(`[Schema SQL stdout] ${text.trim()}`);
       });
 
       proc.stderr?.on('data', (data) => {
-        errorOutput += data.toString();
+        const text = data.toString();
+        errorOutput += text;
+        logger.warn(`[Schema SQL stderr] ${text.trim()}`);
       });
 
       proc.on('close', (code) => {
         if (code === 0) {
-          logger.debug('Schema executed successfully');
+          logger.debug(`Schema executed successfully. Output: ${output.substring(0, 200)}`);
           resolve();
         } else {
-          const error = new Error(`Schema execution failed: ${errorOutput || output}`);
+          const error = new Error(`Schema execution failed with code ${code}: ${errorOutput || output}`);
           logger.error('Failed to execute schema', error);
           reject(error);
         }
       });
 
-      proc.on('error', reject);
+      proc.on('error', (err) => {
+        logger.error('Schema process error', err);
+        reject(err);
+      });
     });
   }
 
