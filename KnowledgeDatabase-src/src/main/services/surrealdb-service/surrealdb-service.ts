@@ -18,6 +18,7 @@ import { PortManager } from './port-manager';
 import { SchemaManager } from './schema-manager';
 import { HookSystem } from './hook-system';
 import { ErrorHandler } from './error-handler';
+import { QueryService } from './query-service';
 import { logger } from '../logger';
 
 /**
@@ -37,6 +38,7 @@ export class SurrealDBService implements ISurrealDBService {
   private portManager: PortManager;
   private schemaManager: SchemaManager;
   private hookSystem: HookSystem;
+  private queryService!: QueryService;
   private startTime: number = 0;
 
   constructor(config?: Partial<SurrealDBConfig>) {
@@ -54,6 +56,7 @@ export class SurrealDBService implements ISurrealDBService {
       this.getSurrealExePath(),
       this.hookSystem
     );
+    this.queryService = new QueryService();
 
     logger.info('SurrealDBService created with config', {
       namespace: this.config.namespace,
@@ -190,6 +193,15 @@ export class SurrealDBService implements ISurrealDBService {
       });
 
       logger.info('SurrealDB server is ready');
+
+      // 连接 QueryService
+      try {
+        await this.queryService.connect(this.getServerUrl(), this.config);
+        logger.info('QueryService initialized');
+      } catch (error) {
+        logger.error('Failed to initialize QueryService', error);
+        // 不抛出错误，允许服务器继续运行
+      }
     } catch (error) {
       this.status = ServerStatus.ERROR;
       await this.cleanup();
@@ -309,6 +321,13 @@ export class SurrealDBService implements ISurrealDBService {
     this.hookSystem.emit('server:shutdown', {});
     logger.info('Shutting down SurrealDB server');
 
+    // 断开 QueryService
+    try {
+      await this.queryService.disconnect();
+    } catch (error) {
+      logger.error('Error disconnecting QueryService', error);
+    }
+
     try {
       // 1. 发送 SIGINT 信号（优雅关闭）
       this.process.kill('SIGINT');
@@ -359,6 +378,13 @@ export class SurrealDBService implements ISurrealDBService {
     this.startTime = 0;
     await this.portManager.releasePort();
     logger.info('SurrealDB service cleanup completed');
+  }
+
+  /**
+   * 获取查询服务
+   */
+  getQueryService(): QueryService {
+    return this.queryService;
   }
 
   /**

@@ -12,11 +12,11 @@ class Application {
 
   async start(): Promise<void> {
     try {
-      // 初始化 IPC 处理器
-      this.ipcManager.initialize();
-      
       // 初始化应用服务
       await this.appService.initialize();
+      
+      // 初始化 IPC 处理器（传入 SurrealDBService）
+      this.ipcManager.initialize(this.appService.getSurrealDBService());
       
       console.log('Application started successfully');
     } catch (error) {

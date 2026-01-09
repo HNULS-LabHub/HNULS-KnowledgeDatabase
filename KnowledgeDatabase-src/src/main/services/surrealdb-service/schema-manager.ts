@@ -253,7 +253,7 @@ export class SchemaManager {
   /**
    * 验证模式
    */
-  async validateSchema(serverUrl: string, config: SurrealDBConfig): Promise<boolean> {
+  async validateSchema(_serverUrl: string, _config: SurrealDBConfig): Promise<boolean> {
     // 简化实现：假设模式总是有效的
     // 实际实现需要查询数据库并比较表结构
     logger.debug('Schema validation - assuming valid for now');
