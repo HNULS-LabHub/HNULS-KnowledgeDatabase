@@ -11,7 +11,11 @@
       >
         <polyline points="9 18 15 12 9 6"></polyline>
       </svg>
-      <span class="breadcrumb-current">
+      <span 
+        class="breadcrumb-item" 
+        :class="{ 'breadcrumb-current': !extraBreadcrumb }"
+        @click="$emit('navigate-back')"
+      >
         <svg
           v-if="currentPage === 'dashboard' || currentPage === 'index'"
           class="context-icon"
@@ -54,6 +58,22 @@
         </svg>
         {{ pageTitle }}
       </span>
+
+      <!-- Extra Breadcrumb (Dynamic) -->
+      <template v-if="extraBreadcrumb">
+        <svg
+          class="chevron-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+        <span class="breadcrumb-current">
+          {{ extraBreadcrumb }}
+        </span>
+      </template>
     </div>
 
     <div class="right-actions">
@@ -93,6 +113,11 @@ import { computed } from 'vue'
 
 const props = defineProps<{
   currentPage: string
+  extraBreadcrumb?: string
+}>()
+
+defineEmits<{
+  (e: 'navigate-back'): void
 }>()
 
 const pageTitle = computed(() => {

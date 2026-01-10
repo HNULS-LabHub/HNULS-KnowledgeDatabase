@@ -1,10 +1,19 @@
 <template>
   <div class="main-content">
-    <TopBar :current-page="currentPage" />
+    <TopBar 
+      :current-page="currentPage" 
+      :extra-breadcrumb="extraBreadcrumb"
+      @navigate-back="handleBreadcrumbBack"
+    />
     <div class="content-area">
       <NavBar @navigate="handleNavigate" />
       <div class="content-panel">
-        <component :is="currentComponent" />
+        <component 
+          :is="currentComponent" 
+          ref="viewRef"
+          @enter-detail="handleEnterDetail"
+          @leave-detail="handleLeaveDetail"
+        />
       </div>
     </div>
   </div>
@@ -22,6 +31,8 @@ import DocsView from './views/DocsView.vue'
 import KnowledgeView from './views/KnowledgeView/index.vue'
 
 const currentPage = ref('dashboard')
+const extraBreadcrumb = ref('')
+const viewRef = ref<any>(null)
 
 const pageConfig = {
   dashboard: DashboardView,
@@ -35,6 +46,28 @@ const currentComponent = computed(() => pageConfig[currentPage.value] || Dashboa
 
 const handleNavigate = (page: string) => {
   currentPage.value = page
+  // Reset breadcrumb when navigating
+  extraBreadcrumb.value = ''
+}
+
+// Handlers for KnowledgeView Breadcrumb integration
+const handleEnterDetail = (name: string) => {
+  extraBreadcrumb.value = name
+}
+
+const handleLeaveDetail = () => {
+  extraBreadcrumb.value = ''
+}
+
+const handleBreadcrumbBack = () => {
+  if (extraBreadcrumb.value) {
+    // If we have an extra breadcrumb, we try to tell the current view to go back
+    if (viewRef.value && typeof viewRef.value.handleBack === 'function') {
+      viewRef.value.handleBack()
+    }
+    // Also reset the breadcrumb string
+    extraBreadcrumb.value = ''
+  }
 }
 </script>
 

@@ -1,116 +1,129 @@
 <template>
   <div class="knowledge-view">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">知识库管理</h1>
-        <p class="page-subtitle">创建、配置和管理您的个人知识库集合。</p>
-      </div>
-      <div class="header-actions">
-        <button class="action-btn primary" @click="showCreateDialog = true">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            class="btn-icon"
-          >
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          新建知识库
-        </button>
-      </div>
-    </div>
-
-    <!-- Knowledge Base Grid -->
-    <div class="kb-grid">
-      <!-- Create New Card -->
-      <div class="glass-card kb-card create-card" @click="showCreateDialog = true">
-        <div class="create-content">
-          <div class="create-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <!-- List View Mode -->
+    <template v-if="currentView === 'list'">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">知识库管理</h1>
+          <p class="page-subtitle">创建、配置和管理您的个人知识库集合。</p>
+        </div>
+        <div class="header-actions">
+          <button class="action-btn primary" @click="showCreateDialog = true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="btn-icon"
+            >
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-          </div>
-          <span class="create-text">新建知识库</span>
-        </div>
-      </div>
-
-      <!-- Example Cards -->
-      <div v-for="kb in knowledgeBases" :key="kb.id" class="glass-card kb-card">
-        <div class="kb-header">
-          <!-- 动态图标与颜色 -->
-          <div 
-            class="kb-icon" 
-            :style="{ 
-              background: getLightColor(kb.color), 
-              color: kb.color 
-            }"
-            v-html="kb.icon"
-          >
-          </div>
-          <button class="kb-more-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="1"></circle>
-              <circle cx="19" cy="12" r="1"></circle>
-              <circle cx="5" cy="12" r="1"></circle>
-            </svg>
+            新建知识库
           </button>
         </div>
-        
-        <div class="kb-info">
-          <h3 class="kb-name">{{ kb.name }}</h3>
-          <p class="kb-desc">{{ kb.description }}</p>
+      </div>
+
+      <!-- Knowledge Base Grid -->
+      <div class="kb-grid">
+        <!-- Create New Card -->
+        <div class="glass-card kb-card create-card" @click="showCreateDialog = true">
+          <div class="create-content">
+            <div class="create-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </div>
+            <span class="create-text">新建知识库</span>
+          </div>
         </div>
 
-        <div class="kb-stats">
-          <div class="stat-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14,2 14,8 20,8"></polyline>
-            </svg>
-            <span>{{ kb.docCount }} 文档</span>
+        <!-- Example Cards -->
+        <div 
+          v-for="kb in knowledgeBases" 
+          :key="kb.id" 
+          class="glass-card kb-card"
+          @click="handleEnterKb(kb)"
+        >
+          <div class="kb-header">
+            <!-- 动态图标与颜色 -->
+            <div 
+              class="kb-icon" 
+              :style="{ 
+                background: getLightColor(kb.color), 
+                color: kb.color 
+              }"
+              v-html="kb.icon"
+            >
+            </div>
+            <button class="kb-more-btn" @click.stop>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="1"></circle>
+                <circle cx="19" cy="12" r="1"></circle>
+                <circle cx="5" cy="12" r="1"></circle>
+              </svg>
+            </button>
           </div>
-          <div class="stat-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-            </svg>
-            <span>{{ kb.vectorCount }} 向量</span>
+          
+          <div class="kb-info">
+            <h3 class="kb-name">{{ kb.name }}</h3>
+            <p class="kb-desc">{{ kb.description }}</p>
           </div>
-        </div>
-        
-        <div class="kb-footer">
-          <span class="update-time">更新于 {{ kb.lastUpdated }}</span>
-          <button class="enter-btn">进入</button>
+
+          <div class="kb-stats">
+            <div class="stat-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14,2 14,8 20,8"></polyline>
+              </svg>
+              <span>{{ kb.docCount }} 文档</span>
+            </div>
+            <div class="stat-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+              <span>{{ kb.vectorCount }} 向量</span>
+            </div>
+          </div>
+          
+          <div class="kb-footer">
+            <span class="update-time">更新于 {{ kb.lastUpdated }}</span>
+            <button class="enter-btn">进入</button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 新建知识库对话框 -->
-    <CreateKnowledgeBaseDialog
-      v-model:visible="showCreateDialog"
-      @submit="handleCreateKnowledgeBase"
+      <!-- 新建知识库对话框 -->
+      <CreateKnowledgeBaseDialog
+        v-model:visible="showCreateDialog"
+        @submit="handleCreateKnowledgeBase"
+      />
+    </template>
+
+    <!-- Detail View Mode -->
+    <KnowledgeDetail 
+      v-else-if="selectedKb" 
+      :kb="selectedKb" 
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import CreateKnowledgeBaseDialog, { type KnowledgeBaseFormData } from './CreateKnowledgeBaseDialog.vue'
+import KnowledgeDetail from './KnowledgeDetail/index.vue'
+import type { KnowledgeBase } from './types'
 
-interface KnowledgeBase {
-  id: number
-  name: string
-  description: string
-  docCount: number
-  vectorCount: string
-  lastUpdated: string
-  color: string // 现在是 Hex 颜色值
-  icon: string  // SVG 字符串
-}
+// Emits for breadcrumb management
+const emit = defineEmits<{
+  (e: 'enter-detail', kbName: string): void
+  (e: 'leave-detail'): void
+}>()
 
 const showCreateDialog = ref(false)
+const currentView = ref<'list' | 'detail'>('list')
+const selectedKb = ref<KnowledgeBase | null>(null)
 
 // 预设 SVG 字符串 (与 Dialog 中保持一致或简化，这里直接硬编码到 mock 数据中)
 const icons = {
@@ -178,6 +191,18 @@ const handleCreateKnowledgeBase = (data: KnowledgeBaseFormData) => {
   knowledgeBases.value.unshift(newKB)
 }
 
+const handleEnterKb = (kb: KnowledgeBase) => {
+  selectedKb.value = kb
+  currentView.value = 'detail'
+  emit('enter-detail', kb.name)
+}
+
+const handleBack = () => {
+  currentView.value = 'list'
+  selectedKb.value = null
+  emit('leave-detail')
+}
+
 // 辅助函数：生成浅色背景色 (Hex 转 RGBA)
 const getLightColor = (hex: string) => {
   // 简单验证 hex 格式
@@ -193,15 +218,39 @@ const getLightColor = (hex: string) => {
   
   return `rgba(${r}, ${g}, ${b}, 0.1)`
 }
+
+// Expose handleBack for parent components to use when breadcrumb is clicked
+defineExpose({
+  handleBack
+})
 </script>
 
 <style scoped>
 .knowledge-view {
-  padding: 2rem;
+  /* padding: 2rem;  Removed padding to allow full width/height for detail view */
   animation: fadeIn 500ms;
-  overflow-y: auto;
+  overflow: hidden; /* Changed from auto to hidden to manage scroll internally */
   height: 100%;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Add padding back only for List View content wrapper if needed */
+.knowledge-view > .page-header,
+.knowledge-view > .kb-grid {
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.knowledge-view > .page-header {
+  padding-top: 2rem;
+}
+
+.knowledge-view > .kb-grid {
+  overflow-y: auto;
+  padding-bottom: 2rem;
+  flex: 1;
 }
 
 @keyframes fadeIn {
@@ -215,12 +264,13 @@ const getLightColor = (hex: string) => {
   }
 }
 
-/* Header Styles (Consistent with Dashboard) */
+/* Header Styles */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   margin-bottom: 2rem;
+  flex-shrink: 0;
 }
 
 .page-title {
@@ -267,10 +317,10 @@ const getLightColor = (hex: string) => {
 /* Grid Layout */
 .kb-grid {
   display: grid;
-  /* Responsive grid: min 240px width per card */
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
+  align-content: start;
 }
 
 /* Card Styles */
@@ -283,6 +333,7 @@ const getLightColor = (hex: string) => {
   transition: all 300ms;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
 }
 
 .glass-card:hover {
@@ -360,10 +411,8 @@ const getLightColor = (hex: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 颜色现在通过内联 style 控制 */
 }
 
-/* 使用 v-html 插入的 SVG 样式控制 */
 .kb-icon :deep(svg) {
   width: 1.25rem;
   height: 1.25rem;
