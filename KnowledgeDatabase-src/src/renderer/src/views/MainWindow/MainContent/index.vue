@@ -19,7 +19,7 @@ import RAGView from './views/RAGView.vue'
 import GraphView from './views/GraphView.vue'
 import DocsView from './views/DocsView.vue'
 
-import KnowledgeView from './views/KnowledgeView.vue'
+import KnowledgeView from './views/KnowledgeView/index.vue'
 
 const currentPage = ref('dashboard')
 
