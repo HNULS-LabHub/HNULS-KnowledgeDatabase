@@ -1,6 +1,6 @@
 /**
  * Schema 表定义
- * 
+ *
  * 使用 TypeScript 定义 SurrealQL schema，便于：
  * - 类型检查和 IDE 支持
  * - 模块化组织
@@ -11,8 +11,8 @@
  * 表定义接口
  */
 export interface TableDefinition {
-  name: string;
-  sql: string;
+  name: string
+  sql: string
 }
 
 /**
@@ -30,7 +30,7 @@ DEFINE FIELD is_active ON user TYPE bool DEFAULT true;
 DEFINE INDEX unique_username ON user COLUMNS username UNIQUE;
 DEFINE INDEX unique_email ON user COLUMNS email UNIQUE;
 DEFINE INDEX idx_created_at ON user COLUMNS created_at;`
-};
+}
 
 /**
  * 文档表定义
@@ -47,7 +47,7 @@ DEFINE FIELD updated_at ON document TYPE datetime DEFAULT time::now() VALUE time
 DEFINE FIELD is_deleted ON document TYPE bool DEFAULT false;
 DEFINE INDEX idx_author ON document COLUMNS author;
 DEFINE INDEX idx_created_at ON document COLUMNS created_at;`
-};
+}
 
 /**
  * 操作日志表定义
@@ -65,4 +65,4 @@ DEFINE FIELD source ON operation_log TYPE string DEFAULT 'electron_backend';
 DEFINE INDEX idx_action ON operation_log COLUMNS action;
 DEFINE INDEX idx_table ON operation_log COLUMNS table_name;
 DEFINE INDEX idx_timestamp ON operation_log COLUMNS timestamp;`
-};
+}

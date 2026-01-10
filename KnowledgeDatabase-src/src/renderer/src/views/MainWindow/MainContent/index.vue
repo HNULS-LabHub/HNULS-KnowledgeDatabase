@@ -42,7 +42,10 @@ const handleNavigate = (page: string) => {
   width: 100%;
   height: 100%;
   background: #f8fafc;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   overflow: hidden;
 }
 

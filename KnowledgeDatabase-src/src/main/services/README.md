@@ -5,17 +5,20 @@
 ## 服务分类
 
 ### 系统服务
+
 - `app-service.ts` - 应用生命周期管理
 - `window-service.ts` - 窗口管理服务
 - `menu-service.ts` - 菜单管理服务
 
 ### 业务服务
+
 - `file-service.ts` - 文件系统操作
 - `database-service.ts` - 数据库操作
 - `search-service.ts` - 搜索索引服务
 - `sync-service.ts` - 数据同步服务
 
 ### 工具服务
+
 - `logger-service.ts` - 日志服务
 - `config-service.ts` - 配置管理
 - `notification-service.ts` - 系统通知
@@ -38,11 +41,11 @@ export class FileService {
 
   async readFile(path: string): Promise<string> {
     try {
-      this.logger.info(`Reading file: ${path}`);
-      return await fs.readFile(path, 'utf-8');
+      this.logger.info(`Reading file: ${path}`)
+      return await fs.readFile(path, 'utf-8')
     } catch (error) {
-      this.logger.error(`Failed to read file: ${path}`, error);
-      throw error;
+      this.logger.error(`Failed to read file: ${path}`, error)
+      throw error
     }
   }
 }

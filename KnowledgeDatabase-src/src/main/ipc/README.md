@@ -24,17 +24,17 @@ Renderer Process  →  IPC Handler  →  Service Layer
 ```typescript
 export class FileIPCHandler extends BaseIPCHandler {
   constructor(private fileService: FileService) {
-    super();
-    this.register();
+    super()
+    this.register()
   }
 
   protected getChannelPrefix(): string {
-    return 'file';
+    return 'file'
   }
 
   async handleRead(event: IpcMainInvokeEvent, path: string) {
-    const content = await this.fileService.readFile(path);
-    return { success: true, data: content };
+    const content = await this.fileService.readFile(path)
+    return { success: true, data: content }
   }
 }
 ```
@@ -42,6 +42,7 @@ export class FileIPCHandler extends BaseIPCHandler {
 ### 2. 自动注册机制
 
 基类会自动将以 `handle` 开头的方法注册为 IPC 处理器：
+
 - `handleRead` → `file:read`
 - `handleWrite` → `file:write`
 - `handleDelete` → `file:delete`

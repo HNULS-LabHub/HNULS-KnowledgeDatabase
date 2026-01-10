@@ -5,6 +5,7 @@
 ## 职责
 
 ### 1. API 聚合
+
 将各个业务域的 API 聚合成统一的接口：
 
 ```typescript
@@ -13,38 +14,43 @@ const customAPI = {
   file: fileAPI,
   database: databaseAPI,
   window: windowAPI
-};
+}
 ```
 
 ### 2. 安全暴露
+
 通过 `contextBridge` 安全地暴露 API：
 
 ```typescript
-contextBridge.exposeInMainWorld('api', customAPI);
+contextBridge.exposeInMainWorld('api', customAPI)
 ```
 
 ### 3. 兼容处理
+
 处理上下文隔离启用/禁用的兼容性：
 
 ```typescript
 if (process.contextIsolated) {
   // 安全模式：使用 contextBridge
-  contextBridge.exposeInMainWorld('api', customAPI);
+  contextBridge.exposeInMainWorld('api', customAPI)
 } else {
   // 兼容模式：直接挂载到 window
-  (window as any).api = customAPI;
+  ;(window as any).api = customAPI
 }
 ```
 
 ## 安全考虑
 
 ### 1. 最小权限原则
+
 只暴露渲染进程真正需要的 API，避免暴露敏感功能。
 
 ### 2. 参数验证
+
 在 API 层进行基础的参数类型检查。
 
 ### 3. 错误隔离
+
 确保主进程的错误不会直接暴露给渲染进程。
 
 ## 使用方式
@@ -52,9 +58,9 @@ if (process.contextIsolated) {
 ### 在 preload/index.ts 中调用
 
 ```typescript
-import { exposeBridge } from './bridge';
+import { exposeBridge } from './bridge'
 
-exposeBridge();
+exposeBridge()
 ```
 
 ### 渲染进程中的类型定义
@@ -63,8 +69,8 @@ exposeBridge();
 // 在 renderer 中定义全局类型
 declare global {
   interface Window {
-    api: typeof customAPI;
-    electron: ElectronAPI;
+    api: typeof customAPI
+    electron: ElectronAPI
   }
 }
 ```

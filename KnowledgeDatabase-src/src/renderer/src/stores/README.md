@@ -21,20 +21,20 @@ stores/
 
 ```typescript
 // 示例：user.datasource.ts
-import * as mock from './user.mock';
+import * as mock from './user.mock'
 
-const isElectron = !!(window as any).electron;
+const isElectron = !!(window as any).electron
 
 export const UserDataSource = {
   async getUserProfile(id: string) {
     if (isElectron) {
       // 生产环境：调用 IPC
-      return await window.electron.ipcRenderer.invoke('get_user_profile', { id });
+      return await window.electron.ipcRenderer.invoke('get_user_profile', { id })
     } else {
       // 开发环境：调用 Mock 数据
-      console.debug('[Dev Mode] Using Mock Data');
-      return mock.mockUserProfile(id);
+      console.debug('[Dev Mode] Using Mock Data')
+      return mock.mockUserProfile(id)
     }
   }
-};
+}
 ```

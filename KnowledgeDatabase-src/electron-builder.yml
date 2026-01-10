@@ -10,8 +10,8 @@ files:
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 extraResources:
-  - from: "vendor"
-    to: "vendor"
+  - from: 'vendor'
+    to: 'vendor'
 asarUnpack:
   - resources/**
 win:

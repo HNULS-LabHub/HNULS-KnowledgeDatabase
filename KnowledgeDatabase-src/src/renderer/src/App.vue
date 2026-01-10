@@ -19,7 +19,8 @@ const handleEnterApp = () => {
 
 <style>
 /* 全局样式重置 - 只重置必要的元素 */
-html, body {
+html,
+body {
   width: 100%;
   height: 100%;
   overflow: hidden;

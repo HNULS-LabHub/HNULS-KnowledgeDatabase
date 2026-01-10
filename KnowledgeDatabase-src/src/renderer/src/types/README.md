@@ -25,10 +25,10 @@ types/
 ```typescript
 // file/index.ts
 export interface FileNode {
-  id: string;
-  name: string;
-  path: string;
-  isDirectory: boolean;
-  children?: FileNode[];
+  id: string
+  name: string
+  path: string
+  isDirectory: boolean
+  children?: FileNode[]
 }
 ```

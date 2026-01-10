@@ -25,41 +25,40 @@ export type ServerEvent =
   | 'server:stderr'
   | 'schema:initialized'
   | 'schema:validated'
-  | 'schema:overwritten';
+  | 'schema:overwritten'
 
 /**
  * 事件处理器类型
  */
-export type EventHandler = (data: unknown) => void | Promise<void>;
+export type EventHandler = (data: unknown) => void | Promise<void>
 
 /**
  * 服务器启动事件数据
  */
 export interface ServerStartingEvent {
-  port: number;
+  port: number
 }
 
 /**
  * 服务器就绪事件数据
  */
 export interface ServerReadyEvent {
-  url: string;
-  port: number;
+  url: string
+  port: number
 }
 
 /**
  * 服务器错误事件数据
  */
 export interface ServerErrorEvent {
-  error: Error;
+  error: Error
 }
-
 
 /**
  * 服务器输出事件数据
  */
 export interface ServerOutputEvent {
-  output: string;
+  output: string
 }
 
 /**
@@ -71,7 +70,7 @@ export interface SchemaInitializedEvent {}
  * Schema 验证事件数据
  */
 export interface SchemaValidatedEvent {
-  isValid: boolean;
+  isValid: boolean
 }
 
 /**
@@ -84,27 +83,27 @@ export interface SchemaOverwrittenEvent {}
  */
 export interface ISurrealDBService {
   // 生命周期方法
-  initialize(): Promise<void>;
-  start(): Promise<void>;
-  shutdown(): Promise<void>;
+  initialize(): Promise<void>
+  start(): Promise<void>
+  shutdown(): Promise<void>
 
   // 状态查询
-  isRunning(): boolean;
-  getStatus(): ServerStatus;
+  isRunning(): boolean
+  getStatus(): ServerStatus
 
   // 配置访问
-  getServerUrl(): string;
-  getCredentials(): { username: string; password: string };
+  getServerUrl(): string
+  getCredentials(): { username: string; password: string }
 
   // 事件订阅
-  on(event: ServerEvent, handler: EventHandler): void;
-  off(event: ServerEvent, handler: EventHandler): void;
+  on(event: ServerEvent, handler: EventHandler): void
+  off(event: ServerEvent, handler: EventHandler): void
 }
 
 /**
  * 端口范围配置
  */
 export interface PortRange {
-  min: number;
-  max: number;
+  min: number
+  max: number
 }

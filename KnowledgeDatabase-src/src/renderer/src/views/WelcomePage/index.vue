@@ -9,33 +9,43 @@
     <div class="welcome-content">
       <div class="logo-section">
         <div class="logo-box">
-          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"></path>
-            <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"></path>
+          <svg
+            class="logo-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"
+            ></path>
+            <path
+              d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"
+            ></path>
           </svg>
         </div>
-        <h1 class="app-title">
-          Nexus <span class="gradient-text">Mind</span>
-        </h1>
-        <p class="app-subtitle">
-          <br/>融合 RAG 与 Graph Reasoning 的智能引擎。
-        </p>
+        <h1 class="app-title">Nexus <span class="gradient-text">Mind</span></h1>
+        <p class="app-subtitle"><br />融合 RAG 与 Graph Reasoning 的智能引擎。</p>
       </div>
 
       <button class="enter-button" @click="handleEnter">
         <span class="button-content">
           初始化系统
-          <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="arrow-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <line x1="5" y1="12" x2="19" y2="12"></line>
             <polyline points="12 5 19 12 12 19"></polyline>
           </svg>
         </span>
       </button>
     </div>
-    
-    <div class="bottom-hint">
-      按 <span class="key-hint">Space</span> 快速进入
-    </div>
+
+    <div class="bottom-hint">按 <span class="key-hint">Space</span> 快速进入</div>
   </div>
 </template>
 
@@ -255,7 +265,7 @@ const handleEnter = () => {
   .app-title {
     font-size: 3rem;
   }
-  
+
   .app-subtitle {
     font-size: 1rem;
   }

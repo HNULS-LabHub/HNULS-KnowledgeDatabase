@@ -5,30 +5,36 @@
 ## 设计原则
 
 ### 1. 按业务域分模块
+
 每个业务域一个 API 文件：
+
 - `test-api.ts` - 测试相关 API
-- `file-api.ts` - 文件操作 API  
+- `file-api.ts` - 文件操作 API
 - `database-api.ts` - 数据库操作 API
 - `window-api.ts` - 窗口控制 API
 
 ### 2. 类型安全
+
 所有 API 都提供完整的 TypeScript 类型定义：
 
 ```typescript
 export const fileAPI = {
   readFile: (path: string): Promise<FileReadResult> => {
-    return ipcRenderer.invoke('file:read', path);
+    return ipcRenderer.invoke('file:read', path)
   }
-};
+}
 ```
 
 ### 3. 错误处理
+
 API 层不处理业务错误，只负责：
+
 - 参数验证
 - 类型转换
 - IPC 通信
 
 ### 4. 文档注释
+
 每个 API 方法都应该有 JSDoc 注释：
 
 ```typescript
@@ -45,23 +51,23 @@ readFile: (path: string): Promise<FileReadResult>
 ### 在 preload/index.ts 中注册
 
 ```typescript
-import { testAPI } from './api/test-api';
-import { fileAPI } from './api/file-api';
+import { testAPI } from './api/test-api'
+import { fileAPI } from './api/file-api'
 
 const api = {
   test: testAPI,
   file: fileAPI
-};
+}
 
-contextBridge.exposeInMainWorld('api', api);
+contextBridge.exposeInMainWorld('api', api)
 ```
 
 ### 在渲染进程中使用
 
 ```typescript
 // 在 Vue 组件或 composables 中
-const result = await window.api.test.ping();
-const content = await window.api.file.readFile('/path/to/file');
+const result = await window.api.test.ping()
+const content = await window.api.file.readFile('/path/to/file')
 ```
 
 ## 命名规范

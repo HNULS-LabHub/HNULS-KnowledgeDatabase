@@ -2,21 +2,38 @@
   <nav class="narrow-navbar">
     <div class="nav-logo">
       <div class="logo-gradient">
-        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"></path>
-          <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"></path>
+        <svg
+          class="logo-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"
+          ></path>
+          <path
+            d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"
+          ></path>
         </svg>
       </div>
     </div>
 
     <div class="nav-items">
-      <button 
-        v-for="item in navItems" 
+      <button
+        v-for="item in navItems"
         :key="item.id"
         :class="['nav-item', { active: activeItem === item.id }]"
         @click="setActive(item.id)"
       >
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" v-html="item.icon"></svg>
+        <svg
+          class="nav-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          v-html="item.icon"
+        ></svg>
         <div class="nav-tooltip">
           {{ item.tooltip }}
           <div class="tooltip-arrow"></div>
@@ -27,7 +44,13 @@
 
     <div class="nav-bottom">
       <button class="nav-item" @click="setActive('settings')">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          class="nav-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <circle cx="12" cy="12" r="3"></circle>
           <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"></path>
         </svg>
@@ -49,13 +72,18 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const activeItem = ref('dashboard')
+const activeItem = ref('index')
 
 const emit = defineEmits<{
   navigate: [item: string]
 }>()
 
 const navItems = [
+  {
+    id: 'index',
+    tooltip: '首页',
+    icon: '<path d="M10.586 10.586L16.95 7.05l-3.536 6.364m-2.828-2.828L7.05 16.95l6.364-3.536m-2.828-2.828l2.828 2.828"></path><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2S2 6.477 2 12s4.477 10 10 10m7-10h-1M6 12H5m7-7v1m0 12v1M7.05 7.05l.707.707m8.486 8.486l.707.707"></path>'
+  },
   {
     id: 'dashboard',
     tooltip: '仪表盘',
@@ -78,9 +106,11 @@ const navItems = [
   }
 ]
 
-const setActive = (item: string) => {
+const setActive = (item: string): void => {
   activeItem.value = item
-  emit('navigate', item)
+  // 将 index 映射到 dashboard 页面
+  const targetPage = item === 'index' ? 'dashboard' : item
+  emit('navigate', targetPage)
 }
 </script>
 
