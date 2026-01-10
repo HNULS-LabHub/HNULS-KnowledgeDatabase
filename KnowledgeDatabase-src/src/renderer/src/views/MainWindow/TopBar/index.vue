@@ -105,7 +105,7 @@ const pageTitle = computed(() => {
 
 <style scoped>
 .top-bar {
-  height: 4rem;
+  height: 48px;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;

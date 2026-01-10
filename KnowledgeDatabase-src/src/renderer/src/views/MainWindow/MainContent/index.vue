@@ -19,10 +19,13 @@ import RAGView from './views/RAGView.vue'
 import GraphView from './views/GraphView.vue'
 import DocsView from './views/DocsView.vue'
 
+import KnowledgeView from './views/KnowledgeView.vue'
+
 const currentPage = ref('dashboard')
 
 const pageConfig = {
   dashboard: DashboardView,
+  knowledge: KnowledgeView,
   rag: RAGView,
   graph: GraphView,
   docs: DocsView
