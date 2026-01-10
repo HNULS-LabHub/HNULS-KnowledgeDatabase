@@ -40,23 +40,22 @@
         </div>
 
         <!-- Example Cards -->
-        <div 
-          v-for="kb in knowledgeBases" 
-          :key="kb.id" 
+        <div
+          v-for="kb in knowledgeBases"
+          :key="kb.id"
           class="glass-card kb-card"
           @click="handleEnterKb(kb)"
         >
           <div class="kb-header">
             <!-- 动态图标与颜色 -->
-            <div 
-              class="kb-icon" 
-              :style="{ 
-                background: getLightColor(kb.color), 
-                color: kb.color 
+            <div
+              class="kb-icon"
+              :style="{
+                background: getLightColor(kb.color),
+                color: kb.color
               }"
               v-html="kb.icon"
-            >
-            </div>
+            ></div>
             <button class="kb-more-btn" @click.stop>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="1"></circle>
@@ -65,7 +64,7 @@
               </svg>
             </button>
           </div>
-          
+
           <div class="kb-info">
             <h3 class="kb-name">{{ kb.name }}</h3>
             <p class="kb-desc">{{ kb.description }}</p>
@@ -86,7 +85,7 @@
               <span>{{ kb.vectorCount }} 向量</span>
             </div>
           </div>
-          
+
           <div class="kb-footer">
             <span class="update-time">更新于 {{ kb.lastUpdated }}</span>
             <button class="enter-btn">进入</button>
@@ -102,16 +101,15 @@
     </template>
 
     <!-- Detail View Mode -->
-    <KnowledgeDetail 
-      v-else-if="selectedKb" 
-      :kb="selectedKb" 
-    />
+    <KnowledgeDetail v-else-if="selectedKb" :kb="selectedKb" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import CreateKnowledgeBaseDialog, { type KnowledgeBaseFormData } from './CreateKnowledgeBaseDialog.vue'
+import CreateKnowledgeBaseDialog, {
+  type KnowledgeBaseFormData
+} from './CreateKnowledgeBaseDialog.vue'
 import KnowledgeDetail from './KnowledgeDetail/index.vue'
 import type { KnowledgeBase } from './types'
 
@@ -207,7 +205,7 @@ const handleBack = () => {
 const getLightColor = (hex: string) => {
   // 简单验证 hex 格式
   if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex)) return 'rgba(0,0,0,0.05)'
-  
+
   let c = hex.substring(1).split('')
   if (c.length === 3) {
     c = [c[0], c[0], c[1], c[1], c[2], c[2]]
@@ -215,7 +213,7 @@ const getLightColor = (hex: string) => {
   const r = parseInt(c[0] + c[1], 16)
   const g = parseInt(c[2] + c[3], 16)
   const b = parseInt(c[4] + c[5], 16)
-  
+
   return `rgba(${r}, ${g}, ${b}, 0.1)`
 }
 

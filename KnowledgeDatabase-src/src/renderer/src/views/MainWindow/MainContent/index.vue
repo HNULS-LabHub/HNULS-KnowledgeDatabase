@@ -1,15 +1,15 @@
 <template>
   <div class="main-content">
-    <TopBar 
-      :current-page="currentPage" 
+    <TopBar
+      :current-page="currentPage"
       :extra-breadcrumb="extraBreadcrumb"
       @navigate-back="handleBreadcrumbBack"
     />
     <div class="content-area">
       <NavBar @navigate="handleNavigate" />
       <div class="content-panel">
-        <component 
-          :is="currentComponent" 
+        <component
+          :is="currentComponent"
           ref="viewRef"
           @enter-detail="handleEnterDetail"
           @leave-detail="handleLeaveDetail"

@@ -11,8 +11,8 @@
       >
         <polyline points="9 18 15 12 9 6"></polyline>
       </svg>
-      <span 
-        class="breadcrumb-item" 
+      <span
+        class="breadcrumb-item"
         :class="{ 'breadcrumb-current': !extraBreadcrumb }"
         @click="$emit('navigate-back')"
       >

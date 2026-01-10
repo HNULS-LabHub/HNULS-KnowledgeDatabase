@@ -3,14 +3,16 @@
     <div class="KnowledgeView_KnowledgeDetail_ContentHeader_left">
       <h2 class="KnowledgeView_KnowledgeDetail_ContentHeader_title">{{ title }}</h2>
       <div class="KnowledgeView_KnowledgeDetail_ContentHeader_divider"></div>
-      
+
       <!-- 视图切换器 -->
       <div class="KnowledgeView_KnowledgeDetail_ContentHeader_viewSwitcher">
-        <button 
+        <button
           v-for="view in viewOptions"
           :key="view.id"
           class="KnowledgeView_KnowledgeDetail_ContentHeader_viewBtn"
-          :class="{ 'KnowledgeView_KnowledgeDetail_ContentHeader_viewBtn_active': currentView === view.id }"
+          :class="{
+            KnowledgeView_KnowledgeDetail_ContentHeader_viewBtn_active: currentView === view.id
+          }"
           @click="$emit('update:currentView', view.id)"
           :title="view.label"
         >
@@ -21,16 +23,29 @@
 
     <div class="KnowledgeView_KnowledgeDetail_ContentHeader_right">
       <div class="KnowledgeView_KnowledgeDetail_ContentHeader_searchWrapper">
-        <svg class="KnowledgeView_KnowledgeDetail_ContentHeader_searchIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          class="KnowledgeView_KnowledgeDetail_ContentHeader_searchIcon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <input 
-          type="text" 
-          placeholder="搜索文件..." 
+        <input
+          type="text"
+          placeholder="搜索文件..."
           class="KnowledgeView_KnowledgeDetail_ContentHeader_searchInput"
         />
       </div>
+
+      <!-- 每页条目数选择器 (仅在列表视图显示) -->
+      <PageSizeSelector
+        v-if="currentView === 'list'"
+        :model-value="pageSize || 20"
+        @update:model-value="$emit('update:pageSize', $event)"
+      />
 
       <button class="KnowledgeView_KnowledgeDetail_ContentHeader_primaryBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -46,14 +61,17 @@
 
 <script setup lang="ts">
 import type { ViewType } from '../types'
+import PageSizeSelector from './PageSizeSelector.vue'
 
 defineProps<{
   title: string
   currentView: ViewType
+  pageSize?: number
 }>()
 
 defineEmits<{
   (e: 'update:currentView', val: ViewType): void
+  (e: 'update:pageSize', val: number): void
 }>()
 
 const viewOptions: { id: ViewType; label: string; icon: string }[] = [
@@ -136,7 +154,7 @@ const viewOptions: { id: ViewType; label: string; icon: string }[] = [
 .KnowledgeView_KnowledgeDetail_ContentHeader_viewBtn_active {
   background: white;
   color: #0f172a;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .KnowledgeView_KnowledgeDetail_ContentHeader_viewBtn :deep(svg) {
@@ -209,4 +227,5 @@ const viewOptions: { id: ViewType; label: string; icon: string }[] = [
   width: 1rem;
   height: 1rem;
 }
+
 </style>

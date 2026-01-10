@@ -3,20 +3,24 @@
     <!-- 顶部 KB 信息卡片 -->
     <div class="KnowledgeView_KnowledgeDetail_Sidebar_infoCard">
       <div class="KnowledgeView_KnowledgeDetail_Sidebar_infoHeader">
-        <div 
+        <div
           class="KnowledgeView_KnowledgeDetail_Sidebar_iconWrapper"
-          :style="{ 
-            background: getLightColor(kb.color), 
-            color: kb.color 
+          :style="{
+            background: getLightColor(kb.color),
+            color: kb.color
           }"
           v-html="kb.icon"
         ></div>
         <div class="KnowledgeView_KnowledgeDetail_Sidebar_textInfo">
-          <h2 class="KnowledgeView_KnowledgeDetail_Sidebar_kbName" :title="kb.name">{{ kb.name }}</h2>
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_kbId">ID: {{ String(kb.id).padStart(4, '0') }}</span>
+          <h2 class="KnowledgeView_KnowledgeDetail_Sidebar_kbName" :title="kb.name">
+            {{ kb.name }}
+          </h2>
+          <span class="KnowledgeView_KnowledgeDetail_Sidebar_kbId"
+            >ID: {{ String(kb.id).padStart(4, '0') }}</span
+          >
         </div>
       </div>
-      
+
       <div class="KnowledgeView_KnowledgeDetail_Sidebar_statsRow">
         <div class="KnowledgeView_KnowledgeDetail_Sidebar_statItem">
           <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue">{{ kb.docCount }}</span>
@@ -32,11 +36,11 @@
 
     <!-- 导航菜单 -->
     <nav class="KnowledgeView_KnowledgeDetail_Sidebar_navMenu">
-      <button 
-        v-for="item in navItems" 
+      <button
+        v-for="item in navItems"
         :key="item.id"
         class="KnowledgeView_KnowledgeDetail_Sidebar_navItem"
-        :class="{ 'KnowledgeView_KnowledgeDetail_Sidebar_navItem_active': currentNav === item.id }"
+        :class="{ KnowledgeView_KnowledgeDetail_Sidebar_navItem_active: currentNav === item.id }"
         @click="$emit('update:currentNav', item.id)"
       >
         <span class="KnowledgeView_KnowledgeDetail_Sidebar_navIcon" v-html="item.icon"></span>
@@ -59,25 +63,25 @@ defineEmits<{
 }>()
 
 const navItems: { id: NavItem; label: string; icon: string }[] = [
-  { 
-    id: 'files', 
-    label: '文件列表', 
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>` 
+  {
+    id: 'files',
+    label: '文件列表',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
   },
-  { 
-    id: 'search', 
-    label: '检索测试', 
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><path d="M11 8V14"></path><path d="M8 11H14"></path></svg>` 
+  {
+    id: 'search',
+    label: '检索测试',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><path d="M11 8V14"></path><path d="M8 11H14"></path></svg>`
   },
-  { 
-    id: 'logs', 
-    label: '日志', 
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>` 
+  {
+    id: 'logs',
+    label: '日志',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>`
   },
-  { 
-    id: 'settings', 
-    label: '配置', 
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>` 
+  {
+    id: 'settings',
+    label: '配置',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>`
   }
 ]
 
@@ -112,7 +116,9 @@ const getLightColor = (hex: string) => {
   background: white;
   border-radius: 1rem;
   padding: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(226, 232, 240, 0.6);
 }
 

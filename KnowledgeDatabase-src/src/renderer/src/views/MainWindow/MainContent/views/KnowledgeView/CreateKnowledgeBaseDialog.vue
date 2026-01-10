@@ -22,11 +22,11 @@
                     <div class="form-group">
                       <label class="form-label">图标预览</label>
                       <div class="icon-preview-box">
-                        <div 
+                        <div
                           class="kb-icon-preview"
-                          :style="{ 
-                            color: formData.color, 
-                            background: getLightColor(formData.color) 
+                          :style="{
+                            color: formData.color,
+                            background: getLightColor(formData.color)
                           }"
                           v-html="formData.icon || defaultIcon"
                         ></div>
@@ -35,58 +35,61 @@
 
                     <div class="form-group color-group">
                       <label class="form-label">主题颜色</label>
-                      
+
                       <!-- RGB 滑轨 -->
                       <div class="rgb-sliders">
                         <div class="slider-item">
                           <label class="slider-label red">R</label>
-                          <input 
-                            type="range" 
-                            v-model.number="rgb.r" 
-                            min="0" 
-                            max="255" 
+                          <input
+                            type="range"
+                            v-model.number="rgb.r"
+                            min="0"
+                            max="255"
                             class="slider-input red-slider"
-                          >
+                          />
                           <span class="slider-value">{{ rgb.r }}</span>
                         </div>
                         <div class="slider-item">
                           <label class="slider-label green">G</label>
-                          <input 
-                            type="range" 
-                            v-model.number="rgb.g" 
-                            min="0" 
-                            max="255" 
+                          <input
+                            type="range"
+                            v-model.number="rgb.g"
+                            min="0"
+                            max="255"
                             class="slider-input green-slider"
-                          >
+                          />
                           <span class="slider-value">{{ rgb.g }}</span>
                         </div>
                         <div class="slider-item">
                           <label class="slider-label blue">B</label>
-                          <input 
-                            type="range" 
-                            v-model.number="rgb.b" 
-                            min="0" 
-                            max="255" 
+                          <input
+                            type="range"
+                            v-model.number="rgb.b"
+                            min="0"
+                            max="255"
                             class="slider-input blue-slider"
-                          >
+                          />
                           <span class="slider-value">{{ rgb.b }}</span>
                         </div>
                       </div>
 
                       <div class="color-hex-display">
-                        <div class="color-preview-dot" :style="{ background: formData.color }"></div>
+                        <div
+                          class="color-preview-dot"
+                          :style="{ background: formData.color }"
+                        ></div>
                         <span class="hex-text">{{ formData.color.toUpperCase() }}</span>
                       </div>
 
                       <!-- 快速选择预设 -->
                       <div class="preset-colors">
-                         <div 
-                           v-for="color in presetColors" 
-                           :key="color"
-                           class="preset-color-dot"
-                           :style="{ background: color }"
-                           @click="setColor(color)"
-                         ></div>
+                        <div
+                          v-for="color in presetColors"
+                          :key="color"
+                          class="preset-color-dot"
+                          :style="{ background: color }"
+                          @click="setColor(color)"
+                        ></div>
                       </div>
                     </div>
                   </div>
@@ -123,18 +126,22 @@
                     <div class="form-group flex-fill-group">
                       <label class="form-label">图标选择</label>
                       <div class="icon-tabs">
-                        <button 
+                        <button
                           type="button"
-                          class="tab-btn" 
+                          class="tab-btn"
                           :class="{ active: iconTab === 'preset' }"
                           @click="iconTab = 'preset'"
-                        >预设图标</button>
-                        <button 
+                        >
+                          预设图标
+                        </button>
+                        <button
                           type="button"
-                          class="tab-btn" 
+                          class="tab-btn"
                           :class="{ active: iconTab === 'custom' }"
                           @click="iconTab = 'custom'"
-                        >自定义 SVG</button>
+                        >
+                          自定义 SVG
+                        </button>
                       </div>
 
                       <div class="icon-selector-area">
@@ -164,9 +171,7 @@
 
                 <!-- 按钮组 -->
                 <div class="form-actions">
-                  <button type="button" class="btn btn-secondary" @click="handleClose">
-                    取消
-                  </button>
+                  <button type="button" class="btn btn-secondary" @click="handleClose">取消</button>
                   <button type="submit" class="btn btn-primary">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -226,7 +231,16 @@ const presetIcons = [
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`
 ]
 
-const presetColors = ['#2563eb', '#7c3aed', '#10b981', '#f59e0b', '#f43f5e', '#06b6d4', '#8b5cf6', '#ec4899']
+const presetColors = [
+  '#2563eb',
+  '#7c3aed',
+  '#10b981',
+  '#f59e0b',
+  '#f43f5e',
+  '#06b6d4',
+  '#8b5cf6',
+  '#ec4899'
+]
 
 const defaultIcon = presetIcons[0]
 
@@ -254,11 +268,13 @@ const rgbToHex = (r: number, g: number, b: number) => {
 // Helper: Hex -> RGB
 const hexToRgb = (hex: string) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      }
+    : null
 }
 
 // Watch RGB changes -> Update Hex
@@ -314,7 +330,7 @@ const resetForm = () => {
 // 辅助函数：生成浅色背景色 (Hex 转 RGBA)
 const getLightColor = (hex: string) => {
   if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex)) return 'rgba(0,0,0,0.05)'
-  
+
   let c = hex.substring(1).split('')
   if (c.length === 3) {
     c = [c[0], c[0], c[1], c[1], c[2], c[2]]
@@ -322,7 +338,7 @@ const getLightColor = (hex: string) => {
   const r = parseInt(c[0] + c[1], 16)
   const g = parseInt(c[2] + c[3], 16)
   const b = parseInt(c[4] + c[5], 16)
-  
+
   return `rgba(${r}, ${g}, ${b}, 0.1)`
 }
 
@@ -330,11 +346,11 @@ watch(
   () => props.visible,
   (newVal) => {
     if (newVal) {
-        // Ensure RGB matches current hex when opening
-        const currentRgb = hexToRgb(formData.value.color)
-        if (currentRgb) Object.assign(rgb, currentRgb)
+      // Ensure RGB matches current hex when opening
+      const currentRgb = hexToRgb(formData.value.color)
+      if (currentRgb) Object.assign(rgb, currentRgb)
     } else {
-      setTimeout(resetForm, 300) 
+      setTimeout(resetForm, 300)
     }
   }
 )
@@ -361,7 +377,9 @@ watch(
 .dialog-container {
   background: white;
   border-radius: 1rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
   width: 100%;
   max-width: 900px; /* 增加宽度 */
   height: 650px; /* 固定高度，确保有剩余空间可供填充 */
@@ -401,8 +419,14 @@ watch(
   border-radius: 0.5rem;
   transition: all 200ms;
 }
-.close-btn:hover { background: #f1f5f9; color: #475569; }
-.close-btn svg { width: 1.25rem; height: 1.25rem; }
+.close-btn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+.close-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
 
 /* 主体布局 */
 .dialog-body {
@@ -492,9 +516,15 @@ watch(
   font-weight: 700;
   width: 1rem;
 }
-.slider-label.red { color: #ef4444; }
-.slider-label.green { color: #10b981; }
-.slider-label.blue { color: #3b82f6; }
+.slider-label.red {
+  color: #ef4444;
+}
+.slider-label.green {
+  color: #10b981;
+}
+.slider-label.blue {
+  color: #3b82f6;
+}
 
 .slider-input {
   flex: 1;
@@ -513,14 +543,23 @@ watch(
   background: white;
   border: 2px solid #cbd5e1;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   margin-top: -5px; /* (4px height - 14px thumb) / 2 */
 }
 /* Slider Track custom colors */
-.slider-input::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; }
-.red-slider::-webkit-slider-thumb { border-color: #ef4444; }
-.green-slider::-webkit-slider-thumb { border-color: #10b981; }
-.blue-slider::-webkit-slider-thumb { border-color: #3b82f6; }
+.slider-input::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+}
+.red-slider::-webkit-slider-thumb {
+  border-color: #ef4444;
+}
+.green-slider::-webkit-slider-thumb {
+  border-color: #10b981;
+}
+.blue-slider::-webkit-slider-thumb {
+  border-color: #3b82f6;
+}
 
 .slider-value {
   font-size: 0.75rem;
@@ -546,7 +585,7 @@ watch(
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 0.375rem;
-  border: 1px solid rgba(0,0,0,0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .hex-text {
@@ -568,10 +607,12 @@ watch(
   aspect-ratio: 1;
   border-radius: 0.375rem;
   cursor: pointer;
-  border: 1px solid rgba(0,0,0,0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   transition: transform 200ms;
 }
-.preset-color-dot:hover { transform: scale(1.1); }
+.preset-color-dot:hover {
+  transform: scale(1.1);
+}
 
 /* 右侧表单样式 */
 .form-col-right {
@@ -581,9 +622,9 @@ watch(
   overflow: hidden;
 }
 
-.form-group { 
-  margin-bottom: 1.25rem; 
-  flex-shrink: 0; 
+.form-group {
+  margin-bottom: 1.25rem;
+  flex-shrink: 0;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -603,9 +644,13 @@ watch(
   color: #0f172a;
   margin-bottom: 0.5rem;
 }
-.required { color: #ef4444; margin-left: 0.25rem; }
+.required {
+  color: #ef4444;
+  margin-left: 0.25rem;
+}
 
-.form-input, .form-textarea {
+.form-input,
+.form-textarea {
   width: 100%;
   padding: 0.625rem 0.875rem;
   border: 1px solid #e2e8f0;
@@ -616,7 +661,8 @@ watch(
   font-family: inherit;
   box-sizing: border-box;
 }
-.form-input:focus, .form-textarea:focus {
+.form-input:focus,
+.form-textarea:focus {
   outline: none;
   border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
@@ -653,7 +699,7 @@ watch(
 .tab-btn.active {
   background: white;
   color: #0f172a;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 /* 图标选择区域自适应 */
@@ -747,24 +793,68 @@ watch(
   transition: all 200ms;
   border: none;
 }
-.btn-secondary { background: #f1f5f9; color: #475569; }
-.btn-secondary:hover { background: #e2e8f0; color: #0f172a; }
-.btn-primary { background: #0f172a; color: white; }
-.btn-primary:hover { background: #1e293b; }
-.btn svg { width: 1rem; height: 1rem; }
+.btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+}
+.btn-secondary:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+.btn-primary {
+  background: #0f172a;
+  color: white;
+}
+.btn-primary:hover {
+  background: #1e293b;
+}
+.btn svg {
+  width: 1rem;
+  height: 1rem;
+}
 
 /* 动画 */
-.dialog-fade-enter-active, .dialog-fade-leave-active { transition: opacity 300ms ease; }
-.dialog-fade-enter-from, .dialog-fade-leave-to { opacity: 0; }
-.dialog-scale-enter-active, .dialog-scale-leave-active { transition: all 300ms ease; }
-.dialog-scale-enter-from, .dialog-scale-leave-to { opacity: 0; transform: scale(0.95) translateY(-1rem); }
+.dialog-fade-enter-active,
+.dialog-fade-leave-active {
+  transition: opacity 300ms ease;
+}
+.dialog-fade-enter-from,
+.dialog-fade-leave-to {
+  opacity: 0;
+}
+.dialog-scale-enter-active,
+.dialog-scale-leave-active {
+  transition: all 300ms ease;
+}
+.dialog-scale-enter-from,
+.dialog-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.95) translateY(-1rem);
+}
 
 @media (max-width: 640px) {
-  .form-row { grid-template-columns: 1fr; gap: 1rem; overflow-y: auto; display: flex; flex-direction: column; }
-  .form-col-left { overflow: visible; }
-  .form-col-right { height: auto; overflow: visible; }
-  .flex-fill-group { flex: none; }
-  .icon-selector-area { height: 200px; }
-  .dialog-container { height: 90vh; }
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .form-col-left {
+    overflow: visible;
+  }
+  .form-col-right {
+    height: auto;
+    overflow: visible;
+  }
+  .flex-fill-group {
+    flex: none;
+  }
+  .icon-selector-area {
+    height: 200px;
+  }
+  .dialog-container {
+    height: 90vh;
+  }
 }
 </style>
