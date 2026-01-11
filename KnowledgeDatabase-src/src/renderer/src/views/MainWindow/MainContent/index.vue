@@ -72,62 +72,22 @@ const handleBreadcrumbBack = () => {
 </script>
 
 <style scoped>
+@reference "tailwindcss";
+
 .main-content {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  background: #f8fafc;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-  overflow: hidden;
+  @apply flex flex-col w-full h-full bg-slate-50 overflow-hidden;
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
 .content-area {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-  background: #f8fafc;
+  @apply flex flex-1 overflow-hidden bg-slate-50;
 }
 
 .content-panel {
-  flex: 1;
-  overflow: hidden;
-  background: #f8fafc;
+  @apply flex-1 overflow-hidden bg-slate-50;
 }
 </style>
 
 <style>
-/* 自定义滚动条样式 - 全局应用 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(203, 213, 225, 0.3);
-  border-radius: 3px;
-  transition: all 0.3s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.4);
-}
-
-::-webkit-scrollbar-thumb:active {
-  background: rgba(100, 116, 139, 0.5);
-}
-
-/* Firefox 滚动条样式 */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(203, 213, 225, 0.4) transparent;
-}
+/* 滚动条样式已迁移到全局 tailwind.css */
 </style>

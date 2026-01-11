@@ -36,11 +36,9 @@ body {
 </style>
 
 <style scoped>
+@reference "tailwindcss";
+
 .app {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  @apply w-full h-full overflow-hidden flex flex-col;
 }
 </style>

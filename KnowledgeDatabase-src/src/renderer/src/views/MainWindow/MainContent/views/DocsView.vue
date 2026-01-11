@@ -23,52 +23,5 @@
 </script>
 
 <style scoped>
-.docs-view {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: fadeIn 300ms;
-  box-sizing: border-box;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  color: #94a3b8;
-}
-
-.empty-icon-wrapper {
-  width: 5rem;
-  height: 5rem;
-  background: #f1f5f9;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.empty-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  opacity: 0.3;
-}
-
-.empty-text {
-  font-weight: 500;
-  margin: 0;
-}
+/* 所有样式已迁移到全局 tailwind.css 中的组件类 */
 </style>

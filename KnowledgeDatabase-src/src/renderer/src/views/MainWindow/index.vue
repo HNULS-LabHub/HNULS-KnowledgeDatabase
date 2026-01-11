@@ -9,11 +9,9 @@ import MainContent from './MainContent/index.vue'
 </script>
 
 <style scoped>
+@reference "tailwindcss";
+
 .main-window {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  @apply w-full h-full overflow-hidden flex flex-col;
 }
 </style>
