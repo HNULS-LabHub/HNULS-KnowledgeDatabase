@@ -1,3 +1,5 @@
+import { app } from 'electron'
+import * as path from 'path'
 import { PortRange } from './types'
 
 /**
@@ -22,10 +24,27 @@ export interface SurrealDBConfig {
 }
 
 /**
+ * 获取默认数据库路径
+ * 开发环境和生产环境都使用用户数据目录
+ */
+function getDefaultDbPath(): string {
+  try {
+    // 使用 Electron 的用户数据目录
+    const userDataPath = app.getPath('userData')
+    return path.join(userDataPath, 'data', 'knowledge.db')
+  } catch (error) {
+    // 如果 app 尚未初始化，使用回退路径
+    // 这通常不会发生，因为 SurrealDBService 在 app.whenReady() 之后初始化
+    const fallbackPath = process.env.APPDATA || process.env.HOME || process.cwd()
+    return path.join(fallbackPath, 'knowledgedatabase-src', 'data', 'knowledge.db')
+  }
+}
+
+/**
  * 默认配置
  */
 export const DEFAULT_CONFIG: SurrealDBConfig = {
-  dbPath: './data/knowledge.db',
+  dbPath: getDefaultDbPath(),
   namespace: 'knowledge',
   database: 'main',
   username: 'root',
