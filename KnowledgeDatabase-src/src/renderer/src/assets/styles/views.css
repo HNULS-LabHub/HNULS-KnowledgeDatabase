@@ -1,0 +1,494 @@
+/* 视图组件样式 */
+@layer components {
+  /* Dashboard View */
+  .dashboard-view {
+    @apply p-8 overflow-y-auto h-full box-border;
+    animation: fadeIn 500ms ease-out;
+  }
+
+  .dashboard-header {
+    @apply flex justify-between items-end mb-8;
+  }
+
+  .stats-grid {
+    @apply grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6 mb-8;
+  }
+
+  .stat-card {
+    @apply p-6;
+  }
+
+  .stat-header {
+    @apply flex justify-between items-start mb-4;
+  }
+
+  .stat-icon {
+    @apply p-3 rounded-xl w-12 h-12 flex items-center justify-center;
+  }
+
+  .stat-icon svg {
+    @apply w-6 h-6;
+  }
+
+  .stat-icon.blue {
+    @apply bg-blue-50 text-blue-600;
+  }
+
+  .stat-icon.purple {
+    @apply bg-violet-50 text-violet-600;
+  }
+
+  .stat-icon.emerald {
+    @apply bg-emerald-50 text-emerald-500;
+  }
+
+  .stat-change {
+    @apply text-xs font-bold text-emerald-500 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full flex items-center gap-1;
+  }
+
+  .activity-icon {
+    @apply w-3 h-3;
+  }
+
+  .stat-value {
+    @apply text-3xl font-bold text-slate-900 mb-1;
+  }
+
+  .stat-label {
+    @apply text-slate-500 text-sm font-medium;
+  }
+
+  .section-title {
+    @apply text-lg font-bold text-slate-900 m-0 mb-4 flex items-center gap-2;
+  }
+
+  .title-icon {
+    @apply w-5 h-5 text-amber-500;
+  }
+
+  .activity-list {
+    @apply flex flex-col gap-3;
+  }
+
+  .activity-item {
+    @apply flex items-center gap-4 p-4 rounded-xl bg-white border border-slate-100 cursor-pointer transition-all duration-300;
+  }
+
+  .activity-item:hover {
+    @apply border-indigo-200 shadow-md;
+  }
+
+  .activity-icon-wrapper {
+    @apply w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 transition-all duration-300;
+  }
+
+  .activity-item:hover .activity-icon-wrapper {
+    @apply bg-indigo-50 text-indigo-500;
+  }
+
+  .activity-file-icon {
+    @apply w-5 h-5;
+  }
+
+  .activity-content {
+    @apply flex-1;
+  }
+
+  .activity-title {
+    @apply text-slate-900 text-sm font-bold m-0 mb-0.5 transition-colors duration-300;
+  }
+
+  .activity-item:hover .activity-title {
+    @apply text-indigo-500;
+  }
+
+  .activity-time {
+    @apply text-slate-500 text-xs m-0;
+  }
+
+  .activity-more {
+    @apply p-2 text-slate-300 bg-transparent border-none cursor-pointer transition-colors duration-300;
+  }
+
+  .activity-more:hover {
+    @apply text-slate-600;
+  }
+
+  .activity-more svg {
+    @apply w-5 h-5;
+  }
+
+  /* RAG View */
+  .rag-view {
+    @apply h-full flex flex-col gap-6 p-8 overflow-y-auto box-border;
+    animation: fadeIn 500ms ease-out;
+  }
+
+  .rag-header {
+    @apply flex justify-between items-end;
+  }
+
+  .rag-content {
+    @apply grid grid-cols-[5fr_7fr] gap-6 flex-1 min-h-[500px];
+  }
+
+  .left-panel {
+    @apply flex flex-col gap-4;
+  }
+
+  .input-card {
+    @apply p-6;
+  }
+
+  .input-label {
+    @apply block text-sm font-semibold text-slate-600 mb-2 flex items-center gap-2;
+  }
+
+  .label-icon {
+    @apply w-4 h-4 text-slate-400;
+  }
+
+  .input-wrapper {
+    @apply relative;
+  }
+
+  .query-input {
+    @apply w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pr-12 text-slate-900 outline-none transition-all duration-300 shadow-sm;
+  }
+
+  .query-input::placeholder {
+    @apply text-slate-400;
+  }
+
+  .query-input:focus {
+    @apply border-indigo-500 shadow-[0_0_0_3px_rgba(79,70,229,0.1)] bg-white;
+  }
+
+  .submit-btn {
+    @apply absolute right-2 top-2 p-1.5 bg-indigo-500 rounded-lg text-white border-none cursor-pointer opacity-0 transition-all duration-300 shadow-lg;
+  }
+
+  .input-wrapper:hover .submit-btn {
+    @apply opacity-100;
+  }
+
+  .submit-btn:hover {
+    @apply bg-indigo-600;
+  }
+
+  .submit-btn svg {
+    @apply w-4 h-4;
+  }
+
+  .steps-container {
+    @apply flex-1 flex flex-col gap-3;
+  }
+
+  .step-item {
+    @apply flex items-center gap-4 p-4 rounded-xl bg-white border border-slate-100 shadow-sm;
+    animation: slideIn 300ms;
+  }
+
+  .step-icon {
+    @apply p-2 rounded-lg w-9 h-9 flex items-center justify-center;
+  }
+
+  .step-icon svg {
+    @apply w-5 h-5;
+  }
+
+  .step-icon.blue {
+    @apply bg-blue-50 text-blue-600;
+  }
+
+  .step-icon.purple {
+    @apply bg-violet-50 text-violet-600;
+  }
+
+  .step-icon.amber {
+    @apply bg-amber-50 text-amber-500;
+  }
+
+  .step-icon.emerald {
+    @apply bg-emerald-50 text-emerald-500;
+  }
+
+  .step-content {
+    @apply flex-1;
+  }
+
+  .step-text {
+    @apply text-slate-600 text-sm font-medium m-0 mb-2;
+  }
+
+  .progress-bar {
+    @apply h-1 w-full bg-slate-100 rounded-full overflow-hidden;
+  }
+
+  .progress-fill {
+    @apply h-full w-full bg-indigo-500;
+    animation: loading 1s ease-in-out infinite;
+  }
+
+  .zap-icon {
+    @apply w-4 h-4 text-amber-500 animate-pulse;
+  }
+
+  .right-panel {
+    @apply flex flex-col gap-4;
+  }
+
+  .results-header {
+    @apply flex justify-between items-center text-sm text-slate-500 px-2;
+  }
+
+  .results-header span:first-child {
+    @apply font-medium;
+  }
+
+  .time-badge {
+    @apply text-emerald-500 font-mono font-bold bg-emerald-50 px-2 py-0.5 rounded;
+  }
+
+  .results-list {
+    @apply flex-1 flex flex-col gap-3 overflow-y-auto pr-2;
+  }
+
+  .result-card {
+    @apply p-5 cursor-pointer;
+  }
+
+  .result-header {
+    @apply flex justify-between items-start mb-3;
+  }
+
+  .result-info {
+    @apply flex items-center gap-3;
+  }
+
+  .result-icon {
+    @apply w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-500;
+  }
+
+  .result-icon svg {
+    @apply w-5 h-5;
+  }
+
+  .result-title {
+    @apply text-slate-900 text-sm font-bold m-0 mb-0.5 transition-colors duration-300;
+  }
+
+  .result-card:hover .result-title {
+    @apply text-indigo-500;
+  }
+
+  .result-meta {
+    @apply text-slate-500 text-xs font-medium m-0;
+  }
+
+  .result-excerpt {
+    @apply text-slate-600 text-sm leading-6 border-l-2 border-slate-200 pl-3 py-2 rounded-r-lg m-0 transition-colors duration-300;
+    background: rgba(248, 250, 252, 0.5);
+  }
+
+  .result-card:hover .result-excerpt {
+    @apply border-indigo-300;
+  }
+
+  .empty-results {
+    @apply flex-1 flex items-center justify-center;
+  }
+
+  .empty-results-content {
+    @apply text-center relative;
+  }
+
+  .glow-effect {
+    @apply absolute inset-0 blur-[3rem] rounded-full;
+    background: rgba(199, 210, 254, 0.3);
+  }
+
+  .database-icon {
+    @apply w-24 h-24 text-slate-200 mx-auto relative z-10;
+  }
+
+  .empty-results-content p {
+    @apply mt-4 text-slate-400 font-medium;
+  }
+
+  /* Graph View */
+  .graph-view {
+    @apply h-full flex flex-col p-8 overflow-y-auto box-border;
+    animation: fadeIn 500ms ease-out;
+  }
+
+  .graph-header {
+    @apply flex justify-between items-start mb-6;
+  }
+
+  .add-btn {
+    @apply flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white border-none rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 shadow-lg;
+  }
+
+  .add-btn:hover {
+    @apply bg-indigo-600;
+  }
+
+  .add-btn svg {
+    @apply w-4 h-4;
+  }
+
+  .graph-container {
+    @apply flex items-center justify-center;
+  }
+
+  .legend {
+    @apply absolute top-4 left-4 z-10 flex gap-2;
+  }
+
+  .legend-item {
+    @apply backdrop-blur-sm p-2 rounded-lg border border-slate-200 text-xs text-slate-600 font-medium shadow-sm flex items-center gap-2;
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  .legend-icon {
+    @apply w-4 h-4;
+  }
+
+  .legend-icon.blue {
+    @apply text-blue-600;
+  }
+
+  .legend-icon.purple {
+    @apply text-violet-600;
+  }
+
+  .legend-icon.emerald {
+    @apply text-emerald-500;
+  }
+
+  .graph-svg {
+    @apply w-full h-full;
+  }
+
+  .edges {
+    stroke: #cbd5e1;
+    stroke-width: 1.5;
+  }
+
+  .edge.pulse-1 {
+    animation: pulse 3s infinite;
+  }
+
+  .edge.pulse-2 {
+    animation: pulse 4s infinite;
+  }
+
+  .edge.pulse-3 {
+    animation: pulse 5s infinite;
+  }
+
+  .edge.dashed {
+    opacity: 0.6;
+    stroke-dasharray: 5, 5;
+  }
+
+  .node-circle {
+    cursor: pointer;
+    transition: all 300ms;
+    stroke-width: 2;
+  }
+
+  .node-circle.center {
+    fill: #eff6ff;
+    stroke: #3b82f6;
+  }
+
+  .node-circle.purple {
+    fill: #faf5ff;
+    stroke: #a855f7;
+  }
+
+  .node-circle.emerald {
+    fill: #ecfdf5;
+    stroke: #10b981;
+  }
+
+  .node-circle.amber {
+    fill: #fffbeb;
+    stroke: #f59e0b;
+  }
+
+  .node-circle:hover {
+    opacity: 0.9;
+  }
+
+  .node-icon {
+    color: #2563eb;
+  }
+
+  .node-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .node-icon.small {
+    color: inherit;
+  }
+
+  .node-label {
+    text-anchor: middle;
+    fill: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .node-label.small {
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .info-panel {
+    @apply absolute bottom-4 right-4 backdrop-blur-sm p-4 rounded-xl border border-slate-200 w-64 shadow-xl translate-y-2 transition-all duration-300;
+    background: rgba(255, 255, 255, 0.95);
+    opacity: 0.9;
+  }
+
+  .info-panel:hover {
+    @apply opacity-100 translate-y-0;
+  }
+
+  .info-title {
+    @apply text-slate-900 text-sm font-bold m-0 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2;
+  }
+
+  .info-icon {
+    @apply w-4 h-4 text-blue-600;
+  }
+
+  .info-content {
+    @apply flex flex-col gap-2 text-xs text-slate-500;
+  }
+
+  .info-row {
+    @apply flex justify-between;
+  }
+
+  .info-value {
+    @apply text-slate-900 font-mono;
+  }
+
+  .info-description {
+    @apply mt-2 pt-2 text-slate-600 leading-6;
+  }
+
+  .info-description p {
+    @apply m-0;
+  }
+
+  /* Docs View */
+  .docs-view {
+    @apply h-full flex items-center justify-center box-border;
+    animation: fadeInScale 300ms;
+  }
+}

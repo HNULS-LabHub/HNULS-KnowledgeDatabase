@@ -1,0 +1,154 @@
+/* 布局组件样式 */
+@layer components {
+  /* Top Bar */
+  .top-bar {
+    @apply h-12 border-b border-slate-200 flex items-center justify-between px-8 backdrop-blur-sm sticky top-0 z-30;
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  /* Breadcrumb */
+  .breadcrumb {
+    @apply flex items-center gap-2 text-sm text-slate-500;
+  }
+
+  .breadcrumb-item {
+    @apply cursor-pointer transition-colors duration-300 font-medium;
+  }
+
+  .breadcrumb-item:hover {
+    @apply text-slate-900;
+  }
+
+  .chevron-icon {
+    @apply w-4 h-4 text-slate-300;
+  }
+
+  .breadcrumb-current {
+    @apply text-slate-900 font-semibold bg-slate-100 px-2 py-0.5 rounded-md capitalize flex items-center gap-2;
+  }
+
+  .context-icon {
+    @apply w-3 h-3;
+  }
+
+  /* Right Actions */
+  .right-actions {
+    @apply flex items-center gap-4;
+  }
+
+  .search-wrapper {
+    @apply flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200 text-slate-400 text-sm cursor-text transition-all duration-300 shadow-sm;
+  }
+
+  .search-wrapper:hover {
+    @apply border-slate-300 bg-white;
+  }
+
+  .search-icon {
+    @apply w-4 h-4 transition-colors duration-300;
+  }
+
+  .search-wrapper:hover .search-icon {
+    @apply text-indigo-500;
+  }
+
+  .search-text {
+    @apply hidden;
+  }
+
+  @media (min-width: 768px) {
+    .search-text {
+      @apply inline;
+    }
+  }
+
+  .search-shortcut {
+    @apply ml-6 text-[10px] font-bold bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-400;
+  }
+
+  .notification-btn {
+    @apply relative p-2 text-slate-400 bg-transparent border-none rounded-lg cursor-pointer transition-all duration-300;
+  }
+
+  .notification-btn:hover {
+    @apply text-indigo-500 bg-indigo-50;
+  }
+
+  .bell-icon {
+    @apply w-5 h-5;
+  }
+
+  .notification-badge {
+    @apply absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white;
+  }
+
+  /* Nav Bar */
+  .narrow-navbar {
+    @apply w-16 flex flex-col items-center py-6 border-r border-slate-200 backdrop-blur-sm z-40 overflow-y-auto overflow-x-hidden box-border;
+    background: rgba(255, 255, 255, 0.6);
+  }
+
+  .nav-logo {
+    @apply mb-8;
+  }
+
+  .logo-gradient {
+    @apply w-9 h-9 bg-gradient-to-tr from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg;
+  }
+
+  .logo-icon {
+    @apply w-5 h-5 text-white;
+  }
+
+  .nav-items {
+    @apply flex-1 flex flex-col gap-4;
+  }
+
+  .nav-item {
+    @apply relative w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 bg-transparent border-none cursor-pointer text-slate-400;
+  }
+
+  .nav-item:hover {
+    @apply bg-slate-100 text-slate-900;
+  }
+
+  .nav-item.active {
+    @apply bg-slate-900 text-white shadow-lg;
+  }
+
+  .nav-icon {
+    @apply w-5 h-5;
+  }
+
+  .nav-tooltip {
+    @apply absolute left-14 bg-slate-900 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 -translate-x-2 transition-all duration-300 pointer-events-none whitespace-nowrap shadow-xl z-50 font-medium;
+  }
+
+  .nav-item:hover .nav-tooltip {
+    @apply opacity-100 translate-x-0;
+  }
+
+  .tooltip-arrow {
+    @apply absolute -left-1 top-1/2 -translate-y-1/2 rotate-45 w-2 h-2 bg-slate-900;
+  }
+
+  .active-indicator {
+    @apply absolute -left-3.5 w-1 h-5 bg-slate-900 rounded-r-full;
+  }
+
+  .nav-bottom {
+    @apply flex flex-col gap-4;
+  }
+
+  .user-avatar {
+    @apply w-9 h-9 rounded-full bg-white border border-slate-200 p-0.5 shadow-sm flex items-center justify-center overflow-hidden cursor-pointer mt-2 transition-colors duration-300 text-slate-500;
+  }
+
+  .user-avatar:hover {
+    @apply border-indigo-200 text-indigo-500;
+  }
+
+  .user-avatar svg {
+    @apply w-5 h-5;
+  }
+}

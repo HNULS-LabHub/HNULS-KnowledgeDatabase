@@ -1,0 +1,210 @@
+/* 通用组件样式 */
+@layer components {
+  /* Glass Card 效果 */
+  .glass-card {
+    @apply backdrop-blur-[48px] border rounded-2xl shadow-sm transition-all duration-300 flex flex-col cursor-pointer;
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(226, 232, 240, 0.6);
+  }
+  
+  .glass-card:hover {
+    @apply shadow-lg -translate-y-0.5;
+    border-color: rgba(199, 210, 254, 0.5);
+  }
+
+  /* KB Card */
+  .kb-card {
+    @apply p-4 h-full min-h-[180px] box-border;
+  }
+
+  /* Create Card 特殊样式 */
+  .create-card {
+    @apply border-2 border-dashed border-slate-200 items-center justify-center;
+    background: rgba(255, 255, 255, 0.4);
+  }
+
+  .create-card:hover {
+    @apply border-indigo-500;
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  /* Page Header */
+  .page-header {
+    @apply flex justify-between items-end mb-8 flex-shrink-0;
+  }
+
+  .page-title {
+    @apply text-3xl font-bold text-slate-900 m-0 mb-2;
+  }
+
+  .page-subtitle {
+    @apply text-slate-500 m-0;
+  }
+
+  /* Action Button */
+  .action-btn {
+    @apply flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 border-none;
+  }
+
+  .action-btn.primary {
+    @apply bg-slate-900 text-white shadow-md;
+  }
+
+  .action-btn.primary:hover {
+    @apply bg-slate-800 shadow-lg;
+  }
+
+  .action-btn.secondary {
+    @apply bg-white border border-slate-200 text-slate-600 shadow-sm;
+  }
+
+  .action-btn.secondary:hover {
+    @apply text-slate-900;
+  }
+
+  /* KB Grid */
+  .kb-grid {
+    @apply grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 mb-8 content-start;
+  }
+
+  /* KB Header */
+  .kb-header {
+    @apply flex justify-between items-start mb-3;
+  }
+
+  .kb-icon {
+    @apply w-10 h-10 rounded-xl flex items-center justify-center;
+  }
+
+  .kb-icon :deep(svg) {
+    @apply w-5 h-5;
+  }
+
+  .kb-more-btn {
+    @apply p-2 text-slate-400 bg-transparent border-none cursor-pointer rounded-lg transition-all duration-200;
+  }
+
+  .kb-more-btn:hover {
+    @apply text-slate-600 bg-slate-100;
+  }
+
+  /* KB Info */
+  .kb-info {
+    @apply mb-4 flex-1;
+  }
+
+  .kb-name {
+    @apply text-base font-semibold text-slate-900 m-0 mb-1.5;
+  }
+
+  .kb-desc {
+    @apply text-sm text-slate-500 m-0 leading-6 line-clamp-2;
+  }
+
+  /* KB Stats */
+  .kb-stats {
+    @apply flex gap-3 mb-4 pb-3 border-b border-slate-100;
+  }
+
+  .stat-item {
+    @apply flex items-center gap-1.5 text-xs text-slate-500 font-medium;
+  }
+
+  .stat-item svg {
+    @apply w-4 h-4;
+  }
+
+  /* KB Footer */
+  .kb-footer {
+    @apply flex justify-between items-center;
+  }
+
+  .update-time {
+    @apply text-xs text-slate-400;
+  }
+
+  .enter-btn {
+    @apply px-3 py-1.5 bg-slate-100 text-slate-600 border-none rounded text-xs font-semibold cursor-pointer transition-all duration-200;
+  }
+
+  .enter-btn:hover {
+    @apply bg-slate-200 text-slate-900;
+  }
+
+  /* Create Content */
+  .create-content {
+    @apply flex flex-col items-center gap-4 text-slate-500 transition-colors duration-300;
+  }
+
+  .create-card:hover .create-content {
+    @apply text-indigo-500;
+  }
+
+  .create-icon {
+    @apply w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm;
+  }
+
+  .create-icon svg {
+    @apply w-5 h-5;
+  }
+
+  .create-text {
+    @apply font-medium;
+  }
+
+  /* Header Actions */
+  .header-actions {
+    @apply flex items-center gap-2;
+  }
+
+  .btn-icon {
+    @apply w-4 h-4;
+  }
+
+  /* Badge */
+  .badges {
+    @apply flex gap-2;
+  }
+
+  .badge {
+    @apply px-2.5 py-1 text-xs font-semibold rounded-md border flex items-center gap-1.5;
+  }
+
+  .badge.indigo {
+    @apply bg-indigo-50 text-indigo-600 border-indigo-200;
+  }
+
+  .badge.emerald {
+    @apply bg-emerald-50 text-emerald-500 border-emerald-200;
+  }
+
+  .badge.small {
+    @apply px-2 py-0.5 text-[10px];
+  }
+
+  .badge-icon {
+    @apply w-3 h-3;
+  }
+
+  /* Empty State */
+  .empty-state {
+    @apply flex-1 flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-2xl;
+    background: rgba(248, 250, 252, 0.5);
+  }
+
+  .empty-icon {
+    @apply w-12 h-12 mb-3 opacity-20;
+  }
+
+  .empty-state p {
+    @apply font-medium m-0;
+  }
+
+  .empty-icon-wrapper {
+    @apply w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center;
+  }
+
+  .empty-text {
+    @apply font-medium m-0;
+  }
+}
