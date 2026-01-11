@@ -2,17 +2,14 @@
   <div class="PageSizeSelector_container" ref="selectorRef">
     <div class="PageSizeSelector_wrapper">
       <span class="PageSizeSelector_label">每页显示</span>
-      <div 
-        class="PageSizeSelector_trigger"
-        @click="toggleDropdown"
-      >
+      <div class="PageSizeSelector_trigger" @click="toggleDropdown">
         <span class="PageSizeSelector_value">{{ modelValue }}</span>
-        <svg 
+        <svg
           class="PageSizeSelector_arrow"
-          :class="{ 'PageSizeSelector_arrow_open': isOpen }"
-          viewBox="0 0 24 24" 
-          fill="none" 
-          stroke="currentColor" 
+          :class="{ PageSizeSelector_arrow_open: isOpen }"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
           stroke-width="2"
         >
           <polyline points="6 9 12 15 18 9"></polyline>
@@ -23,15 +20,12 @@
 
     <!-- Dropdown Menu -->
     <Transition name="dropdown">
-      <div 
-        v-if="isOpen"
-        class="PageSizeSelector_dropdown"
-      >
+      <div v-if="isOpen" class="PageSizeSelector_dropdown">
         <button
           v-for="option in options"
           :key="option"
           class="PageSizeSelector_option"
-          :class="{ 'PageSizeSelector_option_active': option === modelValue }"
+          :class="{ PageSizeSelector_option_active: option === modelValue }"
           @click="selectOption(option)"
         >
           {{ option }}
@@ -143,7 +137,7 @@ onBeforeUnmount(() => {
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 0.75rem;
-  box-shadow: 
+  box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.1),
     0 4px 6px -2px rgba(0, 0, 0, 0.05);
   padding: 0.5rem;

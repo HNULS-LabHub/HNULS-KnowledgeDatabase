@@ -7,18 +7,18 @@
     <div class="KnowledgeView_KnowledgeDetail_content_area">
       <!-- 动态内容：根据左侧导航选择 -->
       <template v-if="currentNav === 'files'">
-        <ContentHeader 
-          title="文件列表" 
+        <ContentHeader
+          title="文件列表"
           v-model:currentView="currentViewType"
           :page-size="pageSize"
           @update:pageSize="pageSize = $event"
         />
 
         <div class="KnowledgeView_KnowledgeDetail_content_scrollable">
-          <component 
-            :is="CurrentViewComponent" 
+          <component
+            :is="CurrentViewComponent"
             :page-size="currentViewType === 'list' ? pageSize : undefined"
-            @show-detail="handleShowDetail" 
+            @show-detail="handleShowDetail"
           />
         </div>
       </template>

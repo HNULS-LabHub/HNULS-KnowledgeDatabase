@@ -1,20 +1,27 @@
 <template>
-  <div class="knowledge-view">
+  <div
+    class="flex flex-col h-full overflow-hidden box-border"
+    style="animation: fadeIn 500ms ease-out"
+  >
     <!-- List View Mode -->
     <template v-if="currentView === 'list'">
-      <div class="page-header px-8 pt-8">
+      <!-- Page Header -->
+      <div class="flex justify-between items-end mb-8 flex-shrink-0 px-8 pt-8">
         <div>
-          <h1 class="page-title">知识库管理</h1>
-          <p class="page-subtitle">创建、配置和管理您的个人知识库集合。</p>
+          <h1 class="text-3xl font-bold text-slate-900 m-0 mb-2">知识库管理</h1>
+          <p class="text-slate-500 m-0">创建、配置和管理您的个人知识库集合。</p>
         </div>
-        <div class="header-actions">
-          <button class="action-btn primary" @click="showCreateDialog = true">
+        <div class="flex items-center gap-2">
+          <button
+            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 border-none bg-slate-900 text-white shadow-md hover:bg-slate-800 hover:shadow-lg"
+            @click="showCreateDialog = true"
+          >
             <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
-              class="btn-icon"
+              class="w-4 h-4"
             >
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -25,70 +32,124 @@
       </div>
 
       <!-- Knowledge Base Grid -->
-      <div class="kb-grid px-8 pb-8 overflow-y-auto flex-1">
-        <!-- Create New Card -->
-        <div class="glass-card kb-card create-card" @click="showCreateDialog = true">
-          <div class="create-content">
-            <div class="create-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            </div>
-            <span class="create-text">新建知识库</span>
-          </div>
-        </div>
-
-        <!-- Example Cards -->
-        <div
-          v-for="kb in knowledgeBases"
-          :key="kb.id"
-          class="glass-card kb-card"
-          @click="handleEnterKb(kb)"
-        >
-          <div class="kb-header">
-            <!-- 动态图标与颜色 -->
+      <div class="flex-1 overflow-y-auto px-8 pb-8">
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 content-start">
+          <!-- Create New Card -->
+          <div
+            class="create-card flex flex-col items-center justify-center cursor-pointer rounded-2xl border-2 border-dashed border-slate-200 transition-all duration-300 p-4 min-h-[180px] box-border"
+            style="background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(48px)"
+            @click="showCreateDialog = true"
+          >
             <div
-              class="kb-icon"
-              :style="{
-                background: getLightColor(kb.color),
-                color: kb.color
-              }"
-              v-html="kb.icon"
-            ></div>
-            <button class="kb-more-btn" @click.stop>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="1"></circle>
-                <circle cx="19" cy="12" r="1"></circle>
-                <circle cx="5" cy="12" r="1"></circle>
-              </svg>
-            </button>
-          </div>
-
-          <div class="kb-info">
-            <h3 class="kb-name">{{ kb.name }}</h3>
-            <p class="kb-desc">{{ kb.description }}</p>
-          </div>
-
-          <div class="kb-stats">
-            <div class="stat-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14,2 14,8 20,8"></polyline>
-              </svg>
-              <span>{{ kb.docCount }} 文档</span>
-            </div>
-            <div class="stat-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-              </svg>
-              <span>{{ kb.vectorCount }} 向量</span>
+              class="flex flex-col items-center gap-4 text-slate-500 transition-colors duration-300"
+            >
+              <div
+                class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  class="w-5 h-5"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </div>
+              <span class="font-medium">新建知识库</span>
             </div>
           </div>
 
-          <div class="kb-footer">
-            <span class="update-time">更新于 {{ kb.lastUpdated }}</span>
-            <button class="enter-btn">进入</button>
+          <!-- Knowledge Base Cards -->
+          <div
+            v-for="kb in knowledgeBases"
+            :key="kb.id"
+            class="kb-card flex flex-col cursor-pointer rounded-2xl border transition-all duration-300 p-4 min-h-[180px] box-border flex-shrink-0"
+            style="
+              background: rgba(255, 255, 255, 0.7);
+              backdrop-filter: blur(48px);
+              border-color: rgba(226, 232, 240, 0.6);
+              box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            "
+            @click="handleEnterKb(kb)"
+          >
+            <!-- KB Header -->
+            <div class="flex justify-between items-start mb-3">
+              <div
+                class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                :style="{
+                  background: getLightColor(kb.color),
+                  color: kb.color
+                }"
+                v-html="kb.icon"
+              ></div>
+              <button
+                class="p-2 text-slate-400 bg-transparent border-none cursor-pointer rounded-lg transition-all duration-200 hover:text-slate-600 hover:bg-slate-100 flex-shrink-0"
+                @click.stop
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  class="w-5 h-5"
+                >
+                  <circle cx="12" cy="12" r="1"></circle>
+                  <circle cx="19" cy="12" r="1"></circle>
+                  <circle cx="5" cy="12" r="1"></circle>
+                </svg>
+              </button>
+            </div>
+
+            <!-- KB Info -->
+            <div class="mb-4 flex-1 min-h-0">
+              <h3 class="text-base font-semibold text-slate-900 m-0 mb-1.5 line-clamp-1">
+                {{ kb.name }}
+              </h3>
+              <p class="text-sm text-slate-500 m-0 leading-6 line-clamp-2">{{ kb.description }}</p>
+            </div>
+
+            <!-- KB Stats -->
+            <div class="flex gap-3 mb-4 pb-3 border-b border-slate-100 flex-shrink-0">
+              <div class="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  class="w-4 h-4 flex-shrink-0"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14,2 14,8 20,8"></polyline>
+                </svg>
+                <span class="whitespace-nowrap">{{ kb.docCount }} 文档</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  class="w-4 h-4 flex-shrink-0"
+                >
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+                <span class="whitespace-nowrap">{{ kb.vectorCount }} 向量</span>
+              </div>
+            </div>
+
+            <!-- KB Footer -->
+            <div class="flex justify-between items-center flex-shrink-0">
+              <span class="text-xs text-slate-400 whitespace-nowrap"
+                >更新于 {{ kb.lastUpdated }}</span
+              >
+              <button
+                class="px-3 py-1.5 bg-slate-100 text-slate-600 border-none rounded text-xs font-semibold cursor-pointer transition-all duration-200 hover:bg-slate-200 hover:text-slate-900 flex-shrink-0"
+              >
+                进入
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -226,10 +287,38 @@ defineExpose({
 <style scoped>
 @reference "tailwindcss";
 
-.knowledge-view {
-  @apply flex flex-col h-full overflow-hidden box-border;
-  animation: fadeIn 500ms ease-out;
+/* Create Card 样式 */
+.create-card {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(48px);
 }
 
-/* 所有其他样式已迁移到全局 tailwind.css 中的组件类 */
+.create-card:hover {
+  border-color: #4f46e5;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.create-card:hover .flex.flex-col.items-center.gap-4 {
+  color: #4f46e5;
+}
+
+/* KB Card 样式 */
+.kb-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(48px);
+  border-color: rgba(226, 232, 240, 0.6);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.kb-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border-color: rgba(199, 210, 254, 0.5);
+  transform: translateY(-2px);
+}
+
+/* 确保图标 SVG 大小正确 */
+:deep([v-html] svg) {
+  width: 1.25rem;
+  height: 1.25rem;
+}
 </style>

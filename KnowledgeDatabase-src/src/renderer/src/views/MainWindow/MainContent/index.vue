@@ -76,7 +76,10 @@ const handleBreadcrumbBack = () => {
 
 .main-content {
   @apply flex flex-col w-full h-full bg-slate-50 overflow-hidden;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .content-area {

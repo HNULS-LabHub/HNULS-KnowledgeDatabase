@@ -74,7 +74,7 @@
           </svg>
           上一页
         </button>
-        
+
         <div class="KnowledgeView_KnowledgeDetail_Views_FileListView_pageNumbers">
           <button
             v-for="page in visiblePages"
@@ -158,9 +158,12 @@ const currentPage = ref(1)
 const pageSize = computed(() => props.pageSize || 20)
 
 // Watch pageSize changes from parent and reset to first page
-watch(() => props.pageSize, () => {
-  currentPage.value = 1
-})
+watch(
+  () => props.pageSize,
+  () => {
+    currentPage.value = 1
+  }
+)
 
 // Mock data
 const mockFiles = ref<FileNode[]>([
@@ -237,16 +240,16 @@ const visiblePages = computed(() => {
   const maxVisible = 7
   let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
   let end = Math.min(totalPages.value, start + maxVisible - 1)
-  
+
   // Adjust start if we're near the end
   if (end - start < maxVisible - 1) {
     start = Math.max(1, end - maxVisible + 1)
   }
-  
+
   for (let i = start; i <= end; i++) {
     pages.push(i)
   }
-  
+
   return pages
 })
 

@@ -227,5 +227,4 @@ const viewOptions: { id: ViewType; label: string; icon: string }[] = [
   width: 1rem;
   height: 1rem;
 }
-
 </style>
