@@ -3,8 +3,9 @@ export interface KnowledgeBase {
   name: string
   description: string
   docCount: number
-  vectorCount: string
+  chunkCount: number // 分片数量（原向量数）
   lastUpdated: string
+  createdAt: string
   color: string // Hex
   icon: string // SVG string
 }

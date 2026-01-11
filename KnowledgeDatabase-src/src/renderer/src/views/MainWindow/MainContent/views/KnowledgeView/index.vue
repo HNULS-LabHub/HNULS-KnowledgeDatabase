@@ -135,14 +135,14 @@
                 >
                   <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                 </svg>
-                <span class="whitespace-nowrap">{{ kb.vectorCount }} 向量</span>
+                <span class="whitespace-nowrap">{{ kb.chunkCount }} 分片</span>
               </div>
             </div>
 
             <!-- KB Footer -->
             <div class="flex justify-between items-center flex-shrink-0">
               <span class="text-xs text-slate-400 whitespace-nowrap"
-                >更新于 {{ kb.lastUpdated }}</span
+                >更新于 {{ formatLastUpdated(kb.lastUpdated) }}</span
               >
               <button
                 class="px-3 py-1.5 bg-slate-100 text-slate-600 border-none rounded text-xs font-semibold cursor-pointer transition-all duration-200 hover:bg-slate-200 hover:text-slate-900 flex-shrink-0"
@@ -167,12 +167,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import CreateKnowledgeBaseDialog, {
   type KnowledgeBaseFormData
 } from './CreateKnowledgeBaseDialog.vue'
 import KnowledgeDetail from './KnowledgeDetail/index.vue'
 import type { KnowledgeBase } from './types'
+import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
 
 // Emits for breadcrumb management
 const emit = defineEmits<{
@@ -184,70 +185,45 @@ const showCreateDialog = ref(false)
 const currentView = ref<'list' | 'detail'>('list')
 const selectedKb = ref<KnowledgeBase | null>(null)
 
-// 预设 SVG 字符串 (与 Dialog 中保持一致或简化，这里直接硬编码到 mock 数据中)
-const icons = {
-  folder: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`,
-  scale: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>`,
-  code: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>`,
-  chart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`
+// 使用知识库 Store
+const knowledgeLibraryStore = useKnowledgeLibraryStore()
+
+// 从 Store 获取知识库列表
+const knowledgeBases = computed(() => knowledgeLibraryStore.knowledgeBases)
+
+// 格式化时间显示
+const formatLastUpdated = (dateString: string): string => {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes} 分钟前`
+  if (hours < 24) return `${hours} 小时前`
+  if (days < 7) return `${days} 天前`
+  return date.toLocaleDateString('zh-CN')
 }
 
-const knowledgeBases = ref<KnowledgeBase[]>([
-  {
-    id: 1,
-    name: '产品文档库',
-    description: '包含所有产品说明书、API 文档和技术规范。',
-    docCount: 124,
-    vectorCount: '12.5k',
-    lastUpdated: '2 小时前',
-    color: '#2563eb', // blue-600
-    icon: icons.folder
-  },
-  {
-    id: 2,
-    name: '法律法规',
-    description: '公司法务相关的合规文档、合同模板和法律条文。',
-    docCount: 45,
-    vectorCount: '4.2k',
-    lastUpdated: '1 天前',
-    color: '#7c3aed', // violet-600
-    icon: icons.scale
-  },
-  {
-    id: 3,
-    name: '研发技术栈',
-    description: '前端、后端、DevOps 相关的技术积累和最佳实践。',
-    docCount: 312,
-    vectorCount: '28.9k',
-    lastUpdated: '3 天前',
-    color: '#10b981', // emerald-500
-    icon: icons.code
-  },
-  {
-    id: 4,
-    name: '市场调研',
-    description: '2025 年度市场分析报告与竞品研究。',
-    docCount: 89,
-    vectorCount: '8.1k',
-    lastUpdated: '1 周前',
-    color: '#f59e0b', // amber-500
-    icon: icons.chart
-  }
-])
+// 页面加载时获取知识库列表
+onMounted(async () => {
+  await knowledgeLibraryStore.fetchAll()
+})
 
-const handleCreateKnowledgeBase = (data: KnowledgeBaseFormData) => {
-  const newKB: KnowledgeBase = {
-    id: Date.now(),
-    name: data.name,
-    description: data.description,
-    docCount: 0,
-    vectorCount: '0',
-    lastUpdated: '刚刚',
-    color: data.color,
-    icon: data.icon
+const handleCreateKnowledgeBase = async (data: KnowledgeBaseFormData) => {
+  try {
+    await knowledgeLibraryStore.create({
+      name: data.name,
+      description: data.description,
+      color: data.color,
+      icon: data.icon
+    })
+  } catch (error) {
+    console.error('Failed to create knowledge base:', error)
+    // TODO: 显示错误提示
   }
-
-  knowledgeBases.value.unshift(newKB)
 }
 
 const handleEnterKb = (kb: KnowledgeBase) => {

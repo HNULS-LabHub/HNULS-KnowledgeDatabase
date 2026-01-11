@@ -23,13 +23,13 @@
 
       <div class="KnowledgeView_KnowledgeDetail_Sidebar_statsRow">
         <div class="KnowledgeView_KnowledgeDetail_Sidebar_statItem">
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue">{{ kb.docCount }}</span>
+          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue">{{ currentKB?.docCount ?? kb.docCount }}</span>
           <span class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel">文件</span>
         </div>
         <div class="KnowledgeView_KnowledgeDetail_Sidebar_statDivider"></div>
         <div class="KnowledgeView_KnowledgeDetail_Sidebar_statItem">
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue">{{ kb.vectorCount }}</span>
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel">向量</span>
+          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue">{{ currentKB?.chunkCount ?? kb.chunkCount }}</span>
+          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel">分片</span>
         </div>
       </div>
     </div>
@@ -51,9 +51,11 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { KnowledgeBase, NavItem } from '../types'
+import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
 
-defineProps<{
+const props = defineProps<{
   kb: KnowledgeBase
   currentNav: NavItem
 }>()
@@ -61,6 +63,12 @@ defineProps<{
 defineEmits<{
   (e: 'update:currentNav', val: NavItem): void
 }>()
+
+// 使用 Store 获取最新的知识库数据
+const knowledgeLibraryStore = useKnowledgeLibraryStore()
+const currentKB = computed(() => {
+  return knowledgeLibraryStore.getById(props.kb.id)
+})
 
 const navItems: { id: NavItem; label: string; icon: string }[] = [
   {

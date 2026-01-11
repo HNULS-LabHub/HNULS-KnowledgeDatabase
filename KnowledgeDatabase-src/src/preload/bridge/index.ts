@@ -1,10 +1,12 @@
 import { contextBridge } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import { testAPI } from '../api/test-api'
+import { knowledgeLibraryAPI } from '../api/knowledge-library-api'
 
 // 自定义 API 集合
 const customAPI = {
-  test: testAPI
+  test: testAPI,
+  knowledgeLibrary: knowledgeLibraryAPI
   // TODO: 添加其他业务域 API
   // file: fileAPI,
   // database: databaseAPI,
