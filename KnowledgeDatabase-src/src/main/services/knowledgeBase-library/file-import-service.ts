@@ -7,6 +7,7 @@ import { KnowledgeLibraryService } from './knowledge-library-service'
 export interface FileImportOptions {
   keepStructure?: boolean
   conflictPolicy?: 'rename' | 'skip'
+  targetPath?: string // 目标目录路径（相对路径，如 "folder/subfolder" 或 "" 表示根目录）
 }
 
 /**
@@ -61,6 +62,7 @@ export class FileImportService {
 
     const keepStructure = options?.keepStructure ?? true
     const conflictPolicy = options?.conflictPolicy ?? 'rename'
+    const targetPath = options?.targetPath || '' // 目标目录路径（相对路径）
 
     const result: ImportResult = {
       totalInput: inputPaths.length,
@@ -114,15 +116,26 @@ export class FileImportService {
             baseName
           })
           // 递归目录
-          const items = await this.collectFiles(inputPath, keepStructure ? baseName : '')
+          const relativeBase = keepStructure ? baseName : ''
+          const items = await this.collectFiles(inputPath, relativeBase)
           logger.info('[FileImportService] Collected files from directory', {
             inputPath,
             filesCount: items.length
           })
+          // 如果有目标目录，需要调整相对路径
+          if (targetPath) {
+            items.forEach((item) => {
+              item.relative = path.join(targetPath, item.relative).replace(/\\/g, '/')
+            })
+          }
           filesToImport.push(...items)
         } else if (stats.isFile()) {
           logger.info('[FileImportService] Input is file', { inputPath, baseName })
-          const relative = keepStructure ? baseName : path.basename(inputPath)
+          let relative = keepStructure ? baseName : path.basename(inputPath)
+          // 如果有目标目录，需要调整相对路径
+          if (targetPath) {
+            relative = path.join(targetPath, relative).replace(/\\/g, '/')
+          }
           filesToImport.push({ source: inputPath, relative })
         }
       } catch (error) {

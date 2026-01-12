@@ -14,6 +14,7 @@ export interface ImportResult {
 export interface FileImportOptions {
   keepStructure?: boolean
   conflictPolicy?: 'rename' | 'skip'
+  targetPath?: string // 目标目录路径（相对路径，如 "folder/subfolder" 或 "" 表示根目录）
 }
 
 /**

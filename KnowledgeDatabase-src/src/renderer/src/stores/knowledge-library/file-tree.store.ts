@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { FileDataSource } from './file.datasource'
 import type { FileNode, TreeNode } from './file.types'
+import type { MoveResult, BatchMoveResult } from './file.datasource'
 
 /**
  * 文件树 Store（树形视图）
@@ -100,6 +101,162 @@ export const useFileTreeStore = defineStore('file-tree', () => {
     }
   }
 
+  /**
+   * 移动文件/目录到新位置
+   */
+  async function moveNode(
+    knowledgeBaseId: number,
+    sourcePath: string,
+    targetPath: string,
+    conflictPolicy: 'rename' | 'skip' | 'overwrite' = 'rename'
+  ): Promise<MoveResult> {
+    try {
+      // 验证移动合法性
+      const validation = validateMove(sourcePath, targetPath)
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: validation.reason || 'Invalid move operation'
+        }
+      }
+
+      const result = await FileDataSource.moveFile(
+        knowledgeBaseId,
+        sourcePath,
+        targetPath,
+        conflictPolicy
+      )
+
+      if (result.success) {
+        // 刷新树结构
+        await refresh()
+      }
+
+      return result
+    } catch (error) {
+      console.error('Failed to move node:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  }
+
+  /**
+   * 批量移动文件/目录
+   */
+  async function moveMultipleNodes(
+    knowledgeBaseId: number,
+    moves: Array<{ source: string; target: string }>,
+    conflictPolicy: 'rename' | 'skip' | 'overwrite' = 'rename'
+  ): Promise<BatchMoveResult> {
+    try {
+      const result = await FileDataSource.moveMultiple(knowledgeBaseId, moves, conflictPolicy)
+
+      // 刷新树结构
+      await refresh()
+
+      return result
+    } catch (error) {
+      console.error('Failed to move nodes:', error)
+      return {
+        total: moves.length,
+        success: 0,
+        failed: moves.length,
+        results: moves.map((move) => ({
+          source: move.source,
+          target: move.target,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }))
+      }
+    }
+  }
+
+  /**
+   * 根据路径查找节点
+   */
+  function findNodeByPath(nodePath: string): TreeNode | null {
+    const searchInNodes = (nodes: TreeNode[]): TreeNode | null => {
+      for (const node of nodes) {
+        if (node.path === nodePath) {
+          return node
+        }
+        if (node.children) {
+          const found = searchInNodes(node.children)
+          if (found) return found
+        }
+      }
+      return null
+    }
+    return searchInNodes(treeStructure.value)
+  }
+
+  /**
+   * 验证移动操作的合法性
+   */
+  function validateMove(sourcePath: string, targetPath: string): { valid: boolean; reason?: string } {
+    const sourceNode = findNodeByPath(sourcePath)
+    if (!sourceNode) {
+      return { valid: false, reason: 'Source node not found' }
+    }
+
+    // 如果目标路径为空，表示移动到根目录，这是合法的
+    if (!targetPath) {
+      return { valid: true }
+    }
+
+    const targetNode = findNodeByPath(targetPath)
+    if (!targetNode) {
+      // 目标节点不存在，可能是新目录，允许创建
+      return { valid: true }
+    }
+
+    // 不能移动到自身
+    if (sourceNode.id === targetNode.id) {
+      return { valid: false, reason: 'Cannot move to the same location' }
+    }
+
+    // 目标必须是目录
+    if (targetNode.type !== 'folder') {
+      return { valid: false, reason: 'Target must be a folder' }
+    }
+
+    // 不能移动到子目录（会形成循环）
+    if (isDescendant(sourceNode, targetNode)) {
+      return { valid: false, reason: 'Cannot move directory into itself or its subdirectory' }
+    }
+
+    // 不能移动到同一父目录（没有实际意义）
+    const sourceParentPath = getParentPath(sourcePath)
+    if (sourceParentPath === targetPath) {
+      return { valid: false, reason: 'Already in target location' }
+    }
+
+    return { valid: true }
+  }
+
+  /**
+   * 检查 target 是否是 source 的后代节点
+   */
+  function isDescendant(ancestor: TreeNode, node: TreeNode): boolean {
+    if (!ancestor.children) return false
+    for (const child of ancestor.children) {
+      if (child.id === node.id) return true
+      if (isDescendant(child, node)) return true
+    }
+    return false
+  }
+
+  /**
+   * 获取父目录路径
+   */
+  function getParentPath(nodePath: string): string {
+    const parts = nodePath.split('/').filter(Boolean)
+    if (parts.length <= 1) return ''
+    return parts.slice(0, -1).join('/')
+  }
+
   return {
     // State
     files,
@@ -115,7 +272,11 @@ export const useFileTreeStore = defineStore('file-tree', () => {
     collapseFolder,
     expandAll,
     collapseAll,
-    refresh
+    refresh,
+    moveNode,
+    moveMultipleNodes,
+    findNodeByPath,
+    validateMove
   }
 })
 

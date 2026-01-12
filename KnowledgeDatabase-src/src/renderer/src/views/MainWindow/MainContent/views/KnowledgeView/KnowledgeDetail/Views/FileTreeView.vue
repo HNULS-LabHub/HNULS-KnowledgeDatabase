@@ -14,18 +14,22 @@
         :key="node.id"
         :node="node"
         :expanded-folders="expandedFolders"
+        :knowledge-base-id="knowledgeBaseId"
         @toggle-folder="toggleFolder"
         @show-detail="$emit('show-detail', $event)"
+        @node-moved="handleNodeMoved"
+        @external-drop="handleExternalDrop"
       />
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, watch, ref } from 'vue'
 import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
+import { useTaskManagerStore } from '@renderer/stores/task-manager.store'
 import TreeNode from './TreeNode.vue'
-import type { FileNode } from '@renderer/stores/knowledge-library/file.types'
+import type { FileNode, TreeNode as TreeNodeType } from '@renderer/stores/knowledge-library/file.types'
 
 const props = defineProps<{
   knowledgeBaseId: number
@@ -34,6 +38,9 @@ const props = defineProps<{
 defineEmits<{
   (e: 'show-detail', file: FileNode): void
 }>()
+
+// 外部拖拽目标目录
+const externalDropTarget = ref<{ targetPath: string; targetNode: TreeNodeType } | null>(null)
 
 // 使用 Pinia Store
 const fileTreeStore = useFileTreeStore()
@@ -48,6 +55,25 @@ const loading = computed(() => fileTreeStore.loading)
 
 const toggleFolder = (id: string | number): void => {
   fileTreeStore.toggleFolder(id)
+}
+
+const handleNodeMoved = (): void => {
+  // 节点移动后，树结构会自动刷新（通过 store 的 refresh）
+  // 这里可以添加额外的处理逻辑
+}
+
+const handleExternalDrop = (data: { targetPath: string; targetNode: TreeNodeType }): void => {
+  // 保存外部拖拽的目标目录，供 DropZone 使用
+  externalDropTarget.value = data
+  // 触发一个自定义事件，让 DropZone 知道目标目录
+  window.dispatchEvent(
+    new CustomEvent('tree-node-external-drop', {
+      detail: {
+        targetPath: data.targetPath,
+        knowledgeBaseId: props.knowledgeBaseId
+      }
+    })
+  )
 }
 
 // 初始化时获取文件列表

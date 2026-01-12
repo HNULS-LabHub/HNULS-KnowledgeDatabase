@@ -3,6 +3,7 @@ import { BaseIPCHandler } from './base-handler'
 import { KnowledgeLibraryService } from '../services/knowledgeBase-library'
 import { DocumentService } from '../services/knowledgeBase-library/document-service'
 import { FileScannerService } from '../services/knowledgeBase-library/file-scanner-service'
+import { FileMoveService } from '../services/knowledgeBase-library/file-move-service'
 
 /**
  * 文件操作 IPC 处理器
@@ -10,11 +11,13 @@ import { FileScannerService } from '../services/knowledgeBase-library/file-scann
 export class FileIPCHandler extends BaseIPCHandler {
   private documentService: DocumentService
   private fileScannerService: FileScannerService
+  private fileMoveService: FileMoveService
 
   constructor(private knowledgeLibraryService: KnowledgeLibraryService) {
     super()
     this.documentService = new DocumentService()
     this.fileScannerService = new FileScannerService()
+    this.fileMoveService = new FileMoveService(knowledgeLibraryService, this.documentService)
     this.register()
   }
 
@@ -106,6 +109,88 @@ export class FileIPCHandler extends BaseIPCHandler {
       return {
         success: true,
         data: files
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  }
+
+  /**
+   * 移动文件/目录到新位置
+   */
+  async handleMovefile(
+    _event: IpcMainInvokeEvent,
+    knowledgeBaseId: number,
+    sourcePath: string,
+    targetPath: string,
+    conflictPolicy: 'rename' | 'skip' | 'overwrite' = 'rename'
+  ) {
+    try {
+      const result = await this.fileMoveService.moveFileOrDirectory(
+        knowledgeBaseId,
+        sourcePath,
+        targetPath,
+        conflictPolicy
+      )
+
+      return {
+        success: result.success,
+        data: result.success ? { newPath: result.newPath } : undefined,
+        error: result.error
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  }
+
+  /**
+   * 批量移动文件/目录
+   */
+  async handleMovemultiple(
+    _event: IpcMainInvokeEvent,
+    knowledgeBaseId: number,
+    moves: Array<{ source: string; target: string }>,
+    conflictPolicy: 'rename' | 'skip' | 'overwrite' = 'rename'
+  ) {
+    try {
+      const result = await this.fileMoveService.moveMultiple(
+        knowledgeBaseId,
+        moves,
+        conflictPolicy
+      )
+
+      return {
+        success: true,
+        data: result
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  }
+
+  /**
+   * 删除文件/目录
+   */
+  async handleDeletefile(
+    _event: IpcMainInvokeEvent,
+    knowledgeBaseId: number,
+    filePath: string
+  ) {
+    try {
+      const result = await this.fileMoveService.deleteFileOrDirectory(knowledgeBaseId, filePath)
+
+      return {
+        success: result.success,
+        error: result.error
       }
     } catch (error) {
       return {

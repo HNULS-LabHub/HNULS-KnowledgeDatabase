@@ -193,14 +193,18 @@
 
             <!-- Footer Actions -->
             <div class="KnowledgeView_KnowledgeDetail_DetailDrawer_footer">
-              <button class="footer-btn danger">
+              <button
+                class="footer-btn danger"
+                :disabled="isDeleting || !fileData"
+                @click="handleDelete"
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M3 6h18"></path>
                   <path
                     d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
                   ></path>
                 </svg>
-                删除文件
+                {{ isDeleting ? '删除中...' : '删除文件' }}
               </button>
             </div>
           </div>
@@ -213,17 +217,23 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { FileNode } from '../types'
+import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
+import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
+import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
 
 const props = defineProps<{
   visible: boolean
   fileData?: FileNode | null
+  knowledgeBaseId?: number
 }>()
 
 const emit = defineEmits<{
   (e: 'update:visible', val: boolean): void
+  (e: 'file-deleted'): void
 }>()
 
 const currentTab = ref<'info' | 'parse' | 'preview'>('info')
+const isDeleting = ref(false)
 
 const tabs = [
   { id: 'info' as const, label: '基本信息' },
@@ -247,6 +257,60 @@ const close = () => {
   setTimeout(() => {
     currentTab.value = 'info'
   }, 300)
+}
+
+// 获取各个 Store 实例
+const fileListStore = useFileListStore()
+const fileCardStore = useFileCardStore()
+const fileTreeStore = useFileTreeStore()
+
+const handleDelete = async () => {
+  if (!props.fileData || !props.knowledgeBaseId) {
+    console.warn('[DetailDrawer] Cannot delete: missing fileData or knowledgeBaseId')
+    return
+  }
+
+  // 确认删除
+  const confirmed = window.confirm(
+    `确定要删除 "${props.fileData.name}" 吗？\n\n此操作不可撤销。`
+  )
+
+  if (!confirmed) {
+    return
+  }
+
+  isDeleting.value = true
+
+  try {
+    // 获取文件路径（相对路径）
+    const filePath = props.fileData.path || props.fileData.name
+
+    // 调用删除 API
+    const result = await window.api.file.deleteFile(props.knowledgeBaseId, filePath)
+
+    if (result.success) {
+      // 刷新所有视图的文件列表
+      await Promise.allSettled([
+        fileListStore.fetchFiles(props.knowledgeBaseId),
+        fileCardStore.fetchFiles(props.knowledgeBaseId),
+        fileTreeStore.fetchFiles(props.knowledgeBaseId)
+      ])
+
+      // 关闭抽屉
+      close()
+
+      // 触发删除事件，通知父组件
+      emit('file-deleted')
+    } else {
+      // 显示错误提示
+      alert(`删除失败: ${result.error || '未知错误'}`)
+    }
+  } catch (error) {
+    console.error('[DetailDrawer] Failed to delete file:', error)
+    alert(`删除失败: ${error instanceof Error ? error.message : '未知错误'}`)
+  } finally {
+    isDeleting.value = false
+  }
 }
 </script>
 
@@ -644,6 +708,16 @@ const close = () => {
 .footer-btn.danger:hover {
   background: #fef2f2;
   border-color: #fecaca;
+}
+
+.footer-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.footer-btn:disabled:hover {
+  background: white;
+  border-color: #e2e8f0;
 }
 
 .footer-btn svg {

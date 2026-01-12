@@ -36,9 +36,46 @@ export interface FileNode {
 }
 
 /**
+ * 文件移动选项
+ */
+export interface FileMoveOptions {
+  conflictPolicy?: 'rename' | 'skip' | 'overwrite'
+}
+
+/**
+ * 文件移动结果
+ */
+export interface MoveResult {
+  success: boolean
+  newPath?: string
+  error?: string
+}
+
+/**
+ * 批量移动结果
+ */
+export interface BatchMoveResult {
+  total: number
+  success: number
+  failed: number
+  results: Array<{ source: string; target: string; success: boolean; error?: string; newPath?: string }>
+}
+
+/**
  * 文件 API 接口定义
  */
 export interface FileAPI {
   getAll(knowledgeBaseId: number): Promise<FileNode[]>
   scanDirectory(knowledgeBaseId: number): Promise<FileNode[]>
+  moveFile(
+    knowledgeBaseId: number,
+    sourcePath: string,
+    targetPath: string,
+    conflictPolicy?: 'rename' | 'skip' | 'overwrite'
+  ): Promise<MoveResult>
+  moveMultiple(
+    knowledgeBaseId: number,
+    moves: Array<{ source: string; target: string }>,
+    conflictPolicy?: 'rename' | 'skip' | 'overwrite'
+  ): Promise<BatchMoveResult>
 }

@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useTaskManagerStore } from '@renderer/stores/task-manager.store'
 import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
 import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
@@ -31,6 +31,7 @@ import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.s
 
 const props = defineProps<{
   knowledgeBaseId: number
+  isTreeView?: boolean // 是否为树视图模式
 }>()
 
 const emit = defineEmits<{
@@ -39,6 +40,7 @@ const emit = defineEmits<{
 
 const isDragging = ref(false)
 let dragCounter = 0
+let externalDropTargetPath: string | null = null
 
 const taskManager = useTaskManagerStore()
 const fileListStore = useFileListStore()
@@ -80,16 +82,33 @@ function setupGlobalListeners(): void {
   console.log('[DropZone] Global import listeners setup')
 }
 
-const handleDragEnter = (): void => {
+const handleDragEnter = (event: DragEvent): void => {
+  // 在树视图模式下，如果拖拽到树节点，不显示全局覆盖层
+  if (props.isTreeView && event.target !== event.currentTarget) {
+    // 事件来自子元素（树节点），不处理
+    return
+  }
   dragCounter++
   isDragging.value = true
 }
 
-const handleDragOver = (): void => {
+const handleDragOver = (event: DragEvent): void => {
+  // 在树视图模式下，如果拖拽到树节点，不显示全局覆盖层
+  if (props.isTreeView && event.target !== event.currentTarget) {
+    // 事件来自子元素（树节点），不处理
+    return
+  }
   isDragging.value = true
 }
 
-const handleDragLeave = (): void => {
+const handleDragLeave = (event: DragEvent): void => {
+  // 在树视图模式下，如果离开到树节点，不处理
+  if (props.isTreeView && event.relatedTarget instanceof HTMLElement) {
+    const treeContainer = document.querySelector('.KnowledgeView_KnowledgeDetail_Views_FileTreeView_container')
+    if (treeContainer?.contains(event.relatedTarget)) {
+      return
+    }
+  }
   dragCounter--
   if (dragCounter <= 0) {
     isDragging.value = false
@@ -97,8 +116,24 @@ const handleDragLeave = (): void => {
   }
 }
 
+// 监听树节点的外部拖拽事件
+const handleTreeNodeExternalDrop = (event: CustomEvent): void => {
+  externalDropTargetPath = event.detail.targetPath || null
+  console.log('[DropZone] Tree node external drop target set', { targetPath: externalDropTargetPath })
+}
+
 const handleDrop = async (event: DragEvent): Promise<void> => {
   console.log('[DropZone] handleDrop called', { event, hasDataTransfer: !!event.dataTransfer })
+  
+  // 在树视图模式下，如果拖拽到树节点，不处理（由树节点自己处理）
+  if (props.isTreeView && event.target !== event.currentTarget) {
+    const treeContainer = document.querySelector('.KnowledgeView_KnowledgeDetail_Views_FileTreeView_container')
+    if (treeContainer?.contains(event.target as Node)) {
+      // 事件来自树节点，不处理
+      return
+    }
+  }
+
   isDragging.value = false
   dragCounter = 0
 
@@ -157,21 +192,35 @@ const handleDrop = async (event: DragEvent): Promise<void> => {
       options: { keepStructure: true, conflictPolicy: 'rename' }
     })
 
-    // 启动异步导入（立即返回，不等待）
-    const { taskId } = await window.api.fileImport.importAsync(props.knowledgeBaseId, paths, {
+    // 如果有目标目录（从树节点拖拽），添加到选项中
+    const importOptions: { keepStructure: boolean; conflictPolicy: 'rename'; targetPath?: string } = {
       keepStructure: true,
       conflictPolicy: 'rename'
-    })
+    }
 
-    console.log('[DropZone] Async import started', { taskId })
+    // 如果设置了目标目录，添加到选项
+    if (externalDropTargetPath) {
+      importOptions.targetPath = externalDropTargetPath
+      console.log('[DropZone] Importing to target directory', { targetPath: externalDropTargetPath })
+    }
+
+    // 启动异步导入（立即返回，不等待）
+    const { taskId } = await window.api.fileImport.importAsync(props.knowledgeBaseId, paths, importOptions)
+
+    console.log('[DropZone] Async import started', { taskId, importOptions })
 
     // 将任务添加到任务管理器
     taskManager.addImportTask(taskId, props.knowledgeBaseId)
+
+    // 清除目标目录（避免下次拖拽时使用旧的目标）
+    externalDropTargetPath = null
 
     // 立即返回，不等待导入完成
     emit('import-started')
   } catch (error) {
     console.error('[DropZone] Failed to start import', error)
+    // 清除目标目录
+    externalDropTargetPath = null
   }
 }
 
@@ -188,6 +237,12 @@ function refreshFilesForKnowledgeBase(kbId: number): void {
 
 onMounted(() => {
   setupGlobalListeners()
+  // 监听树节点的外部拖拽事件
+  window.addEventListener('tree-node-external-drop', handleTreeNodeExternalDrop as EventListener)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tree-node-external-drop', handleTreeNodeExternalDrop as EventListener)
 })
 </script>
 

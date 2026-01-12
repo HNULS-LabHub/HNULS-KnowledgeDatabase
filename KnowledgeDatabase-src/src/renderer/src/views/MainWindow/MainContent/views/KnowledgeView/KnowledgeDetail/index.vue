@@ -14,7 +14,11 @@
           @update:pageSize="pageSize = $event"
         />
 
-        <DropZone :knowledge-base-id="kb.id" @import-started="handleImportStarted">
+        <DropZone
+          :knowledge-base-id="kb.id"
+          :is-tree-view="currentViewType === 'tree'"
+          @import-started="handleImportStarted"
+        >
           <div class="KnowledgeView_KnowledgeDetail_content_scrollable scrollable-content flex-1 overflow-y-auto overflow-x-hidden min-h-0 scroll-smooth">
             <component
               :is="CurrentViewComponent"
@@ -33,7 +37,12 @@
     </div>
 
     <!-- 右侧抽屉 -->
-    <DetailDrawer v-model:visible="drawerVisible" :file-data="selectedFile" />
+    <DetailDrawer
+      v-model:visible="drawerVisible"
+      :file-data="selectedFile"
+      :knowledge-base-id="kb.id"
+      @file-deleted="handleFileDeleted"
+    />
   </div>
 </template>
 
@@ -106,6 +115,14 @@ const handleImportStarted = () => {
   // 导入已启动，任务会在后台处理，完成后会自动刷新
   // 用户可以在任务进度对话框中查看进度
   console.log('[KnowledgeDetail] Import started for KB', props.kb.id)
+}
+
+// 处理文件删除事件
+const handleFileDeleted = () => {
+  // 文件已删除，抽屉已关闭，这里可以添加额外的处理逻辑
+  console.log('[index.vue] File deleted')
+  // 清空选中的文件
+  selectedFile.value = null
 }
 </script>
 
