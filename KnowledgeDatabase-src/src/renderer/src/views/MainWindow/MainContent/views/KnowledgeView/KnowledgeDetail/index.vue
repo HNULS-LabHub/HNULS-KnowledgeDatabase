@@ -17,6 +17,7 @@
         <div class="KnowledgeView_KnowledgeDetail_content_scrollable">
           <component
             :is="CurrentViewComponent"
+            :knowledge-base-id="kb.id"
             :page-size="currentViewType === 'list' ? pageSize : undefined"
             @show-detail="handleShowDetail"
           />
@@ -35,7 +36,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
+import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
+import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
 import Sidebar from './Sidebar.vue'
 import ContentHeader from './ContentHeader.vue'
 import DetailDrawer from './DetailDrawer.vue'
@@ -52,6 +56,11 @@ const pageSize = ref(20)
 const drawerVisible = ref(false)
 const selectedFile = ref<FileNode | null>(null)
 
+// 获取各个 Store 实例
+const fileListStore = useFileListStore()
+const fileCardStore = useFileCardStore()
+const fileTreeStore = useFileTreeStore()
+
 const CurrentViewComponent = computed(() => {
   switch (currentViewType.value) {
     case 'card':
@@ -63,6 +72,27 @@ const CurrentViewComponent = computed(() => {
       return FileListView
   }
 })
+
+// 监听视图切换，确保数据已加载
+watch(
+  [() => currentViewType.value, () => props.kb.id],
+  async ([viewType, kbId]) => {
+    if (currentNav.value === 'files') {
+      switch (viewType) {
+        case 'list':
+          await fileListStore.fetchFiles(kbId)
+          break
+        case 'card':
+          await fileCardStore.fetchFiles(kbId)
+          break
+        case 'tree':
+          await fileTreeStore.fetchFiles(kbId)
+          break
+      }
+    }
+  },
+  { immediate: true }
+)
 
 const handleShowDetail = (file: FileNode) => {
   selectedFile.value = file

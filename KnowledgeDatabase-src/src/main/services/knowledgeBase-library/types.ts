@@ -20,6 +20,8 @@ export interface KnowledgeBaseMeta {
   color: string
   /** 图标（SVG 字符串） */
   icon: string
+  /** 文档目录路径（相对于 userData/data/document/） */
+  documentPath?: string
 }
 
 /**

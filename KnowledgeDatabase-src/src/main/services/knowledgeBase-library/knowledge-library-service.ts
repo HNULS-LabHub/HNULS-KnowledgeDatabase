@@ -2,6 +2,7 @@ import { app } from 'electron'
 import * as path from 'path'
 import * as fs from 'fs/promises'
 import { logger } from '../logger'
+import { DocumentService } from './document-service'
 import type {
   KnowledgeBaseMeta,
   KnowledgeLibraryMeta,
@@ -16,11 +17,13 @@ import type {
 export class KnowledgeLibraryService {
   private metaFilePath: string
   private readonly defaultVersion = '1.0.0'
+  private documentService: DocumentService
 
   constructor() {
     // 获取用户数据目录下的 data 目录
     const userDataPath = app.getPath('userData')
     this.metaFilePath = path.join(userDataPath, 'data', 'Knowledge-library-meta.json')
+    this.documentService = new DocumentService()
   }
 
   /**
@@ -128,8 +131,15 @@ export class KnowledgeLibraryService {
     const meta = await this.readFile()
     const now = new Date().toISOString()
 
+    // 创建文档目录
+    const newId = await this.generateId()
+    const documentPath = await this.documentService.createKnowledgeBaseDirectory(
+      newId,
+      data.name.trim()
+    )
+
     const newKB: KnowledgeBaseMeta = {
-      id: await this.generateId(),
+      id: newId,
       name: data.name.trim(),
       description: data.description.trim(),
       docCount: 0,
@@ -137,7 +147,8 @@ export class KnowledgeLibraryService {
       lastUpdated: now,
       createdAt: now,
       color: data.color,
-      icon: data.icon
+      icon: data.icon,
+      documentPath // 新增字段
     }
 
     meta.knowledgeBases.push(newKB)
@@ -184,6 +195,17 @@ export class KnowledgeLibraryService {
     }
 
     const deletedKB = meta.knowledgeBases[index]
+    
+    // 删除文档目录
+    if (deletedKB.documentPath) {
+      try {
+        await this.documentService.deleteKnowledgeBaseDirectory(deletedKB.documentPath)
+      } catch (error) {
+        logger.error(`Failed to delete document directory for KB ${id}`, error)
+        // 继续删除元数据，即使目录删除失败
+      }
+    }
+
     meta.knowledgeBases.splice(index, 1)
     await this.writeFile(meta)
 

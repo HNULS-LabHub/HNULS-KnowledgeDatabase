@@ -12,7 +12,21 @@
         </tr>
       </thead>
       <tbody>
+        <tr v-if="loading" class="KnowledgeView_KnowledgeDetail_Views_FileListView_tr">
+          <td colspan="6" style="text-align: center; padding: 2rem; color: #94a3b8">
+            加载中...
+          </td>
+        </tr>
         <tr
+          v-else-if="paginatedFiles.length === 0"
+          class="KnowledgeView_KnowledgeDetail_Views_FileListView_tr"
+        >
+          <td colspan="6" style="text-align: center; padding: 2rem; color: #94a3b8">
+            暂无文件
+          </td>
+        </tr>
+        <tr
+          v-else
           v-for="file in paginatedFiles"
           :key="file.id"
           class="KnowledgeView_KnowledgeDetail_Views_FileListView_tr"
@@ -32,9 +46,9 @@
               {{ getStatusText(file.status) }}
             </span>
           </td>
-          <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td">{{ file.size }}</td>
-          <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td">{{ file.chunkCount }}</td>
-          <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td">{{ file.updateTime }}</td>
+          <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td">{{ file.size || '-' }}</td>
+          <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td">{{ file.chunkCount || '-' }}</td>
+          <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td">{{ formatUpdateTime(file.updateTime) }}</td>
           <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td action-cell">
             <div class="action-buttons">
               <button class="action-btn" title="详情" @click="$emit('show-detail', file)">
@@ -142,9 +156,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
 import type { FileNode } from '../../types'
 
 const props = defineProps<{
+  knowledgeBaseId: number
   pageSize?: number
 }>()
 
@@ -152,87 +168,28 @@ const emit = defineEmits<{
   (e: 'show-detail', file: FileNode): void
 }>()
 
-const currentPage = ref(1)
+// 使用 Pinia Store
+const fileListStore = useFileListStore()
 
-// Use computed for pageSize to reactively respond to prop changes
-const pageSize = computed(() => props.pageSize || 20)
-
-// Watch pageSize changes from parent and reset to first page
+// Watch pageSize changes from parent and update store
 watch(
   () => props.pageSize,
-  () => {
-    currentPage.value = 1
-  }
-)
-
-// Mock data
-const mockFiles = ref<FileNode[]>([
-  {
-    id: 1,
-    name: '技术架构说明书-V1.0.pdf',
-    type: 'file',
-    size: '2.4 MB',
-    updateTime: '2024-03-21 14:30',
-    status: 'parsed',
-    chunkCount: 128,
-    path: '/documents/project/架构/',
-    extension: 'PDF',
-    metadata: {
-      tokenCount: 12500,
-      embeddingModel: 'text-embedding-3-small',
-      parseTime: '2.3s',
-      md5: 'a1b2c3d4e5f6789012345678901234ab'
+  (newSize) => {
+    if (newSize) {
+      fileListStore.setPageSize(newSize)
     }
   },
-  {
-    id: 2,
-    name: '产品需求文档-V2.0.pdf',
-    type: 'file',
-    size: '1.8 MB',
-    updateTime: '2024-03-21 12:15',
-    status: 'parsed',
-    chunkCount: 96,
-    path: '/documents/project/需求/',
-    extension: 'PDF'
-  },
-  {
-    id: 3,
-    name: 'API接口文档.pdf',
-    type: 'file',
-    size: '3.2 MB',
-    updateTime: '2024-03-20 16:45',
-    status: 'parsing',
-    chunkCount: 0,
-    path: '/documents/api/',
-    extension: 'PDF'
-  }
-])
+  { immediate: true }
+)
 
-// Add more mock items (simulating hundreds of files)
-for (let i = 4; i <= 250; i++) {
-  mockFiles.value.push({
-    id: i,
-    name: `文档-${i}.pdf`,
-    type: 'file',
-    size: `${(Math.random() * 5 + 0.5).toFixed(1)} MB`,
-    updateTime: '2024-03-20 10:00',
-    status: i % 3 === 0 ? 'failed' : i % 5 === 0 ? 'parsing' : 'parsed',
-    chunkCount: Math.floor(Math.random() * 200 + 50),
-    path: '/documents/',
-    extension: 'PDF'
-  })
-}
-
-// Pagination computed properties
-const totalFiles = computed(() => mockFiles.value.length)
-const totalPages = computed(() => Math.ceil(totalFiles.value / pageSize.value))
-
-const startIndex = computed(() => (currentPage.value - 1) * pageSize.value)
-const endIndex = computed(() => Math.min(startIndex.value + pageSize.value, totalFiles.value))
-
-const paginatedFiles = computed(() => {
-  return mockFiles.value.slice(startIndex.value, endIndex.value)
-})
+// 从 Store 获取数据
+const paginatedFiles = computed(() => fileListStore.paginatedFiles)
+const totalFiles = computed(() => fileListStore.totalFiles)
+const totalPages = computed(() => fileListStore.totalPages)
+const startIndex = computed(() => fileListStore.startIndex)
+const endIndex = computed(() => fileListStore.endIndex)
+const currentPage = computed(() => fileListStore.currentPage)
+const loading = computed(() => fileListStore.loading)
 
 // Visible page numbers (show max 7 pages)
 const visiblePages = computed(() => {
@@ -254,15 +211,28 @@ const visiblePages = computed(() => {
 })
 
 const goToPage = (page: number) => {
-  if (page >= 1 && page <= totalPages.value) {
-    currentPage.value = page
-    // Scroll to top of table
-    const container = document.querySelector('.KnowledgeView_KnowledgeDetail_content_scrollable')
-    if (container) {
-      container.scrollTop = 0
-    }
+  fileListStore.goToPage(page)
+  // Scroll to top of table
+  const container = document.querySelector('.KnowledgeView_KnowledgeDetail_content_scrollable')
+  if (container) {
+    container.scrollTop = 0
   }
 }
+
+// 初始化时获取文件列表
+onMounted(async () => {
+  await fileListStore.fetchFiles(props.knowledgeBaseId)
+})
+
+// 监听 knowledgeBaseId 变化，重新加载数据
+watch(
+  () => props.knowledgeBaseId,
+  async (newId) => {
+    if (newId) {
+      await fileListStore.fetchFiles(newId)
+    }
+  }
+)
 
 const getStatusText = (status?: string) => {
   const statusMap = {
@@ -272,6 +242,22 @@ const getStatusText = (status?: string) => {
     pending: '待解析'
   }
   return status ? statusMap[status] || '未知' : '未知'
+}
+
+const formatUpdateTime = (time?: string) => {
+  if (!time) return '-'
+  try {
+    const date = new Date(time)
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return time
+  }
 }
 
 // Context Menu

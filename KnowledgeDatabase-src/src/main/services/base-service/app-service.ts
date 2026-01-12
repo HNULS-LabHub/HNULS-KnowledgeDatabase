@@ -2,15 +2,18 @@ import { app, BrowserWindow } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { WindowService } from './window-service'
 import { SurrealDBService } from '../surrealdb-service'
+import { DocumentService } from '../knowledgeBase-library/document-service'
 import { logger } from '../logger'
 
 export class AppService {
   private windowService: WindowService
   private surrealDBService: SurrealDBService
+  private documentService: DocumentService
 
   constructor() {
     this.windowService = new WindowService()
     this.surrealDBService = new SurrealDBService()
+    this.documentService = new DocumentService()
   }
 
   async initialize(): Promise<void> {
@@ -23,6 +26,16 @@ export class AppService {
     app.on('browser-window-created', (_, window) => {
       optimizer.watchWindowShortcuts(window)
     })
+
+    // Initialize documents directory
+    try {
+      logger.info('Initializing documents directory...')
+      await this.documentService.initializeDocumentsDirectory()
+      logger.info('Documents directory initialized successfully')
+    } catch (error) {
+      logger.error('Failed to initialize documents directory', error)
+      // Continue app initialization even if directory initialization fails
+    }
 
     // Initialize and start SurrealDB service
     try {

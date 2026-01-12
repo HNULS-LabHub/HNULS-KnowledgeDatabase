@@ -1,7 +1,14 @@
 <template>
   <div class="KnowledgeView_KnowledgeDetail_Views_FileCardView_container">
+    <div v-if="loading" style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #94a3b8">
+      加载中...
+    </div>
+    <div v-else-if="files.length === 0" style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #94a3b8">
+      暂无文件
+    </div>
     <div
-      v-for="file in mockFiles"
+      v-else
+      v-for="file in files"
       :key="file.id"
       class="KnowledgeView_KnowledgeDetail_Views_FileCardView_card"
       @contextmenu.prevent="handleContextMenu($event, file)"
@@ -18,9 +25,9 @@
       <div class="KnowledgeView_KnowledgeDetail_Views_FileCardView_content">
         <h3 class="KnowledgeView_KnowledgeDetail_Views_FileCardView_title">{{ file.name }}</h3>
         <div class="KnowledgeView_KnowledgeDetail_Views_FileCardView_meta">
-          <span>{{ file.size }}</span>
-          <span>•</span>
-          <span>{{ file.updateTime }}</span>
+          <span>{{ file.size || '-' }}</span>
+          <span v-if="file.size && file.updateTime">•</span>
+          <span>{{ formatUpdateTime(file.updateTime) }}</span>
         </div>
       </div>
       <div class="KnowledgeView_KnowledgeDetail_Views_FileCardView_footer">
@@ -82,46 +89,39 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
 import type { FileNode } from '../../types'
+
+const props = defineProps<{
+  knowledgeBaseId: number
+}>()
 
 const emit = defineEmits<{
   (e: 'show-detail', file: FileNode): void
 }>()
 
-// Mock data (same as FileListView)
-const mockFiles = ref<FileNode[]>([
-  {
-    id: 1,
-    name: '技术架构说明书-V1.0.pdf',
-    type: 'file',
-    size: '2.4 MB',
-    updateTime: '2024-03-21',
-    status: 'parsed',
-    chunkCount: 128
-  },
-  {
-    id: 2,
-    name: '产品需求文档-V2.0.pdf',
-    type: 'file',
-    size: '1.8 MB',
-    updateTime: '2024-03-21',
-    status: 'parsed',
-    chunkCount: 96
-  }
-])
+// 使用 Pinia Store
+const fileCardStore = useFileCardStore()
 
-for (let i = 3; i <= 12; i++) {
-  mockFiles.value.push({
-    id: i,
-    name: `文档-${i}.pdf`,
-    type: 'file',
-    size: `${(Math.random() * 5 + 0.5).toFixed(1)} MB`,
-    updateTime: '2024-03-20',
-    status: i % 4 === 0 ? 'failed' : 'parsed',
-    chunkCount: Math.floor(Math.random() * 200 + 50)
-  })
-}
+// 从 Store 获取数据
+const files = computed(() => fileCardStore.filteredFiles)
+const loading = computed(() => fileCardStore.loading)
+
+// 初始化时获取文件列表
+onMounted(async () => {
+  await fileCardStore.fetchFiles(props.knowledgeBaseId)
+})
+
+// 监听 knowledgeBaseId 变化，重新加载数据
+watch(
+  () => props.knowledgeBaseId,
+  async (newId) => {
+    if (newId) {
+      await fileCardStore.fetchFiles(newId)
+    }
+  }
+)
 
 const getStatusText = (status?: string) => {
   const statusMap = {
@@ -131,6 +131,22 @@ const getStatusText = (status?: string) => {
     pending: '待解析'
   }
   return status ? statusMap[status] || '未知' : '未知'
+}
+
+const formatUpdateTime = (time?: string) => {
+  if (!time) return '-'
+  try {
+    const date = new Date(time)
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return time
+  }
 }
 
 // Context Menu (same logic as FileListView)

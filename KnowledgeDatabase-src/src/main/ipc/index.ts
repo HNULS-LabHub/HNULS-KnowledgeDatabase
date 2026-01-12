@@ -1,6 +1,7 @@
 import { TestIPCHandler } from './test-handler'
 import { DatabaseIPCHandler } from './database-handler'
 import { KnowledgeLibraryIPCHandler } from './knowledge-library-handler'
+import { FileIPCHandler } from './file-handler'
 import { SurrealDBService } from '../services/surrealdb-service'
 import { KnowledgeLibraryService } from '../services/knowledgeBase-library'
 
@@ -20,8 +21,8 @@ export class IPCManager {
     const knowledgeLibraryService = new KnowledgeLibraryService()
     this.handlers.push(new KnowledgeLibraryIPCHandler(knowledgeLibraryService))
 
-    // TODO: 添加其他处理器
-    // this.handlers.push(new FileIPCHandler(fileService));
+    // 注册文件处理器
+    this.handlers.push(new FileIPCHandler(knowledgeLibraryService))
 
     console.log(`Registered ${this.handlers.length} IPC handlers`)
   }
