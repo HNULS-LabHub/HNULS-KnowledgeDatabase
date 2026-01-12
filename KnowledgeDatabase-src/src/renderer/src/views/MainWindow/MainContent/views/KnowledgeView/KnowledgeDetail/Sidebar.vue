@@ -1,54 +1,57 @@
 <template>
-  <div class="KnowledgeView_KnowledgeDetail_Sidebar_container">
+  <div class="KnowledgeView_KnowledgeDetail_Sidebar_container sidebar-container w-[260px] h-full p-6 bg-white/60 backdrop-blur-[20px] border-r border-slate-200/80 flex flex-col gap-8 flex-shrink-0 box-border overflow-y-auto overflow-x-hidden">
     <!-- 顶部 KB 信息卡片 -->
-    <div class="KnowledgeView_KnowledgeDetail_Sidebar_infoCard">
-      <div class="KnowledgeView_KnowledgeDetail_Sidebar_infoHeader">
+    <div class="KnowledgeView_KnowledgeDetail_Sidebar_infoCard info-card bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60">
+      <div class="KnowledgeView_KnowledgeDetail_Sidebar_infoHeader info-header flex gap-3 mb-4 items-center">
         <div
-          class="KnowledgeView_KnowledgeDetail_Sidebar_iconWrapper"
+          class="KnowledgeView_KnowledgeDetail_Sidebar_iconWrapper icon-wrapper w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
           :style="{
             background: getLightColor(kb.color),
             color: kb.color
           }"
           v-html="kb.icon"
         ></div>
-        <div class="KnowledgeView_KnowledgeDetail_Sidebar_textInfo">
-          <h2 class="KnowledgeView_KnowledgeDetail_Sidebar_kbName" :title="kb.name">
+        <div class="KnowledgeView_KnowledgeDetail_Sidebar_textInfo text-info flex-1 min-w-0 flex flex-col justify-center">
+          <h2 class="KnowledgeView_KnowledgeDetail_Sidebar_kbName kb-name m-0 text-base font-semibold text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis" :title="kb.name">
             {{ kb.name }}
           </h2>
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_kbId"
+          <span class="KnowledgeView_KnowledgeDetail_Sidebar_kbId kb-id text-xs text-slate-400 font-mono mt-0.5"
             >ID: {{ String(kb.id).padStart(4, '0') }}</span
           >
         </div>
       </div>
 
-      <div class="KnowledgeView_KnowledgeDetail_Sidebar_statsRow">
-        <div class="KnowledgeView_KnowledgeDetail_Sidebar_statItem">
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue">{{
+      <div class="KnowledgeView_KnowledgeDetail_Sidebar_statsRow stats-row flex items-center pt-3 border-t border-slate-100">
+        <div class="KnowledgeView_KnowledgeDetail_Sidebar_statItem stat-item flex-1 flex flex-col items-center gap-0.5">
+          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue stat-value text-sm font-semibold text-slate-700">{{
             currentKB?.docCount ?? kb.docCount
           }}</span>
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel">文件</span>
+          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel stat-label text-[0.7rem] text-slate-400">文件</span>
         </div>
-        <div class="KnowledgeView_KnowledgeDetail_Sidebar_statDivider"></div>
-        <div class="KnowledgeView_KnowledgeDetail_Sidebar_statItem">
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue">{{
+        <div class="KnowledgeView_KnowledgeDetail_Sidebar_statDivider stat-divider w-px h-6 bg-slate-100"></div>
+        <div class="KnowledgeView_KnowledgeDetail_Sidebar_statItem stat-item flex-1 flex flex-col items-center gap-0.5">
+          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue stat-value text-sm font-semibold text-slate-700">{{
             currentKB?.chunkCount ?? kb.chunkCount
           }}</span>
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel">分片</span>
+          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel stat-label text-[0.7rem] text-slate-400">分片</span>
         </div>
       </div>
     </div>
 
     <!-- 导航菜单 -->
-    <nav class="KnowledgeView_KnowledgeDetail_Sidebar_navMenu">
+    <nav class="KnowledgeView_KnowledgeDetail_Sidebar_navMenu nav-menu flex flex-col gap-2">
       <button
         v-for="item in navItems"
         :key="item.id"
-        class="KnowledgeView_KnowledgeDetail_Sidebar_navItem"
-        :class="{ KnowledgeView_KnowledgeDetail_Sidebar_navItem_active: currentNav === item.id }"
+        class="KnowledgeView_KnowledgeDetail_Sidebar_navItem nav-item w-full flex items-center justify-start gap-3 px-4 py-3 border-none bg-transparent text-slate-500 rounded-xl cursor-pointer transition-all duration-200 text-left text-sm font-medium"
+        :class="{ 
+          'KnowledgeView_KnowledgeDetail_Sidebar_navItem_active nav-item-active bg-blue-50 text-blue-600 hover:bg-blue-50 hover:text-blue-600': currentNav === item.id,
+          'hover:bg-slate-50 hover:text-slate-900': currentNav !== item.id
+        }"
         @click="$emit('update:currentNav', item.id)"
       >
-        <span class="KnowledgeView_KnowledgeDetail_Sidebar_navIcon" v-html="item.icon"></span>
-        <span class="KnowledgeView_KnowledgeDetail_Sidebar_navLabel">{{ item.label }}</span>
+        <span class="KnowledgeView_KnowledgeDetail_Sidebar_navIcon nav-icon flex items-center justify-center" v-html="item.icon"></span>
+        <span class="KnowledgeView_KnowledgeDetail_Sidebar_navLabel nav-label">{{ item.label }}</span>
       </button>
     </nav>
   </div>
@@ -98,7 +101,7 @@ const navItems: { id: NavItem; label: string; icon: string }[] = [
 ]
 
 // 辅助函数：生成浅色背景色
-const getLightColor = (hex: string) => {
+const getLightColor = (hex: string): string => {
   if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex)) return 'rgba(0,0,0,0.05)'
   let c = hex.substring(1).split('')
   if (c.length === 3) c = [c[0], c[0], c[1], c[1], c[2], c[2]]
@@ -110,150 +113,10 @@ const getLightColor = (hex: string) => {
 </script>
 
 <style scoped>
-.KnowledgeView_KnowledgeDetail_Sidebar_container {
-  width: 260px;
-  height: 100%;
-  padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(20px);
-  border-right: 1px solid rgba(226, 232, 240, 0.8);
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  flex-shrink: 0;
-  box-sizing: border-box;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_infoCard {
-  background: white;
-  border-radius: 1rem;
-  padding: 1rem;
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.05),
-    0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(226, 232, 240, 0.6);
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_infoHeader {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-  align-items: center;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_iconWrapper {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
+/* 保留原类名用于开发定位，样式已迁移到 Tailwind CSS */
 .KnowledgeView_KnowledgeDetail_Sidebar_iconWrapper :deep(svg) {
   width: 1.5rem;
   height: 1.5rem;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_textInfo {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_kbName {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #0f172a;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_kbId {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  margin-top: 0.125rem;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_statsRow {
-  display: flex;
-  align-items: center;
-  padding-top: 0.75rem;
-  border-top: 1px solid #f1f5f9;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_statItem {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.125rem;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_statValue {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #334155;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_statLabel {
-  font-size: 0.7rem;
-  color: #94a3b8;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_statDivider {
-  width: 1px;
-  height: 1.5rem;
-  background: #f1f5f9;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_navMenu {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_navItem {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border: none;
-  background: transparent;
-  color: #64748b;
-  border-radius: 0.75rem;
-  cursor: pointer;
-  transition: all 200ms;
-  text-align: left;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_navItem:hover {
-  background: #f8fafc;
-  color: #0f172a;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_navItem_active {
-  background: #eff6ff; /* blue-50 */
-  color: #2563eb; /* blue-600 */
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_navItem_active:hover {
-  background: #eff6ff;
-  color: #2563eb;
-}
-
-.KnowledgeView_KnowledgeDetail_Sidebar_navIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .KnowledgeView_KnowledgeDetail_Sidebar_navIcon :deep(svg) {

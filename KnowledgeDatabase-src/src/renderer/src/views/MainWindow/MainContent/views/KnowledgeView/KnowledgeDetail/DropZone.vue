@@ -1,24 +1,29 @@
 <template>
   <div
-    class="KnowledgeView_KnowledgeDetail_DropZone_wrapper"
+    class="KnowledgeView_KnowledgeDetail_DropZone_wrapper dropzone-wrapper relative w-full flex-1 flex flex-col overflow-hidden min-h-0"
     @dragenter.prevent="handleDragEnter"
     @dragover.prevent="handleDragOver"
     @dragleave="handleDragLeave"
     @drop.prevent="handleDrop"
   >
     <slot />
-    <div v-if="isDragging" class="KnowledgeView_KnowledgeDetail_DropZone_overlay">
-      <div class="overlay-content">
-        <div class="overlay-icon">⬆</div>
-        <div class="overlay-title">松开鼠标开始导入</div>
-        <div class="overlay-desc">支持文件和目录，目录将保留原有结构</div>
+    <div
+      v-if="isDragging"
+      class="KnowledgeView_KnowledgeDetail_DropZone_overlay dropzone-overlay absolute inset-0 bg-slate-900/50 backdrop-blur-sm border-2 border-dashed border-white/60 rounded-xl flex items-center justify-center text-slate-200 z-20 animate-[fadeIn_120ms_ease]"
+    >
+      <div
+        class="overlay-content text-center flex flex-col gap-1.5 scale-100 animate-[popIn_180ms_ease]"
+      >
+        <div class="overlay-icon text-4xl leading-none">⬆</div>
+        <div class="overlay-title text-lg font-semibold">松开鼠标开始导入</div>
+        <div class="overlay-desc text-sm text-slate-300">支持文件和目录，目录将保留原有结构</div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useTaskManagerStore } from '@renderer/stores/task-manager.store'
 import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
 import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
@@ -43,7 +48,7 @@ const fileTreeStore = useFileTreeStore()
 // 全局进度监听器（只设置一次）
 let globalListenersSetup = false
 
-function setupGlobalListeners() {
+function setupGlobalListeners(): void {
   if (globalListenersSetup) return
   globalListenersSetup = true
 
@@ -171,7 +176,7 @@ const handleDrop = async (event: DragEvent): Promise<void> => {
 }
 
 // 刷新指定知识库的文件列表
-function refreshFilesForKnowledgeBase(kbId: number) {
+function refreshFilesForKnowledgeBase(kbId: number): void {
   Promise.allSettled([
     fileListStore.fetchFiles(kbId),
     fileCardStore.fetchFiles(kbId),
@@ -187,51 +192,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.KnowledgeView_KnowledgeDetail_DropZone_wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.KnowledgeView_KnowledgeDetail_DropZone_overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(2px);
-  border: 2px dashed rgba(255, 255, 255, 0.6);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #e2e8f0;
-  z-index: 20;
-  animation: fadeIn 120ms ease;
-}
-
-.overlay-content {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  transform: scale(1);
-  animation: popIn 180ms ease;
-}
-
-.overlay-icon {
-  font-size: 2.4rem;
-  line-height: 1;
-}
-
-.overlay-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.overlay-desc {
-  font-size: 0.9rem;
-  color: #cbd5e1;
-}
-
+/* 保留原类名用于开发定位，样式已迁移到 Tailwind CSS */
 @keyframes fadeIn {
   from {
     opacity: 0;

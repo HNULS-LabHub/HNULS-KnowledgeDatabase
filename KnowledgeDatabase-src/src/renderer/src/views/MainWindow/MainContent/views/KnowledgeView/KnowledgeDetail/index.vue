@@ -1,10 +1,10 @@
 <template>
-  <div class="KnowledgeView_KnowledgeDetail_index_container">
+  <div class="KnowledgeView_KnowledgeDetail_index_container flex w-full h-full bg-slate-50 overflow-hidden">
     <!-- Sidebar -->
     <Sidebar :kb="kb" v-model:currentNav="currentNav" />
 
     <!-- Main Content Area -->
-    <div class="KnowledgeView_KnowledgeDetail_content_area">
+    <div class="KnowledgeView_KnowledgeDetail_content_area content-area flex-1 flex flex-col overflow-hidden relative">
       <!-- 动态内容：根据左侧导航选择 -->
       <template v-if="currentNav === 'files'">
         <ContentHeader
@@ -15,7 +15,7 @@
         />
 
         <DropZone :knowledge-base-id="kb.id" @import-started="handleImportStarted">
-          <div class="KnowledgeView_KnowledgeDetail_content_scrollable">
+          <div class="KnowledgeView_KnowledgeDetail_content_scrollable scrollable-content flex-1 overflow-y-auto overflow-x-hidden min-h-0 scroll-smooth">
             <component
               :is="CurrentViewComponent"
               :knowledge-base-id="kb.id"
@@ -27,7 +27,7 @@
       </template>
 
       <!-- 其他导航项占位 -->
-      <div v-else class="KnowledgeView_KnowledgeDetail_placeholder">
+      <div v-else class="KnowledgeView_KnowledgeDetail_placeholder placeholder flex items-center justify-center h-full text-slate-400">
         <h3>{{ currentNav }} 功能开发中...</h3>
       </div>
     </div>
@@ -109,35 +109,3 @@ const handleImportStarted = () => {
 }
 </script>
 
-<style scoped>
-.KnowledgeView_KnowledgeDetail_index_container {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  background: #f8fafc;
-  overflow: hidden;
-}
-
-.KnowledgeView_KnowledgeDetail_content_area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-}
-
-.KnowledgeView_KnowledgeDetail_content_scrollable {
-  flex: 1;
-  overflow-y: auto;
-  /* 平滑滚动 */
-  scroll-behavior: smooth;
-}
-
-.KnowledgeView_KnowledgeDetail_placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #94a3b8;
-}
-</style>
