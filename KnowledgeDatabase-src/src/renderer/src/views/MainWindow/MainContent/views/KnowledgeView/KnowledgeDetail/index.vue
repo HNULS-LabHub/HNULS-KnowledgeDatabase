@@ -4,7 +4,7 @@
     <Sidebar :kb="kb" v-model:currentNav="currentNav" />
 
     <!-- Main Content Area -->
-<div class="KnowledgeView_KnowledgeDetail_content_area">
+    <div class="KnowledgeView_KnowledgeDetail_content_area">
       <!-- 动态内容：根据左侧导航选择 -->
       <template v-if="currentNav === 'files'">
         <ContentHeader
@@ -14,10 +14,7 @@
           @update:pageSize="pageSize = $event"
         />
 
-        <DropZone
-          :knowledge-base-id="kb.id"
-          @import-started="handleImportStarted"
-        >
+        <DropZone :knowledge-base-id="kb.id" @import-started="handleImportStarted">
           <div class="KnowledgeView_KnowledgeDetail_content_scrollable">
             <component
               :is="CurrentViewComponent"

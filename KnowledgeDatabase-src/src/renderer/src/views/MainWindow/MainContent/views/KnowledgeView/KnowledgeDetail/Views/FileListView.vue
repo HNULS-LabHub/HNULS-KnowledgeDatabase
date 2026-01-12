@@ -13,17 +13,13 @@
       </thead>
       <tbody>
         <tr v-if="loading" class="KnowledgeView_KnowledgeDetail_Views_FileListView_tr">
-          <td colspan="6" style="text-align: center; padding: 2rem; color: #94a3b8">
-            加载中...
-          </td>
+          <td colspan="6" style="text-align: center; padding: 2rem; color: #94a3b8">加载中...</td>
         </tr>
         <tr
           v-else-if="paginatedFiles.length === 0"
           class="KnowledgeView_KnowledgeDetail_Views_FileListView_tr"
         >
-          <td colspan="6" style="text-align: center; padding: 2rem; color: #94a3b8">
-            暂无文件
-          </td>
+          <td colspan="6" style="text-align: center; padding: 2rem; color: #94a3b8">暂无文件</td>
         </tr>
         <tr
           v-else
@@ -46,9 +42,15 @@
               {{ getStatusText(file.status) }}
             </span>
           </td>
-          <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td">{{ file.size || '-' }}</td>
-          <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td">{{ file.chunkCount || '-' }}</td>
-          <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td">{{ formatUpdateTime(file.updateTime) }}</td>
+          <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td">
+            {{ file.size || '-' }}
+          </td>
+          <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td">
+            {{ file.chunkCount || '-' }}
+          </td>
+          <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td">
+            {{ formatUpdateTime(file.updateTime) }}
+          </td>
           <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td action-cell">
             <div class="action-buttons">
               <button class="action-btn" title="详情" @click="$emit('show-detail', file)">

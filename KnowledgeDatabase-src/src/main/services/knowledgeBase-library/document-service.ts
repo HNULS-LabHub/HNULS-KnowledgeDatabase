@@ -49,11 +49,9 @@ export class DocumentService {
 
       // 创建目录
       await fs.mkdir(directoryPath, { recursive: true })
-      
-      logger.info(
-        `Created knowledge base directory: ${directoryName} (ID: ${knowledgeBaseId})`
-      )
-      
+
+      logger.info(`Created knowledge base directory: ${directoryName} (ID: ${knowledgeBaseId})`)
+
       return directoryName
     } catch (error) {
       logger.error('Failed to create knowledge base directory', error)
@@ -67,7 +65,7 @@ export class DocumentService {
   private async generateUniqueDirectoryName(baseName: string): Promise<string> {
     // 清理名称，移除非法字符
     const sanitizedName = baseName.replace(/[<>:"/\\|?*]/g, '_').trim()
-    
+
     let sequence = 1
     let directoryName = `${sanitizedName}-${String(sequence).padStart(4, '0')}`
     let directoryPath = path.join(this.documentsBasePath, directoryName)
@@ -102,13 +100,39 @@ export class DocumentService {
   }
 
   /**
+   * 确保知识库目录存在，如果不存在则自动创建
+   * @param directoryName 目录名称（不含完整路径）
+   * @returns 目录是否已存在（true=已存在，false=新创建）
+   */
+  async ensureKnowledgeBaseDirectory(directoryName: string): Promise<boolean> {
+    try {
+      const directoryPath = this.getFullDirectoryPath(directoryName)
+
+      // 检查目录是否存在
+      const exists = await this.directoryExists(directoryPath)
+
+      if (!exists) {
+        // 目录不存在，自动创建
+        await fs.mkdir(directoryPath, { recursive: true })
+        logger.info(`Auto-created missing knowledge base directory: ${directoryName}`)
+        return false // 新创建的
+      }
+
+      return true // 已存在
+    } catch (error) {
+      logger.error('Failed to ensure knowledge base directory', { directoryName, error })
+      throw error
+    }
+  }
+
+  /**
    * 删除知识库的文档目录
    * @param directoryName 目录名称（不含完整路径）
    */
   async deleteKnowledgeBaseDirectory(directoryName: string): Promise<void> {
     try {
       const directoryPath = path.join(this.documentsBasePath, directoryName)
-      
+
       // 检查目录是否存在
       if (await this.directoryExists(directoryPath)) {
         await fs.rm(directoryPath, { recursive: true, force: true })

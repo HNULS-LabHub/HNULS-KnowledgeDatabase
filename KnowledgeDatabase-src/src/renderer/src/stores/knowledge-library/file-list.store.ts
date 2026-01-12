@@ -20,7 +20,7 @@ export const useFileListStore = defineStore('file-list', () => {
   const totalPages = computed(() => Math.ceil(totalFiles.value / pageSize.value))
   const startIndex = computed(() => (currentPage.value - 1) * pageSize.value)
   const endIndex = computed(() => Math.min(startIndex.value + pageSize.value, totalFiles.value))
-  
+
   const paginatedFiles = computed(() => {
     return files.value.slice(startIndex.value, endIndex.value)
   })
@@ -33,7 +33,7 @@ export const useFileListStore = defineStore('file-list', () => {
     loading.value = true
     error.value = null
     currentKnowledgeBaseId.value = knowledgeBaseId
-    
+
     try {
       files.value = await FileDataSource.getAll(knowledgeBaseId)
       // 重置到第一页

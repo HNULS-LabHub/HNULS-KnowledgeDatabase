@@ -42,7 +42,9 @@
         </svg>
       </span>
       <span class="label">{{ node.name }}</span>
-      <span class="meta-right">{{ node.size || '-' }} • {{ formatUpdateTime(node.updateTime) }}</span>
+      <span class="meta-right"
+        >{{ node.size || '-' }} • {{ formatUpdateTime(node.updateTime) }}</span
+      >
 
       <div class="tree-actions">
         <button class="action-btn" @click.stop="$emit('show-detail', node)">
@@ -55,7 +57,10 @@
       </div>
     </div>
 
-    <div v-if="node.type === 'folder' && expandedFolders.has(node.id) && node.children" class="tree-children">
+    <div
+      v-if="node.type === 'folder' && expandedFolders.has(node.id) && node.children"
+      class="tree-children"
+    >
       <TreeNode
         v-for="child in node.children"
         :key="child.id"

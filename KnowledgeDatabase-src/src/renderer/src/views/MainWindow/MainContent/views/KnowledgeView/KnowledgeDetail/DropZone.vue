@@ -7,10 +7,7 @@
     @drop.prevent="handleDrop"
   >
     <slot />
-    <div
-      v-if="isDragging"
-      class="KnowledgeView_KnowledgeDetail_DropZone_overlay"
-    >
+    <div v-if="isDragging" class="KnowledgeView_KnowledgeDetail_DropZone_overlay">
       <div class="overlay-content">
         <div class="overlay-icon">⬆</div>
         <div class="overlay-title">松开鼠标开始导入</div>
@@ -156,14 +153,10 @@ const handleDrop = async (event: DragEvent): Promise<void> => {
     })
 
     // 启动异步导入（立即返回，不等待）
-    const { taskId } = await window.api.fileImport.importAsync(
-      props.knowledgeBaseId,
-      paths,
-      {
-        keepStructure: true,
-        conflictPolicy: 'rename'
-      }
-    )
+    const { taskId } = await window.api.fileImport.importAsync(props.knowledgeBaseId, paths, {
+      keepStructure: true,
+      conflictPolicy: 'rename'
+    })
 
     console.log('[DropZone] Async import started', { taskId })
 
@@ -214,7 +207,6 @@ onMounted(() => {
   z-index: 20;
   animation: fadeIn 120ms ease;
 }
-
 
 .overlay-content {
   text-align: center;

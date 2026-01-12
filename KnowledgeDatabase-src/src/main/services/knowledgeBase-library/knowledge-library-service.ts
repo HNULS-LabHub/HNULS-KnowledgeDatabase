@@ -195,7 +195,7 @@ export class KnowledgeLibraryService {
     }
 
     const deletedKB = meta.knowledgeBases[index]
-    
+
     // 删除文档目录
     if (deletedKB.documentPath) {
       try {

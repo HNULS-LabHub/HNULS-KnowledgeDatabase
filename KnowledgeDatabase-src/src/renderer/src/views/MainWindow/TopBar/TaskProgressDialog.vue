@@ -1,7 +1,11 @@
 <template>
   <Teleport to="body">
     <Transition name="dialog">
-      <div v-if="visible" class="fixed inset-0 z-50 flex items-center justify-center" @click.self="close">
+      <div
+        v-if="visible"
+        class="fixed inset-0 z-50 flex items-center justify-center"
+        @click.self="close"
+      >
         <div
           class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden"
         >
@@ -12,7 +16,13 @@
               @click="close"
               class="p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-700"
             >
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                class="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
@@ -63,7 +73,11 @@
               <Transition name="accordion">
                 <div v-if="expandedSection === 'import'" class="mt-2 space-y-2">
                   <!-- 活动任务 -->
-                  <div v-for="task in activeImportTasks" :key="task.taskId" class="p-4 bg-slate-50 rounded-lg">
+                  <div
+                    v-for="task in activeImportTasks"
+                    :key="task.taskId"
+                    class="p-4 bg-slate-50 rounded-lg"
+                  >
                     <div class="flex items-start justify-between mb-3">
                       <div class="flex-1">
                         <div class="flex items-center gap-2 mb-1">
@@ -71,14 +85,13 @@
                             class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"
                             v-if="task.status === 'running'"
                           ></div>
-                          <span class="text-sm font-medium text-slate-900">任务 #{{ task.taskId.slice(-8) }}</span>
+                          <span class="text-sm font-medium text-slate-900"
+                            >任务 #{{ task.taskId.slice(-8) }}</span
+                          >
                         </div>
                         <p class="text-xs text-slate-500">知识库 ID: {{ task.knowledgeBaseId }}</p>
                       </div>
-                      <span
-                        v-if="task.progress"
-                        class="text-sm font-medium text-slate-700"
-                      >
+                      <span v-if="task.progress" class="text-sm font-medium text-slate-700">
                         {{ task.progress.percentage }}%
                       </span>
                     </div>
@@ -92,13 +105,17 @@
                         ></div>
                       </div>
                       <div class="flex items-center justify-between mt-2 text-xs text-slate-600">
-                        <span>{{ task.progress.processed }} / {{ task.progress.totalFiles }} 文件</span>
+                        <span
+                          >{{ task.progress.processed }} / {{ task.progress.totalFiles }} 文件</span
+                        >
                         <span>
-                          {{ task.progress.imported }} 成功,
-                          {{ task.progress.failed }} 失败
+                          {{ task.progress.imported }} 成功, {{ task.progress.failed }} 失败
                         </span>
                       </div>
-                      <p v-if="task.progress.currentFile" class="mt-1 text-xs text-slate-500 truncate">
+                      <p
+                        v-if="task.progress.currentFile"
+                        class="mt-1 text-xs text-slate-500 truncate"
+                      >
                         当前: {{ task.progress.currentFile }}
                       </p>
                     </div>
@@ -134,13 +151,21 @@
                           <line x1="12" y1="8" x2="12" y2="12"></line>
                           <line x1="12" y1="16" x2="12.01" y2="16"></line>
                         </svg>
-                        <span class="text-sm font-medium text-slate-900">任务 #{{ task.taskId.slice(-8) }}</span>
+                        <span class="text-sm font-medium text-slate-900"
+                          >任务 #{{ task.taskId.slice(-8) }}</span
+                        >
                       </div>
                       <button
                         @click="removeTask(task.taskId)"
                         class="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600"
                       >
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg
+                          class="w-4 h-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
                           <line x1="18" y1="6" x2="6" y2="18"></line>
                           <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
@@ -155,10 +180,7 @@
                   </div>
 
                   <!-- 空状态 -->
-                  <div
-                    v-if="allImportTasks.length === 0"
-                    class="p-8 text-center text-slate-400"
-                  >
+                  <div v-if="allImportTasks.length === 0" class="p-8 text-center text-slate-400">
                     <svg
                       class="w-12 h-12 mx-auto mb-3 opacity-50"
                       viewBox="0 0 24 24"
@@ -256,7 +278,9 @@ function clearCompleted(): void {
 
 .dialog-enter-active > div,
 .dialog-leave-active > div {
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .dialog-enter-from > div,
@@ -267,7 +291,9 @@ function clearCompleted(): void {
 
 .accordion-enter-active,
 .accordion-leave-active {
-  transition: height 0.3s ease, opacity 0.3s ease;
+  transition:
+    height 0.3s ease,
+    opacity 0.3s ease;
   overflow: hidden;
 }
 

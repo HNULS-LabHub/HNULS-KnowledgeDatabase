@@ -20,9 +20,7 @@ export const useFileCardStore = defineStore('file-card', () => {
       return files.value
     }
     const query = searchQuery.value.toLowerCase()
-    return files.value.filter(
-      (file) => file.name.toLowerCase().includes(query)
-    )
+    return files.value.filter((file) => file.name.toLowerCase().includes(query))
   })
 
   // Actions
@@ -33,7 +31,7 @@ export const useFileCardStore = defineStore('file-card', () => {
     loading.value = true
     error.value = null
     currentKnowledgeBaseId.value = knowledgeBaseId
-    
+
     try {
       files.value = await FileDataSource.getAll(knowledgeBaseId)
     } catch (err) {

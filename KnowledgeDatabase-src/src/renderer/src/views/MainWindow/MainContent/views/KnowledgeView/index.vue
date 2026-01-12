@@ -84,22 +84,11 @@
                 }"
                 v-html="kb.icon"
               ></div>
-              <button
-                class="p-2 text-slate-400 bg-transparent border-none cursor-pointer rounded-lg transition-all duration-200 hover:text-slate-600 hover:bg-slate-100 flex-shrink-0"
-                @click.stop
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  class="w-5 h-5"
-                >
-                  <circle cx="12" cy="12" r="1"></circle>
-                  <circle cx="19" cy="12" r="1"></circle>
-                  <circle cx="5" cy="12" r="1"></circle>
-                </svg>
-              </button>
+              <KnowledgeBaseMenu
+                :kb-id="kb.id"
+                :kb-name="kb.name"
+                @delete="handleDeleteKnowledgeBase"
+              />
             </div>
 
             <!-- KB Info -->
@@ -172,6 +161,7 @@ import CreateKnowledgeBaseDialog, {
   type KnowledgeBaseFormData
 } from './CreateKnowledgeBaseDialog.vue'
 import KnowledgeDetail from './KnowledgeDetail/index.vue'
+import KnowledgeBaseMenu from './KnowledgeBaseMenu.vue'
 import type { KnowledgeBase } from './types'
 import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
 
@@ -236,6 +226,20 @@ const handleBack = () => {
   currentView.value = 'list'
   selectedKb.value = null
   emit('leave-detail')
+}
+
+const handleDeleteKnowledgeBase = async (id: number) => {
+  try {
+    await knowledgeLibraryStore.delete(id)
+    
+    // 如果删除的是当前正在查看的知识库，返回列表视图
+    if (selectedKb.value?.id === id) {
+      handleBack()
+    }
+  } catch (error) {
+    console.error('Failed to delete knowledge base:', error)
+    // TODO: 显示错误提示
+  }
 }
 
 // 辅助函数：生成浅色背景色 (Hex 转 RGBA)

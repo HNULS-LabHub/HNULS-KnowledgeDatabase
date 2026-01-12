@@ -52,7 +52,9 @@ export const fileImportAPI = {
   /**
    * 监听导入完成
    */
-  onComplete: (callback: (data: { taskId: string; result: ImportResult }) => void): (() => void) => {
+  onComplete: (
+    callback: (data: { taskId: string; result: ImportResult }) => void
+  ): (() => void) => {
     const handler = (_event: any, data: { taskId: string; result: ImportResult }) => {
       callback(data)
     }

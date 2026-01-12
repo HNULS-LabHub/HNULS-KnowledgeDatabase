@@ -31,7 +31,7 @@ export const useFileTreeStore = defineStore('file-tree', () => {
     loading.value = true
     error.value = null
     currentKnowledgeBaseId.value = knowledgeBaseId
-    
+
     try {
       files.value = await FileDataSource.getAll(knowledgeBaseId)
     } catch (err) {
@@ -137,7 +137,7 @@ function buildTreeFromFiles(files: FileNode[]): TreeNode[] {
   for (const file of sortedFiles) {
     const path = file.path || ''
     const parts = path.split('/').filter(Boolean)
-    
+
     // 构建当前路径的层级结构
     let currentPath = ''
     let parentNode: TreeNode | null = null

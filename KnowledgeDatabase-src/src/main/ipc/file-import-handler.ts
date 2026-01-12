@@ -178,7 +178,11 @@ export class FileImportIPCHandler extends BaseIPCHandler {
       }
 
       logger.info('[FileImportIPC] Calling importService.importIntoKnowledgeBase')
-      const result = await this.importService.importIntoKnowledgeBase(knowledgeBaseId, paths, options)
+      const result = await this.importService.importIntoKnowledgeBase(
+        knowledgeBaseId,
+        paths,
+        options
+      )
       logger.info('[FileImportIPC] Import completed', {
         totalInput: result.totalInput,
         imported: result.imported,

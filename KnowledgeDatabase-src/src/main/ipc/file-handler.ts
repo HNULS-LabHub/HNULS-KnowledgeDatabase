@@ -29,7 +29,7 @@ export class FileIPCHandler extends BaseIPCHandler {
     try {
       // 获取知识库元数据
       const knowledgeBase = await this.knowledgeLibraryService.getById(knowledgeBaseId)
-      
+
       if (!knowledgeBase) {
         return {
           success: false,
@@ -45,10 +45,11 @@ export class FileIPCHandler extends BaseIPCHandler {
         }
       }
 
+      // 确保目录存在（如果被手动删除，自动重新创建）
+      await this.documentService.ensureKnowledgeBaseDirectory(knowledgeBase.documentPath)
+
       // 获取完整目录路径
-      const directoryPath = this.documentService.getFullDirectoryPath(
-        knowledgeBase.documentPath
-      )
+      const directoryPath = this.documentService.getFullDirectoryPath(knowledgeBase.documentPath)
 
       // 扫描目录
       const files = await this.fileScannerService.scanDirectory(directoryPath)
@@ -72,7 +73,7 @@ export class FileIPCHandler extends BaseIPCHandler {
     try {
       // 获取知识库元数据
       const knowledgeBase = await this.knowledgeLibraryService.getById(knowledgeBaseId)
-      
+
       if (!knowledgeBase) {
         return {
           success: false,
@@ -88,10 +89,11 @@ export class FileIPCHandler extends BaseIPCHandler {
         }
       }
 
+      // 确保目录存在（如果被手动删除，自动重新创建）
+      await this.documentService.ensureKnowledgeBaseDirectory(knowledgeBase.documentPath)
+
       // 获取完整目录路径
-      const directoryPath = this.documentService.getFullDirectoryPath(
-        knowledgeBase.documentPath
-      )
+      const directoryPath = this.documentService.getFullDirectoryPath(knowledgeBase.documentPath)
 
       // 扫描目录
       const files = await this.fileScannerService.scanDirectory(directoryPath)

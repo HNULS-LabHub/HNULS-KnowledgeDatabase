@@ -83,14 +83,25 @@ export class FileImportService {
       throw new Error(`Knowledge base ${knowledgeBaseId} not found or missing documentPath`)
     }
 
+    // 确保目录存在（如果被手动删除，自动重新创建）
+    await this.documentService.ensureKnowledgeBaseDirectory(kb.documentPath)
+    logger.info('[FileImportService] Ensured knowledge base directory exists', {
+      documentPath: kb.documentPath
+    })
+
     // 文档目录
     const targetBase = this.documentService.getFullDirectoryPath(kb.documentPath)
-    logger.info('[FileImportService] Target directory', { targetBase, documentPath: kb.documentPath })
+    logger.info('[FileImportService] Target directory', {
+      targetBase,
+      documentPath: kb.documentPath
+    })
 
     // 收集所有待导入的文件列表
     const filesToImport: Array<{ source: string; relative: string }> = []
 
-    logger.info('[FileImportService] Collecting files to import', { inputPathsCount: inputPaths.length })
+    logger.info('[FileImportService] Collecting files to import', {
+      inputPathsCount: inputPaths.length
+    })
     for (const inputPath of inputPaths) {
       try {
         logger.info('[FileImportService] Processing input path', { inputPath })
@@ -98,7 +109,10 @@ export class FileImportService {
         const baseName = path.basename(inputPath)
 
         if (stats.isDirectory()) {
-          logger.info('[FileImportService] Input is directory, collecting files', { inputPath, baseName })
+          logger.info('[FileImportService] Input is directory, collecting files', {
+            inputPath,
+            baseName
+          })
           // 递归目录
           const items = await this.collectFiles(inputPath, keepStructure ? baseName : '')
           logger.info('[FileImportService] Collected files from directory', {
@@ -131,7 +145,10 @@ export class FileImportService {
     for (let i = 0; i < filesToImport.length; i++) {
       const item = filesToImport[i]
       try {
-        const targetPath = await this.getWritablePath(path.join(targetBase, item.relative), conflictPolicy)
+        const targetPath = await this.getWritablePath(
+          path.join(targetBase, item.relative),
+          conflictPolicy
+        )
 
         logger.info('[FileImportService] Copying file', { source: item.source, target: targetPath })
         await fs.mkdir(path.dirname(targetPath), { recursive: true })
@@ -174,7 +191,10 @@ export class FileImportService {
   /**
    * 递归收集目录下所有文件
    */
-  private async collectFiles(root: string, prefix: string): Promise<Array<{ source: string; relative: string }>> {
+  private async collectFiles(
+    root: string,
+    prefix: string
+  ): Promise<Array<{ source: string; relative: string }>> {
     const collected: Array<{ source: string; relative: string }> = []
 
     const walk = async (current: string, relativeBase: string) => {
@@ -198,7 +218,10 @@ export class FileImportService {
   /**
    * 根据冲突策略返回可写路径
    */
-  private async getWritablePath(targetPath: string, conflictPolicy: 'rename' | 'skip'): Promise<string> {
+  private async getWritablePath(
+    targetPath: string,
+    conflictPolicy: 'rename' | 'skip'
+  ): Promise<string> {
     try {
       await fs.access(targetPath)
       if (conflictPolicy === 'skip') {

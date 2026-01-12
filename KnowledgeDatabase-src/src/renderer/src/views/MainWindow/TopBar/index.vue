@@ -104,10 +104,7 @@
         </svg>
         <span class="notification-badge"></span>
       </button>
-      <button
-        class="notification-btn"
-        @click="showTaskDialog = true"
-      >
+      <button class="notification-btn" @click="showTaskDialog = true">
         <svg
           class="bell-icon"
           viewBox="0 0 24 24"
@@ -118,10 +115,7 @@
           <circle cx="12" cy="12" r="10"></circle>
           <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
-        <span
-          v-if="hasActiveTasks"
-          class="notification-badge bg-blue-500"
-        ></span>
+        <span v-if="hasActiveTasks" class="notification-badge bg-blue-500"></span>
       </button>
     </div>
 

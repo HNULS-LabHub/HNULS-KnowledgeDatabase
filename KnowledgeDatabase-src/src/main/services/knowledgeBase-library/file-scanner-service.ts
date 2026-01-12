@@ -31,7 +31,7 @@ export class FileScannerService {
 
       // 递归扫描目录
       await this.scanDirectoryRecursive(directoryPath, directoryPath, files)
-      
+
       logger.info(`Scanned ${files.length} files from directory: ${directoryPath}`)
     } catch (error) {
       logger.error('Failed to scan directory', error)
@@ -139,12 +139,7 @@ export class FileScannerService {
    * 判断是否为系统文件
    */
   private isSystemFile(fileName: string): boolean {
-    const systemFiles = [
-      'Thumbs.db',
-      'desktop.ini',
-      '.DS_Store',
-      '.gitkeep'
-    ]
+    const systemFiles = ['Thumbs.db', 'desktop.ini', '.DS_Store', '.gitkeep']
     return systemFiles.includes(fileName)
   }
 }

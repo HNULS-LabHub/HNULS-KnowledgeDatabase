@@ -1,9 +1,15 @@
 <template>
   <div class="KnowledgeView_KnowledgeDetail_Views_FileCardView_container">
-    <div v-if="loading" style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #94a3b8">
+    <div
+      v-if="loading"
+      style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #94a3b8"
+    >
       加载中...
     </div>
-    <div v-else-if="files.length === 0" style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #94a3b8">
+    <div
+      v-else-if="files.length === 0"
+      style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #94a3b8"
+    >
       暂无文件
     </div>
     <div
