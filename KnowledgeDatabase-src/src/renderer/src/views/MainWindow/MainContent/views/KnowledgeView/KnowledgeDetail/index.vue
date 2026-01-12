@@ -4,7 +4,7 @@
     <Sidebar :kb="kb" v-model:currentNav="currentNav" />
 
     <!-- Main Content Area -->
-    <div class="KnowledgeView_KnowledgeDetail_content_area">
+<div class="KnowledgeView_KnowledgeDetail_content_area">
       <!-- 动态内容：根据左侧导航选择 -->
       <template v-if="currentNav === 'files'">
         <ContentHeader
@@ -14,14 +14,21 @@
           @update:pageSize="pageSize = $event"
         />
 
-        <div class="KnowledgeView_KnowledgeDetail_content_scrollable">
-          <component
-            :is="CurrentViewComponent"
-            :knowledge-base-id="kb.id"
-            :page-size="currentViewType === 'list' ? pageSize : undefined"
-            @show-detail="handleShowDetail"
-          />
-        </div>
+        <DropZone
+          :knowledge-base-id="kb.id"
+          @importing="handleImporting"
+          @import-finished="handleImportFinished"
+          @import-error="handleImportError"
+        >
+          <div class="KnowledgeView_KnowledgeDetail_content_scrollable">
+            <component
+              :is="CurrentViewComponent"
+              :knowledge-base-id="kb.id"
+              :page-size="currentViewType === 'list' ? pageSize : undefined"
+              @show-detail="handleShowDetail"
+            />
+          </div>
+        </DropZone>
       </template>
 
       <!-- 其他导航项占位 -->
@@ -43,8 +50,10 @@ import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.s
 import Sidebar from './Sidebar.vue'
 import ContentHeader from './ContentHeader.vue'
 import DetailDrawer from './DetailDrawer.vue'
+import DropZone from './DropZone.vue'
 import { FileListView, FileCardView, FileTreeView } from './Views'
 import type { KnowledgeBase, ViewType, NavItem, FileNode } from '../types'
+import type { ImportResult } from '@preload/types/file-import.types'
 
 const props = defineProps<{
   kb: KnowledgeBase
@@ -97,6 +106,27 @@ watch(
 const handleShowDetail = (file: FileNode) => {
   selectedFile.value = file
   drawerVisible.value = true
+}
+
+const handleImporting = () => {
+  // 可以在此显示全局 loading/提示（当前留空以保持轻量）
+}
+
+const refreshAllFiles = async (kbId: number) => {
+  await Promise.allSettled([
+    fileListStore.fetchFiles(kbId),
+    fileCardStore.fetchFiles(kbId),
+    fileTreeStore.fetchFiles(kbId)
+  ])
+}
+
+const handleImportFinished = async (_result: ImportResult) => {
+  await refreshAllFiles(props.kb.id)
+}
+
+const handleImportError = async (_error: string) => {
+  // 出错也尝试刷新，以防部分成功
+  await refreshAllFiles(props.kb.id)
 }
 </script>
 

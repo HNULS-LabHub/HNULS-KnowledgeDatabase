@@ -1,7 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { KnowledgeLibraryDataSource } from './knowledge-library.datasource'
-import type { KnowledgeBase, CreateKnowledgeBaseData, UpdateKnowledgeBaseData } from './knowledge-library.types'
+import type {
+  KnowledgeBase,
+  CreateKnowledgeBaseData,
+  UpdateKnowledgeBaseData
+} from './knowledge-library.types'
 
 /**
  * 知识库管理 Store

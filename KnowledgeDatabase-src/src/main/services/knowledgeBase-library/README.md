@@ -15,6 +15,7 @@
 元数据存储在用户数据目录下的 `data/Knowledge-library-meta.json` 文件中。
 
 文件结构：
+
 ```json
 {
   "version": "1.0.0",

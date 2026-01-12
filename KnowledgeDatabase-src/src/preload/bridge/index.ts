@@ -1,14 +1,22 @@
-import { contextBridge } from 'electron'
+import { contextBridge, webUtils } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import { testAPI } from '../api/test-api'
 import { knowledgeLibraryAPI } from '../api/knowledge-library-api'
 import { fileAPI } from '../api/file-api'
+import { fileImportAPI } from '../api/file-import-api'
 
 // 自定义 API 集合
 const customAPI = {
   test: testAPI,
   knowledgeLibrary: knowledgeLibraryAPI,
-  file: fileAPI
+  file: fileAPI,
+  fileImport: fileImportAPI,
+  // Electron 文件路径工具
+  utils: {
+    getPathForFile: (file: File): string => {
+      return webUtils.getPathForFile(file)
+    }
+  }
   // TODO: 添加其他业务域 API
   // database: databaseAPI,
 }

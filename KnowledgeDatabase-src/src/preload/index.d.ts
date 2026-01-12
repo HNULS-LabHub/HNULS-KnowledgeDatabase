@@ -1,5 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { TestAPI, KnowledgeLibraryAPI, FileAPI } from './types'
+import type { TestAPI, KnowledgeLibraryAPI, FileAPI, FileImportAPI } from './types'
 
 /**
  * Window API 类型定义
@@ -12,6 +12,10 @@ declare global {
       test: TestAPI
       knowledgeLibrary: KnowledgeLibraryAPI
       file: FileAPI
+      fileImport: FileImportAPI
+      utils: {
+        getPathForFile: (file: File) => string
+      }
       // TODO: 添加其他业务域
       // database: DatabaseAPI
     }

@@ -35,6 +35,4 @@ export interface CreateKnowledgeBaseData {
 /**
  * 更新知识库时的数据
  */
-export type UpdateKnowledgeBaseData = Partial<
-  Omit<KnowledgeBase, 'id' | 'createdAt'>
->
+export type UpdateKnowledgeBaseData = Partial<Omit<KnowledgeBase, 'id' | 'createdAt'>>

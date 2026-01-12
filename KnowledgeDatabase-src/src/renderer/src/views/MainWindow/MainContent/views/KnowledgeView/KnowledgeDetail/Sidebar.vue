@@ -23,12 +23,16 @@
 
       <div class="KnowledgeView_KnowledgeDetail_Sidebar_statsRow">
         <div class="KnowledgeView_KnowledgeDetail_Sidebar_statItem">
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue">{{ currentKB?.docCount ?? kb.docCount }}</span>
+          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue">{{
+            currentKB?.docCount ?? kb.docCount
+          }}</span>
           <span class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel">文件</span>
         </div>
         <div class="KnowledgeView_KnowledgeDetail_Sidebar_statDivider"></div>
         <div class="KnowledgeView_KnowledgeDetail_Sidebar_statItem">
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue">{{ currentKB?.chunkCount ?? kb.chunkCount }}</span>
+          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue">{{
+            currentKB?.chunkCount ?? kb.chunkCount
+          }}</span>
           <span class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel">分片</span>
         </div>
       </div>

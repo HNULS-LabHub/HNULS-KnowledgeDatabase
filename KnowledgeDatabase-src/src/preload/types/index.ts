@@ -14,3 +14,4 @@ export interface APIResponse<T = any> {
 export type { TestAPI } from './test.types'
 export type { KnowledgeLibraryAPI } from './knowledge-library.types'
 export type { FileAPI, FileNode } from './file.types'
+export type { FileImportAPI, ImportResult, FileImportOptions } from './file-import.types'

@@ -92,11 +92,7 @@ export class KnowledgeLibraryIPCHandler extends BaseIPCHandler {
   /**
    * 更新知识库
    */
-  async handleUpdate(
-    _event: IpcMainInvokeEvent,
-    id: number,
-    data: UpdateKnowledgeBaseData
-  ) {
+  async handleUpdate(_event: IpcMainInvokeEvent, id: number, data: UpdateKnowledgeBaseData) {
     try {
       const knowledgeBase = await this.knowledgeLibraryService.update(id, data)
       if (!knowledgeBase) {
