@@ -16,9 +16,7 @@
 
         <DropZone
           :knowledge-base-id="kb.id"
-          @importing="handleImporting"
-          @import-finished="handleImportFinished"
-          @import-error="handleImportError"
+          @import-started="handleImportStarted"
         >
           <div class="KnowledgeView_KnowledgeDetail_content_scrollable">
             <component
@@ -53,7 +51,6 @@ import DetailDrawer from './DetailDrawer.vue'
 import DropZone from './DropZone.vue'
 import { FileListView, FileCardView, FileTreeView } from './Views'
 import type { KnowledgeBase, ViewType, NavItem, FileNode } from '../types'
-import type { ImportResult } from '@preload/types/file-import.types'
 
 const props = defineProps<{
   kb: KnowledgeBase
@@ -108,25 +105,10 @@ const handleShowDetail = (file: FileNode) => {
   drawerVisible.value = true
 }
 
-const handleImporting = () => {
-  // 可以在此显示全局 loading/提示（当前留空以保持轻量）
-}
-
-const refreshAllFiles = async (kbId: number) => {
-  await Promise.allSettled([
-    fileListStore.fetchFiles(kbId),
-    fileCardStore.fetchFiles(kbId),
-    fileTreeStore.fetchFiles(kbId)
-  ])
-}
-
-const handleImportFinished = async (_result: ImportResult) => {
-  await refreshAllFiles(props.kb.id)
-}
-
-const handleImportError = async (_error: string) => {
-  // 出错也尝试刷新，以防部分成功
-  await refreshAllFiles(props.kb.id)
+const handleImportStarted = () => {
+  // 导入已启动，任务会在后台处理，完成后会自动刷新
+  // 用户可以在任务进度对话框中查看进度
+  console.log('[KnowledgeDetail] Import started for KB', props.kb.id)
 }
 </script>
 

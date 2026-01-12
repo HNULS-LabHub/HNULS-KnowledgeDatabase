@@ -104,12 +104,36 @@
         </svg>
         <span class="notification-badge"></span>
       </button>
+      <button
+        class="notification-btn"
+        @click="showTaskDialog = true"
+      >
+        <svg
+          class="bell-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span
+          v-if="hasActiveTasks"
+          class="notification-badge bg-blue-500"
+        ></span>
+      </button>
     </div>
+
+    <!-- 任务进度对话框 -->
+    <TaskProgressDialog v-model:visible="showTaskDialog" />
   </header>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { useTaskManagerStore } from '@renderer/stores/task-manager.store'
+import TaskProgressDialog from './TaskProgressDialog.vue'
 
 const props = defineProps<{
   currentPage: string
@@ -119,6 +143,13 @@ const props = defineProps<{
 defineEmits<{
   (e: 'navigate-back'): void
 }>()
+
+const taskManager = useTaskManagerStore()
+const showTaskDialog = ref(false)
+
+const hasActiveTasks = computed(() => {
+  return taskManager.hasActiveTasks
+})
 
 const pageTitle = computed(() => {
   const titles = {

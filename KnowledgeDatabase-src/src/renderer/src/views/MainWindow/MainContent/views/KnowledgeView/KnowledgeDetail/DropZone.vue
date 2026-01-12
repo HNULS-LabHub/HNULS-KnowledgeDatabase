@@ -8,9 +8,8 @@
   >
     <slot />
     <div
-      v-if="isDragging || isDropping"
+      v-if="isDragging"
       class="KnowledgeView_KnowledgeDetail_DropZone_overlay"
-      :class="{ dropping: isDropping }"
     >
       <div class="overlay-content">
         <div class="overlay-icon">⬆</div>
@@ -22,22 +21,62 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import type { ImportResult } from '@preload/types/file-import.types'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useTaskManagerStore } from '@renderer/stores/task-manager.store'
+import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
+import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
+import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
 
 const props = defineProps<{
   knowledgeBaseId: number
 }>()
 
 const emit = defineEmits<{
-  (e: 'importing'): void
-  (e: 'import-finished', result: ImportResult): void
-  (e: 'import-error', error: string): void
+  (e: 'import-started'): void
 }>()
 
 const isDragging = ref(false)
-const isDropping = ref(false)
 let dragCounter = 0
+
+const taskManager = useTaskManagerStore()
+const fileListStore = useFileListStore()
+const fileCardStore = useFileCardStore()
+const fileTreeStore = useFileTreeStore()
+
+// 全局进度监听器（只设置一次）
+let globalListenersSetup = false
+
+function setupGlobalListeners() {
+  if (globalListenersSetup) return
+  globalListenersSetup = true
+
+  // 监听所有导入进度
+  window.api.fileImport.onProgress((progress) => {
+    taskManager.updateImportProgress(progress)
+  })
+
+  // 监听所有导入完成
+  window.api.fileImport.onComplete((data) => {
+    // data 格式: { taskId: string, result: ImportResult }
+    const taskId = data.taskId
+    const result = data.result
+    taskManager.completeImportTask(taskId, result)
+
+    // 查找任务对应的知识库ID并刷新文件列表
+    const task = taskManager.importTasks.get(taskId)
+    if (task) {
+      refreshFilesForKnowledgeBase(task.knowledgeBaseId)
+    }
+  })
+
+  // 监听所有导入错误
+  window.api.fileImport.onError((data) => {
+    // data 格式: { taskId: string, error: string }
+    taskManager.failImportTask(data.taskId, data.error)
+  })
+
+  console.log('[DropZone] Global import listeners setup')
+}
 
 const handleDragEnter = (): void => {
   dragCounter++
@@ -103,35 +142,55 @@ const handleDrop = async (event: DragEvent): Promise<void> => {
 
   if (paths.length === 0) {
     console.error('[DropZone] Failed to extract any file paths')
-    emit('import-error', '无法获取文件路径')
     return
   }
 
   try {
-    isDropping.value = true
-    emit('importing')
+    // 确保全局监听器已设置
+    setupGlobalListeners()
 
-    console.log('[DropZone] Calling import API', {
+    console.log('[DropZone] Starting async import', {
       knowledgeBaseId: props.knowledgeBaseId,
       paths,
       options: { keepStructure: true, conflictPolicy: 'rename' }
     })
 
-    const result = await window.api.fileImport.import(props.knowledgeBaseId, paths, {
-      keepStructure: true,
-      conflictPolicy: 'rename'
-    })
+    // 启动异步导入（立即返回，不等待）
+    const { taskId } = await window.api.fileImport.importAsync(
+      props.knowledgeBaseId,
+      paths,
+      {
+        keepStructure: true,
+        conflictPolicy: 'rename'
+      }
+    )
 
-    console.log('[DropZone] Import result', result)
-    emit('import-finished', result)
+    console.log('[DropZone] Async import started', { taskId })
+
+    // 将任务添加到任务管理器
+    taskManager.addImportTask(taskId, props.knowledgeBaseId)
+
+    // 立即返回，不等待导入完成
+    emit('import-started')
   } catch (error) {
-    console.error('[DropZone] Import error', error)
-    const message = error instanceof Error ? error.message : '导入失败'
-    emit('import-error', message)
-  } finally {
-    isDropping.value = false
+    console.error('[DropZone] Failed to start import', error)
   }
 }
+
+// 刷新指定知识库的文件列表
+function refreshFilesForKnowledgeBase(kbId: number) {
+  Promise.allSettled([
+    fileListStore.fetchFiles(kbId),
+    fileCardStore.fetchFiles(kbId),
+    fileTreeStore.fetchFiles(kbId)
+  ]).then(() => {
+    console.log('[DropZone] Files refreshed for knowledge base', { kbId })
+  })
+}
+
+onMounted(() => {
+  setupGlobalListeners()
+})
 </script>
 
 <style scoped>
@@ -156,9 +215,6 @@ const handleDrop = async (event: DragEvent): Promise<void> => {
   animation: fadeIn 120ms ease;
 }
 
-.KnowledgeView_KnowledgeDetail_DropZone_overlay.dropping {
-  animation: pulse 280ms ease;
-}
 
 .overlay-content {
   text-align: center;

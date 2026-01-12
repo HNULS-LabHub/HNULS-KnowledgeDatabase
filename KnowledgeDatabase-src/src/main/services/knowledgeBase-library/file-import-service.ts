@@ -9,6 +9,20 @@ export interface FileImportOptions {
   conflictPolicy?: 'rename' | 'skip'
 }
 
+/**
+ * 导入进度回调
+ */
+export interface ImportProgressCallback {
+  (progress: {
+    totalFiles: number
+    processed: number
+    imported: number
+    failed: number
+    currentFile?: string
+    percentage: number
+  }): void
+}
+
 export interface ImportResult {
   totalInput: number
   totalFilesDiscovered: number
@@ -30,12 +44,13 @@ export class FileImportService {
   ) {}
 
   /**
-   * 导入文件/目录到知识库
+   * 导入文件/目录到知识库（带进度回调）
    */
   async importIntoKnowledgeBase(
     knowledgeBaseId: number,
     inputPaths: string[],
-    options?: FileImportOptions
+    options?: FileImportOptions,
+    progressCallback?: ImportProgressCallback
   ): Promise<ImportResult> {
     logger.info('[FileImportService] importIntoKnowledgeBase started', {
       knowledgeBaseId,
@@ -111,7 +126,10 @@ export class FileImportService {
 
     // 逐个导入
     logger.info('[FileImportService] Starting file import', { filesCount: filesToImport.length })
-    for (const item of filesToImport) {
+    const totalFiles = filesToImport.length
+
+    for (let i = 0; i < filesToImport.length; i++) {
+      const item = filesToImport[i]
       try {
         const targetPath = await this.getWritablePath(path.join(targetBase, item.relative), conflictPolicy)
 
@@ -132,6 +150,20 @@ export class FileImportService {
         logger.error('[FileImportService] Failed to import file', { source: item.source, error })
         result.failed += 1
         result.errors.push({ sourcePath: item.source, reason: 'copy_failed' })
+      }
+
+      // 发送进度更新
+      if (progressCallback) {
+        const processed = i + 1
+        const percentage = totalFiles > 0 ? Math.round((processed / totalFiles) * 100) : 0
+        progressCallback({
+          totalFiles,
+          processed,
+          imported: result.imported,
+          failed: result.failed,
+          currentFile: path.basename(item.source),
+          percentage
+        })
       }
     }
 
