@@ -17,6 +17,14 @@ export class WindowService {
             icon: join(__dirname, '../../../resources/icon.png')
           }
         : {}),
+      ...(process.platform === 'win32'
+        ? {
+            titleBarOverlay: {
+              color: '#ffffff',
+              symbolColor: '#000000'
+            }
+          }
+        : {}),
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         sandbox: false,

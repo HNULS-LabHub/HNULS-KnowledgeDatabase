@@ -39,6 +39,16 @@
       </span>
       <span class="label">{{ node.name }}</span>
       <span class="meta">{{ node.children?.length || 0 }} 项</span>
+
+      <div class="tree-actions">
+        <button class="action-btn" @click.stop="$emit('show-detail', node)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="1"></circle>
+            <circle cx="19" cy="12" r="1"></circle>
+            <circle cx="5" cy="12" r="1"></circle>
+          </svg>
+        </button>
+      </div>
     </div>
 
     <div
@@ -91,6 +101,44 @@
         @external-drop="$emit('external-drop', $event)"
       />
     </div>
+
+    <!-- Context Menu -->
+    <Teleport to="body">
+      <Transition name="context-fade">
+        <div
+          v-if="contextMenuVisible"
+          class="context-menu"
+          :style="{ top: contextMenuY + 'px', left: contextMenuX + 'px' }"
+          @click="closeContextMenu"
+        >
+          <button class="context-menu-item" @click.stop="handleShowDetail">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            查看详情
+          </button>
+          <button class="context-menu-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            重命名
+          </button>
+          <div class="context-menu-divider"></div>
+          <button class="context-menu-item danger" @click.stop="handleDelete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18"></path>
+              <path
+                d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+              ></path>
+            </svg>
+            删除
+          </button>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -153,6 +201,44 @@ const handleContextMenu = (event: MouseEvent, node: FileNode): void => {
 const closeContextMenu = (): void => {
   contextMenuVisible.value = false
   contextMenuNode.value = null
+}
+
+const handleShowDetail = (): void => {
+  if (contextMenuNode.value) {
+    emit('show-detail', contextMenuNode.value)
+  }
+  closeContextMenu()
+}
+
+const handleDelete = async (): Promise<void> => {
+  if (!contextMenuNode.value || !props.knowledgeBaseId) {
+    console.warn('[TreeNode] Cannot delete: missing node or knowledgeBaseId')
+    return
+  }
+
+  const confirmed = window.confirm(
+    `确定要删除 "${contextMenuNode.value.name}" 吗？\n\n此操作不可撤销。`
+  )
+
+  if (!confirmed) {
+    return
+  }
+
+  try {
+    const targetPath = contextMenuNode.value.path || contextMenuNode.value.name
+    const result = await window.api.file.deleteFile(props.knowledgeBaseId, targetPath)
+
+    if (result.success) {
+      await fileTreeStore.fetchFiles(props.knowledgeBaseId)
+    } else {
+      alert(`删除失败: ${result.error || '未知错误'}`)
+    }
+  } catch (error) {
+    console.error('[TreeNode] Failed to delete node:', error)
+    alert(`删除失败: ${error instanceof Error ? error.message : '未知错误'}`)
+  } finally {
+    closeContextMenu()
+  }
 }
 
 onMounted(() => {
@@ -466,6 +552,69 @@ const handleDragEnd = (): void => {
 .action-btn svg {
   width: 1rem;
   height: 1rem;
+}
+
+/* Context Menu */
+.context-menu {
+  position: fixed;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  padding: 0.25rem;
+  min-width: 180px;
+  z-index: 2000;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 0.375rem;
+  transition: all 150ms;
+}
+
+.context-menu-item:hover {
+  background: #f8fafc;
+}
+
+.context-menu-item.danger {
+  color: #dc2626;
+}
+
+.context-menu-item.danger:hover {
+  background: #fef2f2;
+}
+
+.context-menu-item svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.context-menu-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 0.25rem 0;
+}
+
+.context-fade-enter-active,
+.context-fade-leave-active {
+  transition: opacity 150ms ease;
+}
+
+.context-fade-enter-from,
+.context-fade-leave-to {
+  opacity: 0;
 }
 
 /* 拖拽样式 */

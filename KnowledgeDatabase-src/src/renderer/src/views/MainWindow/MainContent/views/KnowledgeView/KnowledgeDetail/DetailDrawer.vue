@@ -71,27 +71,23 @@
                     </div>
                     <div class="info-item">
                       <span class="info-label">类型</span>
-                      <span class="info-value">{{ fileData?.extension || 'PDF' }}</span>
+                      <span class="info-value">{{ getTypeDisplay() }}</span>
                     </div>
                     <div class="info-item">
                       <span class="info-label">路径</span>
                       <span class="info-value truncate" :title="fileData?.path">
-                        {{ fileData?.path || '/documents/project/' }}
+                        {{ fileData?.path || '-' }}
                       </span>
                     </div>
                     <div class="info-item">
                       <span class="info-label">上传时间</span>
-                      <span class="info-value">{{
-                        fileData?.uploadTime || '2024-03-21 14:30'
-                      }}</span>
+                      <span class="info-value">{{ fileData?.uploadTime || '-' }}</span>
                     </div>
                     <div class="info-item">
                       <span class="info-label">更新时间</span>
-                      <span class="info-value">{{
-                        fileData?.updateTime || '2024-03-21 14:30'
-                      }}</span>
+                      <span class="info-value">{{ fileData?.updateTime || '-' }}</span>
                     </div>
-                    <div class="info-item full-width" v-if="fileData?.metadata?.md5">
+                    <div v-if="fileData?.metadata?.md5" class="info-item full-width">
                       <span class="info-label">MD5</span>
                       <span class="info-value code">{{ fileData.metadata.md5 }}</span>
                     </div>
@@ -251,7 +247,23 @@ const statusText = computed(() => {
   return props.fileData?.status ? statusMap[props.fileData.status] : '未知'
 })
 
-const close = () => {
+/**
+ * 获取类型显示文本
+ * 目录显示 'list'，文件显示扩展名，都没有则显示 '-'
+ */
+const getTypeDisplay = (): string => {
+  if (!props.fileData) return '-'
+
+  // 如果是目录，显示 'list'
+  if (props.fileData.type === 'folder') {
+    return 'list'
+  }
+
+  // 如果是文件，显示扩展名，没有扩展名则显示 '-'
+  return props.fileData.extension || '-'
+}
+
+const close = (): void => {
   emit('update:visible', false)
   // Reset tab after animation
   setTimeout(() => {
@@ -264,16 +276,14 @@ const fileListStore = useFileListStore()
 const fileCardStore = useFileCardStore()
 const fileTreeStore = useFileTreeStore()
 
-const handleDelete = async () => {
+const handleDelete = async (): Promise<void> => {
   if (!props.fileData || !props.knowledgeBaseId) {
     console.warn('[DetailDrawer] Cannot delete: missing fileData or knowledgeBaseId')
     return
   }
 
   // 确认删除
-  const confirmed = window.confirm(
-    `确定要删除 "${props.fileData.name}" 吗？\n\n此操作不可撤销。`
-  )
+  const confirmed = window.confirm(`确定要删除 "${props.fileData.name}" 吗？\n\n此操作不可撤销。`)
 
   if (!confirmed) {
     return

@@ -78,4 +78,5 @@ export interface FileAPI {
     moves: Array<{ source: string; target: string }>,
     conflictPolicy?: 'rename' | 'skip' | 'overwrite'
   ): Promise<BatchMoveResult>
+  deleteFile(knowledgeBaseId: number, filePath: string): Promise<{ success: boolean; error?: string }>
 }
