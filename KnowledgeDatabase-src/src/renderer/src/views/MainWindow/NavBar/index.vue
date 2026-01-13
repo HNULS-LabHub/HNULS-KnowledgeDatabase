@@ -59,12 +59,12 @@
           <div class="tooltip-arrow"></div>
         </div>
       </button>
-      <div class="user-avatar">
+      <button class="user-avatar" @click="handleUserSetting">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
           <circle cx="12" cy="7" r="4"></circle>
         </svg>
-      </div>
+      </button>
     </div>
   </nav>
 </template>
@@ -111,6 +111,11 @@ const setActive = (item: string): void => {
   // 将 index 映射到 dashboard 页面
   const targetPage = item === 'index' ? 'dashboard' : item
   emit('navigate', targetPage)
+}
+
+const handleUserSetting = (): void => {
+  // 直接导航到 user-setting 页面
+  emit('navigate', 'user-setting')
 }
 </script>
 
