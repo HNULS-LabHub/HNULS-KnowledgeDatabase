@@ -126,7 +126,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useTaskManagerStore } from '@renderer/stores/task-manager.store'
+import { useTaskManagerStore } from '@renderer/stores/task-manager/task-manager.store'
 import TaskProgressDialog from './TaskProgressDialog.vue'
 
 const props = defineProps<{

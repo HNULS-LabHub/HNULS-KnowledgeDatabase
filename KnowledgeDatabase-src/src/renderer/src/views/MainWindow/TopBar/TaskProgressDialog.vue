@@ -225,7 +225,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useTaskManagerStore } from '@renderer/stores/task-manager.store'
+import { useTaskManagerStore } from '@renderer/stores/task-manager/task-manager.store'
 
 defineProps<{
   visible: boolean

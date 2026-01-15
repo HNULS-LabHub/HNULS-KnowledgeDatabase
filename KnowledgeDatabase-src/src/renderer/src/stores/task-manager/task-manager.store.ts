@@ -1,20 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-
-// 使用 window.api 的类型定义
-type ImportProgress = Parameters<Parameters<typeof window.api.fileImport.onProgress>[0]>[0]
-type ImportResult = Awaited<ReturnType<typeof window.api.fileImport.import>>
-
-export interface ImportTask {
-  taskId: string
-  knowledgeBaseId: number
-  status: 'pending' | 'running' | 'completed' | 'failed'
-  progress: ImportProgress | null
-  result: ImportResult | null
-  error: string | null
-  startTime: number
-  endTime: number | null
-}
+import type { ImportProgress, ImportResult, ImportTask } from './task-manager.types'
 
 /**
  * 任务管理器 Store

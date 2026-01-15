@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
-import { useTaskManagerStore } from '@renderer/stores/task-manager.store'
+import { useTaskManagerStore } from '@renderer/stores/task-manager/task-manager.store'
 import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
 import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
 import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
