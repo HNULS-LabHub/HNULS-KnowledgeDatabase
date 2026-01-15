@@ -8,11 +8,7 @@ function toVersion(evt: MinerUParsingProgressEvent): ParsingVersion {
   const ts = evt.updatedAt || new Date().toISOString()
   const state = evt.state
   const name =
-    state === 'done'
-      ? 'MinerU 解析完成'
-      : state === 'failed'
-        ? 'MinerU 解析失败'
-        : 'MinerU 解析中'
+    state === 'done' ? 'MinerU 解析完成' : state === 'failed' ? 'MinerU 解析失败' : 'MinerU 解析中'
 
   return {
     id: evt.versionId,

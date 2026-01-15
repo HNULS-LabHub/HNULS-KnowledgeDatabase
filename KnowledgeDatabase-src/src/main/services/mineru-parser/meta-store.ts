@@ -2,7 +2,13 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import { safeDocName } from './util'
 
-export type MinerUVersionState = 'waiting-file' | 'pending' | 'running' | 'converting' | 'done' | 'failed'
+export type MinerUVersionState =
+  | 'waiting-file'
+  | 'pending'
+  | 'running'
+  | 'converting'
+  | 'done'
+  | 'failed'
 
 export interface MinerUDocVersionMeta {
   id: string
@@ -76,7 +82,11 @@ export class MinerUMetaStore {
     }
 
     // active 不存在时回退
-    if (meta.activeVersionId && !diskVersions.includes(meta.activeVersionId) && !meta.versions[meta.activeVersionId]) {
+    if (
+      meta.activeVersionId &&
+      !diskVersions.includes(meta.activeVersionId) &&
+      !meta.versions[meta.activeVersionId]
+    ) {
       meta.activeVersionId = diskVersions[0] ?? null
     }
 
@@ -119,7 +129,11 @@ export class MinerUMetaStore {
     }
   }
 
-  async setActiveVersion(params: { kbRoot: string; fileName: string; versionId: string }): Promise<MinerUDocMeta> {
+  async setActiveVersion(params: {
+    kbRoot: string
+    fileName: string
+    versionId: string
+  }): Promise<MinerUDocMeta> {
     const meta = await this.loadOrInit({ kbRoot: params.kbRoot, fileName: params.fileName })
     if (!meta.versions[params.versionId]) {
       // 允许切换到不存在目录但已知版本（例如进行中）
@@ -137,8 +151,10 @@ export class MinerUMetaStore {
     return meta
   }
 
-  async allocateNextVersion(params: { kbRoot: string; fileName: string }): Promise<{ meta: MinerUDocMeta; versionId: string }>
-  {
+  async allocateNextVersion(params: {
+    kbRoot: string
+    fileName: string
+  }): Promise<{ meta: MinerUDocMeta; versionId: string }> {
     const meta = await this.loadOrInit({ kbRoot: params.kbRoot, fileName: params.fileName })
 
     const existingIds = Object.keys(meta.versions)

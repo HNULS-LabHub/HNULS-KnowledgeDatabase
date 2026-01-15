@@ -34,6 +34,10 @@ export interface MinerUSetActiveVersionRequest {
 }
 
 export interface MinerUFileStateAPI {
-  getFileParsingState: (req: MinerUGetFileParsingStateRequest) => Promise<APIResponse<MinerUFileParsingState>>
-  setActiveVersion: (req: MinerUSetActiveVersionRequest) => Promise<APIResponse<MinerUFileParsingState>>
+  getFileParsingState: (
+    req: MinerUGetFileParsingStateRequest
+  ) => Promise<APIResponse<MinerUFileParsingState>>
+  setActiveVersion: (
+    req: MinerUSetActiveVersionRequest
+  ) => Promise<APIResponse<MinerUFileParsingState>>
 }

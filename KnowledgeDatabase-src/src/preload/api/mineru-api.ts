@@ -18,7 +18,9 @@ export const minerUAPI: MinerUAPI & {
     req: MinerUSetActiveVersionRequest
   ) => Promise<APIResponse<MinerUFileParsingState>>
 } = {
-  startParsing: (req: MinerUStartParsingRequest): Promise<APIResponse<MinerUStartParsingResponse>> => {
+  startParsing: (
+    req: MinerUStartParsingRequest
+  ): Promise<APIResponse<MinerUStartParsingResponse>> => {
     return ipcRenderer.invoke('mineru:startparsing', req)
   },
 

@@ -22,7 +22,10 @@ function toVersion(v: {
 }
 
 export const ParsingDataSource = {
-  async getFileParsingState(fileKey: string, options?: { knowledgeBaseId?: number }): Promise<FileParsingState> {
+  async getFileParsingState(
+    fileKey: string,
+    options?: { knowledgeBaseId?: number }
+  ): Promise<FileParsingState> {
     // 需要 kbId 才能获取完整版本列表
     if (!options?.knowledgeBaseId) {
       const res = await window.api.minerU.getStatus(fileKey)
