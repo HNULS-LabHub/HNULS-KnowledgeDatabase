@@ -100,70 +100,185 @@
                 v-else-if="currentTab === 'parse'"
                 class="KnowledgeView_KnowledgeDetail_DetailDrawer_tabContent"
               >
-                <div class="info-section">
-                  <h4 class="section-title">解析统计</h4>
-                  <div class="stat-cards">
-                    <div class="stat-card">
-                      <div class="stat-icon blue">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <rect x="3" y="3" width="7" height="7"></rect>
-                          <rect x="14" y="3" width="7" height="7"></rect>
-                          <rect x="14" y="14" width="7" height="7"></rect>
-                          <rect x="3" y="14" width="7" height="7"></rect>
-                        </svg>
-                      </div>
-                      <div class="stat-info">
-                        <span class="stat-value">{{ fileData?.chunkCount || 128 }}</span>
-                        <span class="stat-label">分块数量</span>
+                <div
+                  class="KnowledgeView_KnowledgeDetail_DetailDrawer_parseHeader info-section"
+                >
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                      <h4 class="section-title">解析进度</h4>
+                      <div class="mt-1 text-xs text-slate-500 truncate" :title="fileKey">
+                        {{ fileKey || '-' }}
                       </div>
                     </div>
-                    <div class="stat-card">
-                      <div class="stat-icon green">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                        </svg>
-                      </div>
-                      <div class="stat-info">
-                        <span class="stat-value">{{
-                          fileData?.metadata?.tokenCount || '12.5k'
-                        }}</span>
-                        <span class="stat-label">Token 数量</span>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div class="info-grid">
-                    <div class="info-item">
-                      <span class="info-label">解析模型</span>
-                      <span class="info-value">{{
-                        fileData?.metadata?.embeddingModel || 'text-embedding-3-small'
-                      }}</span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">解析耗时</span>
-                      <span class="info-value">{{ fileData?.metadata?.parseTime || '2.3s' }}</span>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <div class="max-w-[160px] w-[160px] flex-shrink">
+                        <WhiteSelect
+                          class="KnowledgeView_KnowledgeDetail_DetailDrawer_versionSelect"
+                          :disabled="!parsingState || parsingState.versions.length === 0"
+                          :model-value="activeVersion?.id || null"
+                          :options="versionOptions"
+                          placeholder="选择版本"
+                          @update:modelValue="(v) => handleSwitchVersion(String(v))"
+                        />
+                      </div>
+
+                      <button
+                        class="KnowledgeView_KnowledgeDetail_DetailDrawer_parseBtn action-button primary"
+                        :disabled="!fileKey || parsingStore.isLoading(fileKey)"
+                        @click="handleStartParsing"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="23 4 23 10 17 10"></polyline>
+                          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                        </svg>
+                        {{ hasAnyVersion ? '重新解析' : '文档解析' }}
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                <div class="info-section">
-                  <h4 class="section-title">操作</h4>
-                  <div class="action-buttons">
-                    <button class="action-button primary">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="23 4 23 10 17 10"></polyline>
-                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                      </svg>
-                      重新解析
-                    </button>
-                    <button class="action-button">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                      </svg>
-                      导出分块
-                    </button>
+                <div v-if="!fileKey" class="info-section">
+                  <div class="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+                    请选择一个文件以查看解析状态。
+                  </div>
+                </div>
+
+                <div v-else-if="parsingStore.isLoading(fileKey)" class="info-section">
+                  <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <div class="flex items-center gap-3">
+                      <div class="h-2 w-2 rounded-full bg-slate-300"></div>
+                      <div class="text-sm text-slate-600">加载解析状态中…</div>
+                    </div>
+                    <div class="mt-3 h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                      <div class="h-full w-1/3 bg-slate-300 animate-pulse"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-else-if="!hasAnyVersion" class="info-section">
+                  <div class="rounded-xl border border-dashed border-slate-200 bg-white p-5">
+                    <div class="text-sm font-medium text-slate-800">尚无解析记录</div>
+                    <div class="mt-1 text-xs text-slate-500">
+                      点击右上角 <span class="font-medium">文档解析</span> 开始生成分块、向量嵌入并加入知识图谱。
+                    </div>
+                    <div class="mt-3 text-xs text-slate-500">
+                      文档解析阶段支持：PDF / DOCX / PPTX / PNG / JPG。
+                      其他纯文本类型会跳过文档解析阶段。
+                    </div>
+                  </div>
+                </div>
+
+                <div v-else class="info-section">
+                  <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="text-sm font-semibold text-slate-900 truncate">
+                          {{ activeVersion?.parserName || '-' }}
+                        </div>
+                        <div class="mt-1 text-xs text-slate-500 truncate">
+                          {{ activeVersion ? new Date(activeVersion.createdAt).toLocaleString() : '-' }}
+                        </div>
+                      </div>
+                      <div
+                        class="px-2 py-0.5 rounded-full text-xs font-medium"
+                        :class="versionStatusBadgeClass(activeVersion?.status)"
+                      >
+                        {{ versionStatusText(activeVersion?.status) }}
+                      </div>
+                    </div>
+
+                    <div class="mt-4 space-y-3">
+                      <div
+                        v-for="stage in stageUIs"
+                        :key="stage.key"
+                        class="flex items-start gap-3"
+                      >
+                        <div
+                          class="mt-0.5 h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
+                          :class="stageIconBgClass(stage.status)"
+                        >
+                          <component :is="stage.icon" class="h-4 w-4" />
+                        </div>
+
+                        <div class="min-w-0 flex-1">
+                          <div class="flex items-center justify-between gap-2">
+                            <div class="text-sm font-medium text-slate-900">
+                              {{ stage.title }}
+                            </div>
+                            <div
+                              class="px-2 py-0.5 rounded-full text-xs font-medium"
+                              :class="stageBadgeClass(stage.status)"
+                            >
+                              {{ stageStatusText(stage.status) }}
+                            </div>
+                          </div>
+
+                          <div v-if="stage.details" class="mt-1 text-xs text-slate-500">
+                            {{ stage.details }}
+                          </div>
+
+                          <div v-if="stage.status === 'failed' && stage.error" class="mt-1 text-xs text-red-600">
+                            {{ stage.error }}
+                          </div>
+
+                          <div class="mt-2 h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                            <div
+                              class="h-full transition-all"
+                              :class="stageProgressBarClass(stage.status)"
+                              :style="{ width: `${stage.progress}%` }"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="activeVersion?.summary"
+                    class="rounded-xl border border-slate-200 bg-white p-4"
+                  >
+                    <div class="text-xs font-semibold text-slate-700">解析统计</div>
+                    <div class="mt-3 grid grid-cols-2 gap-3">
+                      <div class="rounded-lg bg-slate-50 p-3">
+                        <div class="text-xs text-slate-500">分块数量</div>
+                        <div class="mt-1 text-lg font-semibold text-slate-900">
+                          {{ activeVersion.summary.chunkCount ?? '-' }}
+                        </div>
+                      </div>
+                      <div class="rounded-lg bg-slate-50 p-3">
+                        <div class="text-xs text-slate-500">Token 数量</div>
+                        <div class="mt-1 text-lg font-semibold text-slate-900">
+                          {{ formatTokenCount(activeVersion.summary.tokenCount) }}
+                        </div>
+                      </div>
+                      <div class="rounded-lg bg-slate-50 p-3">
+                        <div class="text-xs text-slate-500">嵌入模型</div>
+                        <div class="mt-1 text-sm font-medium text-slate-900 truncate">
+                          {{ activeVersion.summary.embeddingModel ?? '-' }}
+                        </div>
+                      </div>
+                      <div class="rounded-lg bg-slate-50 p-3">
+                        <div class="text-xs text-slate-500">耗时</div>
+                        <div class="mt-1 text-sm font-medium text-slate-900">
+                          {{ formatDuration(activeVersion.summary.parseTimeMs) }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="info-section">
+                    <h4 class="section-title">操作</h4>
+                    <div class="action-buttons">
+                      <button class="action-button" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                          <polyline points="7 10 12 15 17 10"></polyline>
+                          <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        导出分块（待接后端）
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -211,11 +326,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { FileNode } from '../types'
 import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
 import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
 import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
+import { useParsingStore } from '@renderer/stores/parsing/parsing.store'
+import type { ParsingStage, ParsingVersion, StageStatus } from '@renderer/stores/parsing/parsing.types'
+import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -246,6 +364,173 @@ const statusText = computed(() => {
   }
   return props.fileData?.status ? statusMap[props.fileData.status] : '未知'
 })
+
+const parsingStore = useParsingStore()
+
+const fileKey = computed(() => {
+  if (!props.fileData) return ''
+  return props.fileData.path || props.fileData.name || ''
+})
+
+const parsingState = computed(() => {
+  if (!fileKey.value) return null
+  return parsingStore.getState(fileKey.value)
+})
+
+const activeVersion = computed(() => {
+  if (!fileKey.value) return null
+  return parsingStore.getActiveVersion(fileKey.value)
+})
+
+const hasAnyVersion = computed(() => {
+  return (parsingState.value?.versions?.length ?? 0) > 0
+})
+
+watch(
+  [() => props.visible, () => currentTab.value, () => fileKey.value],
+  async ([visible, tab, key]) => {
+    if (!visible) return
+    if (tab !== 'parse') return
+    if (!key) return
+    await parsingStore.ensureState(key)
+  },
+  { immediate: true }
+)
+
+const handleSwitchVersion = (versionId: string) => {
+  if (!fileKey.value) return
+  if (!versionId) return
+  parsingStore.switchActiveVersion(fileKey.value, versionId)
+}
+
+const handleStartParsing = async () => {
+  if (!fileKey.value) return
+  await parsingStore.startParsing(fileKey.value, { parserName: 'Parser-Stable' })
+}
+
+const stageOrder: Array<{ key: ParsingStage; title: string }> = [
+  { key: 'parsing', title: '文档解析' },
+  { key: 'chunking', title: '分块' },
+  { key: 'embedding', title: '嵌入' },
+  { key: 'kg-indexing', title: '加入知识图谱' }
+]
+
+const stageUIs = computed(() => {
+  const v = activeVersion.value
+  if (!v) return []
+
+  return stageOrder.map(({ key, title }) => {
+    const p = v.stages[key]
+    return {
+      key,
+      title,
+      status: p.status,
+      progress: Math.max(0, Math.min(100, p.progress ?? 0)),
+      details: p.details,
+      error: p.error,
+      icon:
+        key === 'parsing'
+          ? DocIcon
+          : key === 'chunking'
+            ? ChunkIcon
+            : key === 'embedding'
+              ? EmbedIcon
+              : KgIcon
+    }
+  })
+})
+
+const versionOptions = computed(() => {
+  const versions = parsingState.value?.versions ?? []
+  return versions.map((v) => ({
+    label: formatVersionLabel(v),
+    value: v.id
+  }))
+})
+
+const formatVersionLabel = (v: ParsingVersion): string => {
+  const t = new Date(v.createdAt).toLocaleString()
+  return `${t} · ${v.parserName} · ${versionStatusText(v.status)}`
+}
+
+const versionStatusText = (s?: string | null): string => {
+  if (s === 'running') return '进行中'
+  if (s === 'completed') return '已完成'
+  if (s === 'failed') return '失败'
+  return '未知'
+}
+
+const versionStatusBadgeClass = (s?: string | null): string => {
+  if (s === 'completed') return 'bg-emerald-50 text-emerald-700'
+  if (s === 'running') return 'bg-amber-50 text-amber-700'
+  if (s === 'failed') return 'bg-red-50 text-red-700'
+  return 'bg-slate-100 text-slate-600'
+}
+
+const stageStatusText = (s: StageStatus): string => {
+  if (s === 'pending') return '等待中'
+  if (s === 'running') return '进行中'
+  if (s === 'completed') return '已完成'
+  if (s === 'failed') return '失败'
+  if (s === 'skipped') return '已跳过'
+  return '未知'
+}
+
+const stageBadgeClass = (s: StageStatus): string => {
+  if (s === 'completed') return 'bg-emerald-50 text-emerald-700'
+  if (s === 'running') return 'bg-amber-50 text-amber-700'
+  if (s === 'failed') return 'bg-red-50 text-red-700'
+  if (s === 'skipped') return 'bg-slate-100 text-slate-600'
+  return 'bg-slate-100 text-slate-600'
+}
+
+const stageProgressBarClass = (s: StageStatus): string => {
+  if (s === 'completed') return 'bg-emerald-500'
+  if (s === 'running') return 'bg-amber-400'
+  if (s === 'failed') return 'bg-red-500'
+  if (s === 'skipped') return 'bg-slate-300'
+  return 'bg-slate-200'
+}
+
+const stageIconBgClass = (s: StageStatus): string => {
+  if (s === 'completed') return 'bg-emerald-50 text-emerald-700'
+  if (s === 'running') return 'bg-amber-50 text-amber-700'
+  if (s === 'failed') return 'bg-red-50 text-red-700'
+  if (s === 'skipped') return 'bg-slate-100 text-slate-500'
+  return 'bg-slate-100 text-slate-500'
+}
+
+const formatTokenCount = (n?: number): string => {
+  if (n === null || n === undefined) return '-'
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+  return String(n)
+}
+
+const formatDuration = (ms?: number): string => {
+  if (ms === null || ms === undefined) return '-'
+  if (ms < 1000) return `${ms}ms`
+  return `${(ms / 1000).toFixed(1)}s`
+}
+
+const DocIcon = {
+  template:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline></svg>'
+}
+
+const ChunkIcon = {
+  template:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>'
+}
+
+const EmbedIcon = {
+  template:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>'
+}
+
+const KgIcon = {
+  template:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="12" r="2"></circle><circle cx="18" cy="6" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M7.7 11.2l8-4.4"></path><path d="M7.7 12.8l8 4.4"></path></svg>'
+}
 
 /**
  * 获取类型显示文本
