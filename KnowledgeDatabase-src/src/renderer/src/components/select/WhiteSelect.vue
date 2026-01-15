@@ -1,9 +1,5 @@
 <template>
-  <div
-    ref="rootRef"
-    class="WhiteSelect_root relative"
-    :class="rootClass"
-  >
+  <div ref="rootRef" class="WhiteSelect_root relative" :class="rootClass">
     <button
       type="button"
       class="WhiteSelect_trigger flex items-center justify-between gap-2 w-full rounded-xl border border-slate-200 bg-white text-slate-700 px-3 py-2 text-sm shadow-sm hover:bg-slate-50 transition"
@@ -160,11 +156,13 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .white-select-pop-enter-active {
-  transition: opacity 250ms cubic-bezier(0.34, 1.56, 0.64, 1),
+  transition:
+    opacity 250ms cubic-bezier(0.34, 1.56, 0.64, 1),
     transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .white-select-pop-leave-active {
-  transition: opacity 180ms cubic-bezier(0.4, 0, 1, 1),
+  transition:
+    opacity 180ms cubic-bezier(0.4, 0, 1, 1),
     transform 220ms cubic-bezier(0.4, 0, 1, 1);
 }
 .white-select-pop-enter-from,

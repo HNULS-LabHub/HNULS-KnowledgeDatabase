@@ -6,8 +6,8 @@ export const ParsingDataSource = {
     return mock.mockParsingStateByFileKey(fileKey)
   },
 
-  async startParsing(fileKey: string, options: StartParsingOptions): Promise<FileParsingState> {
+  async startParsing(fileKey: string, _options: StartParsingOptions): Promise<FileParsingState> {
     const state = mock.mockParsingStateByFileKey(fileKey)
-    return mock.mockStartNewVersion(state, options.parserName)
+    return mock.mockStartNewVersion(state)
   }
 }

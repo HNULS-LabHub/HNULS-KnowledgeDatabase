@@ -1,94 +1,14 @@
-import type { FileParsingState, ParsingStage, ParsingVersion, StageStatus } from './parsing.types'
+import type { FileParsingState, ParsingVersion } from './parsing.types'
 
-const createStage = (
-  stage: ParsingStage,
-  status: StageStatus,
-  progress: number,
-  details?: string,
-  error?: string
-) => ({ stage, status, progress, details, error })
-
-const createVersion = (partial: Partial<ParsingVersion> & Pick<ParsingVersion, 'id' | 'createdAt' | 'parserName' | 'status'>): ParsingVersion => {
-  const base = {
-    parsing: createStage('parsing', 'pending', 0),
-    chunking: createStage('chunking', 'pending', 0),
-    embedding: createStage('embedding', 'pending', 0),
-    'kg-indexing': createStage('kg-indexing', 'pending', 0)
-  }
-
-  return {
-    ...partial,
-    stages: {
-      ...base,
-      ...(partial.stages ?? {})
-    }
-  }
-}
+const pad2 = (n: number) => String(n).padStart(2, '0')
 
 export const mockParsingStateByFileKey = (fileKey: string): FileParsingState => {
-  const lower = fileKey.toLowerCase()
-  const ext = lower.includes('.') ? lower.split('.').pop() ?? '' : ''
-
-  // 纯文本类：跳过“文档解析”阶段（按需求：其他类型纯文本可跳过）
-  const skipDocParsing = ['txt', 'md', 'json', 'csv', 'log'].includes(ext)
-
-  // 预置几个状态场景
-  const versions: ParsingVersion[] = [
-    createVersion({
-      id: 'v3',
-      createdAt: Date.now() - 5 * 60 * 1000,
-      parserName: 'Parser-Beta',
-      status: 'running',
-      stages: {
-        parsing: skipDocParsing
-          ? createStage('parsing', 'skipped', 100, '纯文本：跳过文档解析')
-          : createStage('parsing', 'completed', 100, '解析完成'),
-        chunking: createStage('chunking', 'running', 45, '分块中…'),
-        embedding: createStage('embedding', 'pending', 0),
-        'kg-indexing': createStage('kg-indexing', 'pending', 0)
-      },
-      summary: {
-        chunkCount: 0,
-        tokenCount: 0,
-        parseTimeMs: 0,
-        embeddingModel: 'text-embedding-3-small'
-      }
-    }),
-    createVersion({
-      id: 'v2',
-      createdAt: Date.now() - 2 * 60 * 60 * 1000,
-      parserName: 'Parser-Stable',
-      status: 'completed',
-      stages: {
-        parsing: skipDocParsing
-          ? createStage('parsing', 'skipped', 100, '纯文本：跳过文档解析')
-          : createStage('parsing', 'completed', 100, 'PDF/OCR 解析完成'),
-        chunking: createStage('chunking', 'completed', 100, '分块完成'),
-        embedding: createStage('embedding', 'completed', 100, '嵌入完成'),
-        'kg-indexing': createStage('kg-indexing', 'completed', 100, '已加入知识图谱')
-      },
-      summary: {
-        chunkCount: 128,
-        tokenCount: 12500,
-        parseTimeMs: 2300,
-        embeddingModel: 'text-embedding-3-small'
-      }
-    }),
-    createVersion({
-      id: 'v1',
-      createdAt: Date.now() - 24 * 60 * 60 * 1000,
-      parserName: 'Parser-Legacy',
-      status: 'failed',
-      stages: {
-        parsing: skipDocParsing
-          ? createStage('parsing', 'skipped', 100, '纯文本：跳过文档解析')
-          : createStage('parsing', 'failed', 30, '解析失败', '不支持的加密 PDF'),
-        chunking: createStage('chunking', 'pending', 0),
-        embedding: createStage('embedding', 'pending', 0),
-        'kg-indexing': createStage('kg-indexing', 'pending', 0)
-      }
-    })
-  ]
+  const versions: ParsingVersion[] = Array.from({ length: 15 }).map((_, i) => ({
+    id: `v1.0.${15 - i}`,
+    name: i === 0 ? 'Latest Auto-Save' : `Snapshot ${15 - i}`,
+    timestamp: `05-${pad2(30 - i)} 14:20`,
+    status: i === 0 ? 'active' : 'archived'
+  }))
 
   return {
     fileKey,
@@ -97,23 +17,22 @@ export const mockParsingStateByFileKey = (fileKey: string): FileParsingState => 
   }
 }
 
-export const mockStartNewVersion = (state: FileParsingState, parserName: string): FileParsingState => {
-  const newVersion = createVersion({
-    id: `v${state.versions.length + 1}-${Date.now()}`,
-    createdAt: Date.now(),
-    parserName,
-    status: 'running',
-    stages: {
-      parsing: createStage('parsing', 'running', 10, '准备解析…'),
-      chunking: createStage('chunking', 'pending', 0),
-      embedding: createStage('embedding', 'pending', 0),
-      'kg-indexing': createStage('kg-indexing', 'pending', 0)
-    }
-  })
+export const mockStartNewVersion = (state: FileParsingState): FileParsingState => {
+  const newVersion: ParsingVersion = {
+    id: `v1.0.${Math.max(0, state.versions.length + 1)}`,
+    name: 'Latest Auto-Save',
+    timestamp: new Date().toLocaleString(),
+    status: 'active'
+  }
+
+  const nextVersions = [newVersion, ...state.versions].map((v, idx) => ({
+    ...v,
+    status: idx === 0 ? 'active' : 'archived'
+  }))
 
   return {
     ...state,
     activeVersionId: newVersion.id,
-    versions: [newVersion, ...state.versions]
+    versions: nextVersions
   }
 }

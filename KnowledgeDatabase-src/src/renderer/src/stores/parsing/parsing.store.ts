@@ -7,7 +7,9 @@ export const useParsingStore = defineStore('parsing', () => {
   const fileStates = ref<Map<string, FileParsingState>>(new Map())
   const loadingByFileKey = ref<Map<string, boolean>>(new Map())
 
-  const isLoading = computed(() => (fileKey: string) => loadingByFileKey.value.get(fileKey) === true)
+  const isLoading = computed(
+    () => (fileKey: string) => loadingByFileKey.value.get(fileKey) === true
+  )
 
   const getState = computed(() => (fileKey: string): FileParsingState | null => {
     return fileStates.value.get(fileKey) ?? null
@@ -20,9 +22,6 @@ export const useParsingStore = defineStore('parsing', () => {
   })
 
   async function ensureState(fileKey: string): Promise<FileParsingState> {
-    const existing = fileStates.value.get(fileKey)
-    if (existing) return existing
-
     loadingByFileKey.value.set(fileKey, true)
     try {
       const state = await ParsingDataSource.getFileParsingState(fileKey)
@@ -37,7 +36,16 @@ export const useParsingStore = defineStore('parsing', () => {
     const state = fileStates.value.get(fileKey)
     if (!state) return
     if (!state.versions.some((v) => v.id === versionId)) return
+
     state.activeVersionId = versionId
+    fileStates.value.set(fileKey, {
+      ...state,
+      activeVersionId: versionId,
+      versions: state.versions.map((v) => ({
+        ...v,
+        status: v.id === versionId ? 'active' : 'archived'
+      }))
+    })
   }
 
   async function startParsing(fileKey: string, options: StartParsingOptions): Promise<void> {

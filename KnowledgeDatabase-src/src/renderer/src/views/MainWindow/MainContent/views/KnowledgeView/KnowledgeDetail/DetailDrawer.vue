@@ -100,184 +100,379 @@
                 v-else-if="currentTab === 'parse'"
                 class="KnowledgeView_KnowledgeDetail_DetailDrawer_tabContent"
               >
+                <!-- KnowledgeView_KnowledgeDetail_DetailDrawer_parseRoot: 解析状态Tab根容器（标注类，不负责样式） -->
                 <div
-                  class="KnowledgeView_KnowledgeDetail_DetailDrawer_parseHeader info-section"
+                  class="KnowledgeView_KnowledgeDetail_DetailDrawer_parseRoot h-full w-full bg-white text-slate-800 font-sans flex flex-col p-4 gap-4 overflow-hidden relative"
                 >
-                  <div class="flex items-center justify-between gap-3">
-                    <div class="min-w-0">
-                      <h4 class="section-title">解析进度</h4>
-                      <div class="mt-1 text-xs text-slate-500 truncate" :title="fileKey">
-                        {{ fileKey || '-' }}
-                      </div>
-                    </div>
-
-                    <div class="flex items-center gap-2 shrink-0">
-                      <div class="max-w-[160px] w-[160px] flex-shrink">
-                        <WhiteSelect
-                          class="KnowledgeView_KnowledgeDetail_DetailDrawer_versionSelect"
-                          :disabled="!parsingState || parsingState.versions.length === 0"
-                          :model-value="activeVersion?.id || null"
-                          :options="versionOptions"
-                          placeholder="选择版本"
-                          @update:modelValue="(v) => handleSwitchVersion(String(v))"
-                        />
-                      </div>
-
-                      <button
-                        class="KnowledgeView_KnowledgeDetail_DetailDrawer_parseBtn action-button primary"
-                        :disabled="!fileKey || parsingStore.isLoading(fileKey)"
-                        @click="handleStartParsing"
+                  <!-- KnowledgeView_KnowledgeDetail_DetailDrawer_parseTitle: 顶部标题区（标注类，不负责样式） -->
+                  <div
+                    class="KnowledgeView_KnowledgeDetail_DetailDrawer_parseTitle flex items-center gap-2 pb-2 border-b border-slate-100 flex-shrink-0"
+                  >
+                    <div class="bg-blue-50 p-1 rounded-md">
+                      <svg
+                        class="w-4 h-4 text-blue-600"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
                       >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="23 4 23 10 17 10"></polyline>
-                          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                        </svg>
-                        {{ hasAnyVersion ? '重新解析' : '文档解析' }}
-                      </button>
+                        <path d="M12 20V10"></path>
+                        <path d="M18 20V4"></path>
+                        <path d="M6 20v-6"></path>
+                      </svg>
                     </div>
+                    <span class="text-sm font-bold tracking-wide text-slate-800">文档解析器</span>
+                    <span
+                      class="ml-auto text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200"
+                      >V2.1</span
+                    >
                   </div>
-                </div>
 
-                <div v-if="!fileKey" class="info-section">
-                  <div class="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-                    请选择一个文件以查看解析状态。
-                  </div>
-                </div>
+                  <!-- KnowledgeView_KnowledgeDetail_DetailDrawer_parsePanel: MinerU解析面板（标注类，不负责样式） -->
+                  <div
+                    class="KnowledgeView_KnowledgeDetail_DetailDrawer_parsePanel flex-shrink-0 bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-xl p-4 relative overflow-hidden group shadow-sm"
+                  >
+                    <div
+                      class="absolute top-0 right-0 w-24 h-24 bg-blue-100/30 rounded-bl-full pointer-events-none"
+                    />
+                    <div
+                      class="absolute bottom-0 left-0 w-16 h-16 bg-indigo-100/30 rounded-tr-full pointer-events-none"
+                    />
 
-                <div v-else-if="parsingStore.isLoading(fileKey)" class="info-section">
-                  <div class="rounded-xl border border-slate-200 bg-white p-4">
-                    <div class="flex items-center gap-3">
-                      <div class="h-2 w-2 rounded-full bg-slate-300"></div>
-                      <div class="text-sm text-slate-600">加载解析状态中…</div>
-                    </div>
-                    <div class="mt-3 h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-                      <div class="h-full w-1/3 bg-slate-300 animate-pulse"></div>
-                    </div>
-                  </div>
-                </div>
-
-                <div v-else-if="!hasAnyVersion" class="info-section">
-                  <div class="rounded-xl border border-dashed border-slate-200 bg-white p-5">
-                    <div class="text-sm font-medium text-slate-800">尚无解析记录</div>
-                    <div class="mt-1 text-xs text-slate-500">
-                      点击右上角 <span class="font-medium">文档解析</span> 开始生成分块、向量嵌入并加入知识图谱。
-                    </div>
-                    <div class="mt-3 text-xs text-slate-500">
-                      文档解析阶段支持：PDF / DOCX / PPTX / PNG / JPG。
-                      其他纯文本类型会跳过文档解析阶段。
-                    </div>
-                  </div>
-                </div>
-
-                <div v-else class="info-section">
-                  <div class="rounded-xl border border-slate-200 bg-white p-4">
-                    <div class="flex items-center justify-between gap-3">
-                      <div class="min-w-0">
-                        <div class="text-sm font-semibold text-slate-900 truncate">
-                          {{ activeVersion?.parserName || '-' }}
-                        </div>
-                        <div class="mt-1 text-xs text-slate-500 truncate">
-                          {{ activeVersion ? new Date(activeVersion.createdAt).toLocaleString() : '-' }}
-                        </div>
+                    <div class="flex items-center justify-between mb-4 relative z-10">
+                      <div class="flex flex-col min-w-0">
+                        <span
+                          class="text-[10px] font-mono font-semibold text-blue-600 mb-0.5 tracking-wider uppercase"
+                          >Current Target</span
+                        >
+                        <span
+                          class="text-sm font-bold text-slate-800 flex items-center gap-2 min-w-0"
+                        >
+                          <svg
+                            class="w-3.5 h-3.5 text-slate-500 shrink-0"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          >
+                            <path
+                              d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                            ></path>
+                            <polyline points="14,2 14,8 20,8"></polyline>
+                          </svg>
+                          <span class="truncate" :title="fileKey">{{ fileKey || '-' }}</span>
+                        </span>
                       </div>
-                      <div
-                        class="px-2 py-0.5 rounded-full text-xs font-medium"
-                        :class="versionStatusBadgeClass(activeVersion?.status)"
-                      >
-                        {{ versionStatusText(activeVersion?.status) }}
-                      </div>
-                    </div>
 
-                    <div class="mt-4 space-y-3">
+                      <!-- KnowledgeView_KnowledgeDetail_DetailDrawer_parseStatusLamp: 运行态指示灯（标注类，不负责样式） -->
                       <div
-                        v-for="stage in stageUIs"
-                        :key="stage.key"
-                        class="flex items-start gap-3"
+                        class="KnowledgeView_KnowledgeDetail_DetailDrawer_parseStatusLamp flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium border"
+                        :class="
+                          isParsing
+                            ? 'bg-blue-50 text-blue-600 border-blue-100'
+                            : 'bg-slate-100 text-slate-500 border-slate-200'
+                        "
                       >
                         <div
-                          class="mt-0.5 h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
-                          :class="stageIconBgClass(stage.status)"
-                        >
-                          <component :is="stage.icon" class="h-4 w-4" />
-                        </div>
-
-                        <div class="min-w-0 flex-1">
-                          <div class="flex items-center justify-between gap-2">
-                            <div class="text-sm font-medium text-slate-900">
-                              {{ stage.title }}
-                            </div>
-                            <div
-                              class="px-2 py-0.5 rounded-full text-xs font-medium"
-                              :class="stageBadgeClass(stage.status)"
-                            >
-                              {{ stageStatusText(stage.status) }}
-                            </div>
-                          </div>
-
-                          <div v-if="stage.details" class="mt-1 text-xs text-slate-500">
-                            {{ stage.details }}
-                          </div>
-
-                          <div v-if="stage.status === 'failed' && stage.error" class="mt-1 text-xs text-red-600">
-                            {{ stage.error }}
-                          </div>
-
-                          <div class="mt-2 h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-                            <div
-                              class="h-full transition-all"
-                              :class="stageProgressBarClass(stage.status)"
-                              :style="{ width: `${stage.progress}%` }"
-                            ></div>
-                          </div>
-                        </div>
+                          class="w-1.5 h-1.5 rounded-full"
+                          :class="isParsing ? 'bg-blue-500 animate-pulse' : 'bg-slate-400'"
+                        />
+                        {{ isParsing ? 'RUNNING' : 'READY' }}
                       </div>
                     </div>
+
+                    <!-- KnowledgeView_KnowledgeDetail_DetailDrawer_parseProgress: 总进度（标注类，不负责样式） -->
+                    <div class="space-y-2 mb-4">
+                      <div class="flex justify-between text-[10px] font-mono text-slate-500">
+                        <span>PROGRESS</span>
+                        <span :class="isParsing ? 'text-blue-600 font-bold' : ''">
+                          {{ isParsing ? `${Math.floor(progress)}%` : 'IDLE' }}
+                        </span>
+                      </div>
+
+                      <div
+                        class="h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200 relative"
+                      >
+                        <div
+                          class="absolute top-0 left-0 h-full bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.3)] transition-all duration-200"
+                          :style="{ width: `${progress}%` }"
+                        />
+                        <div v-if="isParsing" class="absolute inset-0 bg-white/30 animate-pulse" />
+                      </div>
+                    </div>
+
+                    <!-- KnowledgeView_KnowledgeDetail_DetailDrawer_parseStartBtn: 主按钮（标注类，不负责样式） -->
+                    <button
+                      class="KnowledgeView_KnowledgeDetail_DetailDrawer_parseStartBtn w-full relative group/btn overflow-hidden rounded-lg border transition-all duration-300 py-2.5 shadow-sm"
+                      :disabled="!fileKey || isParsing"
+                      :class="
+                        isParsing
+                          ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                          : 'bg-white border-slate-300 text-slate-700 hover:border-blue-500 hover:text-blue-600 hover:shadow-md'
+                      "
+                      @click="handleStartParsing"
+                    >
+                      <div
+                        class="relative z-10 flex items-center justify-center gap-2 text-xs font-bold tracking-wider"
+                      >
+                        <template v-if="isParsing">
+                          <svg
+                            class="w-3.5 h-3.5 animate-spin"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          >
+                            <circle cx="12" cy="12" r="10" opacity="0.25" />
+                            <path d="M22 12a10 10 0 0 1-10 10" />
+                          </svg>
+                          <span>解析中...</span>
+                        </template>
+                        <template v-else>
+                          <svg
+                            class="w-3.5 h-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          >
+                            <path d="M12 2v20"></path>
+                            <path d="M2 12h20"></path>
+                          </svg>
+                          <span>开始 MinerU 解析</span>
+                        </template>
+                      </div>
+                    </button>
                   </div>
 
+                  <!-- KnowledgeView_KnowledgeDetail_DetailDrawer_versionCard: 版本管理（标注类，不负责样式） -->
                   <div
-                    v-if="activeVersion?.summary"
-                    class="rounded-xl border border-slate-200 bg-white p-4"
+                    class="KnowledgeView_KnowledgeDetail_DetailDrawer_versionCard flex flex-col flex-shrink-0 h-[320px] bg-slate-50/50 border border-slate-200 rounded-xl overflow-hidden"
                   >
-                    <div class="text-xs font-semibold text-slate-700">解析统计</div>
-                    <div class="mt-3 grid grid-cols-2 gap-3">
-                      <div class="rounded-lg bg-slate-50 p-3">
-                        <div class="text-xs text-slate-500">分块数量</div>
-                        <div class="mt-1 text-lg font-semibold text-slate-900">
-                          {{ activeVersion.summary.chunkCount ?? '-' }}
+                    <div
+                      class="h-10 px-3 flex items-center justify-between bg-slate-100/50 border-b border-slate-200"
+                    >
+                      <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+                        <svg
+                          class="w-3.5 h-3.5 text-slate-500"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path d="M6 3v12"></path>
+                          <path d="M18 9v12"></path>
+                          <path d="M6 15c3 0 3 6 6 6s3-6 6-6"></path>
+                        </svg>
+                        <span>版本管理</span>
+                      </div>
+                      <span
+                        class="text-[10px] text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-sm"
+                      >
+                        {{ versions.length }} Snapshots
+                      </span>
+                    </div>
+
+                    <div
+                      class="flex-1 overflow-y-auto p-2 space-y-1 relative bg-white"
+                      ref="listRef"
+                    >
+                      <div
+                        class="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-white to-transparent pointer-events-none z-10"
+                      />
+
+                      <div
+                        v-for="v in versions"
+                        :key="v.id"
+                        class="KnowledgeView_KnowledgeDetail_DetailDrawer_versionNode group relative flex items-center gap-3 py-2.5 pl-2 pr-2 cursor-pointer select-none transition-all duration-200 ease-out rounded-lg border border-transparent"
+                        :class="
+                          activeVersionId === v.id
+                            ? 'bg-blue-50 border-blue-100 shadow-sm'
+                            : 'hover:bg-slate-100'
+                        "
+                        @click="handleSwitchVersion(v.id)"
+                      >
+                        <div
+                          class="absolute left-[15px] top-0 bottom-0 w-[1px] bg-slate-200 -z-10"
+                        />
+
+                        <div
+                          class="relative z-10 flex-shrink-0 flex items-center justify-center w-4"
+                        >
+                          <div
+                            class="absolute rounded-full transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                            :class="
+                              activeVersionId === v.id
+                                ? 'w-6 h-6 bg-blue-500/10'
+                                : 'w-0 h-0 opacity-0'
+                            "
+                          />
+                          <div
+                            class="rounded-full border-2 transition-all duration-300 z-20 box-border"
+                            :class="
+                              activeVersionId === v.id
+                                ? 'w-3 h-3 bg-white border-blue-500 shadow-[0_0_0_2px_rgba(59,130,246,0.1)]'
+                                : 'w-2 h-2 bg-slate-400 border-white ring-2 ring-white group-hover:border-blue-300 group-hover:bg-blue-100'
+                            "
+                          />
+                        </div>
+
+                        <div class="flex-1 min-w-0 flex flex-col">
+                          <div class="flex justify-between items-baseline">
+                            <span
+                              class="text-xs font-mono tracking-tight transition-colors duration-200 truncate"
+                              :class="
+                                activeVersionId === v.id
+                                  ? 'text-blue-700 font-bold'
+                                  : 'text-slate-600 group-hover:text-slate-900'
+                              "
+                            >
+                              {{ v.id }}
+                            </span>
+                            <span
+                              class="text-[10px] font-mono flex-shrink-0 ml-2"
+                              :class="activeVersionId === v.id ? 'text-blue-400' : 'text-slate-400'"
+                            >
+                              {{ v.timestamp }}
+                            </span>
+                          </div>
+                          <span
+                            class="text-[11px] truncate transition-colors"
+                            :class="
+                              activeVersionId === v.id ? 'text-blue-600/80' : 'text-slate-500'
+                            "
+                          >
+                            {{ v.name }}
+                          </span>
                         </div>
                       </div>
-                      <div class="rounded-lg bg-slate-50 p-3">
-                        <div class="text-xs text-slate-500">Token 数量</div>
-                        <div class="mt-1 text-lg font-semibold text-slate-900">
-                          {{ formatTokenCount(activeVersion.summary.tokenCount) }}
-                        </div>
-                      </div>
-                      <div class="rounded-lg bg-slate-50 p-3">
-                        <div class="text-xs text-slate-500">嵌入模型</div>
-                        <div class="mt-1 text-sm font-medium text-slate-900 truncate">
-                          {{ activeVersion.summary.embeddingModel ?? '-' }}
-                        </div>
-                      </div>
-                      <div class="rounded-lg bg-slate-50 p-3">
-                        <div class="text-xs text-slate-500">耗时</div>
-                        <div class="mt-1 text-sm font-medium text-slate-900">
-                          {{ formatDuration(activeVersion.summary.parseTimeMs) }}
-                        </div>
-                      </div>
+
+                      <div
+                        class="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-white to-transparent pointer-events-none z-10"
+                      />
                     </div>
                   </div>
 
-                  <div class="info-section">
-                    <h4 class="section-title">操作</h4>
-                    <div class="action-buttons">
-                      <button class="action-button" disabled>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                          <polyline points="7 10 12 15 17 10"></polyline>
-                          <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        导出分块（待接后端）
-                      </button>
+                  <!-- KnowledgeView_KnowledgeDetail_DetailDrawer_comingSoon: ComingSoon区域（标注类，不负责样式） -->
+                  <div
+                    class="KnowledgeView_KnowledgeDetail_DetailDrawer_comingSoon flex flex-col gap-2 mt-auto"
+                  >
+                    <div class="flex items-center gap-2 px-1 mb-1 opacity-60">
+                      <div class="h-px bg-slate-200 flex-1" />
+                      <span class="text-[10px] font-mono text-slate-400 uppercase font-medium"
+                        >Coming Soon</span
+                      >
+                      <div class="h-px bg-slate-200 flex-1" />
+                    </div>
+
+                    <div
+                      class="relative overflow-hidden rounded-lg border border-slate-200 bg-white p-3 group hover:border-slate-300 hover:shadow-sm transition-all"
+                    >
+                      <div
+                        class="flex items-center gap-3 opacity-60 group-hover:opacity-100 transition-opacity"
+                      >
+                        <div
+                          class="p-1.5 rounded bg-slate-100 group-hover:bg-slate-200/50 text-slate-500 group-hover:text-slate-700"
+                        >
+                          <svg
+                            class="w-4 h-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          >
+                            <rect x="4" y="4" width="16" height="16" rx="2" />
+                            <path d="M8 9h8" />
+                            <path d="M8 13h6" />
+                          </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <h3 class="text-xs font-semibold text-slate-700">
+                            Semantic Chunking / 分块
+                          </h3>
+                          <span
+                            class="text-[10px] font-mono text-amber-600/80 border border-amber-200 bg-amber-50 px-1 rounded inline-block mt-0.5"
+                            >PENDING</span
+                          >
+                        </div>
+                      </div>
+                      <div
+                        class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:8px_8px] opacity-20 pointer-events-none"
+                      />
+                    </div>
+
+                    <div
+                      class="relative overflow-hidden rounded-lg border border-slate-200 bg-white p-3 group hover:border-slate-300 hover:shadow-sm transition-all"
+                    >
+                      <div
+                        class="flex items-center gap-3 opacity-60 group-hover:opacity-100 transition-opacity"
+                      >
+                        <div
+                          class="p-1.5 rounded bg-slate-100 group-hover:bg-slate-200/50 text-slate-500 group-hover:text-slate-700"
+                        >
+                          <svg
+                            class="w-4 h-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          >
+                            <path d="M4 7h16" />
+                            <path d="M4 12h16" />
+                            <path d="M4 17h16" />
+                          </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <h3 class="text-xs font-semibold text-slate-700">
+                            Vector Embedding / 嵌入
+                          </h3>
+                          <span
+                            class="text-[10px] font-mono text-amber-600/80 border border-amber-200 bg-amber-50 px-1 rounded inline-block mt-0.5"
+                            >PENDING</span
+                          >
+                        </div>
+                      </div>
+                      <div
+                        class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:8px_8px] opacity-20 pointer-events-none"
+                      />
+                    </div>
+
+                    <div
+                      class="relative overflow-hidden rounded-lg border border-slate-200 bg-white p-3 group hover:border-slate-300 hover:shadow-sm transition-all"
+                    >
+                      <div
+                        class="flex items-center gap-3 opacity-60 group-hover:opacity-100 transition-opacity"
+                      >
+                        <div
+                          class="p-1.5 rounded bg-slate-100 group-hover:bg-slate-200/50 text-slate-500 group-hover:text-slate-700"
+                        >
+                          <svg
+                            class="w-4 h-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          >
+                            <circle cx="6" cy="12" r="2" />
+                            <circle cx="18" cy="6" r="2" />
+                            <circle cx="18" cy="18" r="2" />
+                            <path d="M7.7 11.2l8-4.4" />
+                            <path d="M7.7 12.8l8 4.4" />
+                          </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <h3 class="text-xs font-semibold text-slate-700">
+                            Knowledge Graph / 知识图谱
+                          </h3>
+                          <span
+                            class="text-[10px] font-mono text-amber-600/80 border border-amber-200 bg-amber-50 px-1 rounded inline-block mt-0.5"
+                            >PENDING</span
+                          >
+                        </div>
+                      </div>
+                      <div
+                        class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:8px_8px] opacity-20 pointer-events-none"
+                      />
                     </div>
                   </div>
                 </div>
@@ -332,8 +527,6 @@ import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.s
 import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
 import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
 import { useParsingStore } from '@renderer/stores/parsing/parsing.store'
-import type { ParsingStage, ParsingVersion, StageStatus } from '@renderer/stores/parsing/parsing.types'
-import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -348,6 +541,9 @@ const emit = defineEmits<{
 
 const currentTab = ref<'info' | 'parse' | 'preview'>('info')
 const isDeleting = ref(false)
+
+const isParsing = ref(false)
+const progress = ref(0)
 
 const tabs = [
   { id: 'info' as const, label: '基本信息' },
@@ -367,7 +563,7 @@ const statusText = computed(() => {
 
 const parsingStore = useParsingStore()
 
-const fileKey = computed(() => {
+const fileKey = computed((): string => {
   if (!props.fileData) return ''
   return props.fileData.path || props.fileData.name || ''
 })
@@ -377,14 +573,9 @@ const parsingState = computed(() => {
   return parsingStore.getState(fileKey.value)
 })
 
-const activeVersion = computed(() => {
-  if (!fileKey.value) return null
-  return parsingStore.getActiveVersion(fileKey.value)
-})
+const versions = computed(() => parsingState.value?.versions ?? [])
 
-const hasAnyVersion = computed(() => {
-  return (parsingState.value?.versions?.length ?? 0) > 0
-})
+const activeVersionId = computed(() => parsingState.value?.activeVersionId ?? null)
 
 watch(
   [() => props.visible, () => currentTab.value, () => fileKey.value],
@@ -405,131 +596,25 @@ const handleSwitchVersion = (versionId: string) => {
 
 const handleStartParsing = async () => {
   if (!fileKey.value) return
-  await parsingStore.startParsing(fileKey.value, { parserName: 'Parser-Stable' })
-}
 
-const stageOrder: Array<{ key: ParsingStage; title: string }> = [
-  { key: 'parsing', title: '文档解析' },
-  { key: 'chunking', title: '分块' },
-  { key: 'embedding', title: '嵌入' },
-  { key: 'kg-indexing', title: '加入知识图谱' }
-]
+  if (isParsing.value) return
+  isParsing.value = true
+  progress.value = 0
 
-const stageUIs = computed(() => {
-  const v = activeVersion.value
-  if (!v) return []
+  await parsingStore.startParsing(fileKey.value, { parserName: 'MinerU Parser' })
 
-  return stageOrder.map(({ key, title }) => {
-    const p = v.stages[key]
-    return {
-      key,
-      title,
-      status: p.status,
-      progress: Math.max(0, Math.min(100, p.progress ?? 0)),
-      details: p.details,
-      error: p.error,
-      icon:
-        key === 'parsing'
-          ? DocIcon
-          : key === 'chunking'
-            ? ChunkIcon
-            : key === 'embedding'
-              ? EmbedIcon
-              : KgIcon
+  let currentProgress = 0
+  const interval = window.setInterval(() => {
+    currentProgress += Math.random() * 8
+    if (currentProgress >= 100) {
+      currentProgress = 100
+      window.clearInterval(interval)
+      window.setTimeout(() => {
+        isParsing.value = false
+      }, 800)
     }
-  })
-})
-
-const versionOptions = computed(() => {
-  const versions = parsingState.value?.versions ?? []
-  return versions.map((v) => ({
-    label: formatVersionLabel(v),
-    value: v.id
-  }))
-})
-
-const formatVersionLabel = (v: ParsingVersion): string => {
-  const t = new Date(v.createdAt).toLocaleString()
-  return `${t} · ${v.parserName} · ${versionStatusText(v.status)}`
-}
-
-const versionStatusText = (s?: string | null): string => {
-  if (s === 'running') return '进行中'
-  if (s === 'completed') return '已完成'
-  if (s === 'failed') return '失败'
-  return '未知'
-}
-
-const versionStatusBadgeClass = (s?: string | null): string => {
-  if (s === 'completed') return 'bg-emerald-50 text-emerald-700'
-  if (s === 'running') return 'bg-amber-50 text-amber-700'
-  if (s === 'failed') return 'bg-red-50 text-red-700'
-  return 'bg-slate-100 text-slate-600'
-}
-
-const stageStatusText = (s: StageStatus): string => {
-  if (s === 'pending') return '等待中'
-  if (s === 'running') return '进行中'
-  if (s === 'completed') return '已完成'
-  if (s === 'failed') return '失败'
-  if (s === 'skipped') return '已跳过'
-  return '未知'
-}
-
-const stageBadgeClass = (s: StageStatus): string => {
-  if (s === 'completed') return 'bg-emerald-50 text-emerald-700'
-  if (s === 'running') return 'bg-amber-50 text-amber-700'
-  if (s === 'failed') return 'bg-red-50 text-red-700'
-  if (s === 'skipped') return 'bg-slate-100 text-slate-600'
-  return 'bg-slate-100 text-slate-600'
-}
-
-const stageProgressBarClass = (s: StageStatus): string => {
-  if (s === 'completed') return 'bg-emerald-500'
-  if (s === 'running') return 'bg-amber-400'
-  if (s === 'failed') return 'bg-red-500'
-  if (s === 'skipped') return 'bg-slate-300'
-  return 'bg-slate-200'
-}
-
-const stageIconBgClass = (s: StageStatus): string => {
-  if (s === 'completed') return 'bg-emerald-50 text-emerald-700'
-  if (s === 'running') return 'bg-amber-50 text-amber-700'
-  if (s === 'failed') return 'bg-red-50 text-red-700'
-  if (s === 'skipped') return 'bg-slate-100 text-slate-500'
-  return 'bg-slate-100 text-slate-500'
-}
-
-const formatTokenCount = (n?: number): string => {
-  if (n === null || n === undefined) return '-'
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
-  return String(n)
-}
-
-const formatDuration = (ms?: number): string => {
-  if (ms === null || ms === undefined) return '-'
-  if (ms < 1000) return `${ms}ms`
-  return `${(ms / 1000).toFixed(1)}s`
-}
-
-const DocIcon = {
-  template:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline></svg>'
-}
-
-const ChunkIcon = {
-  template:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>'
-}
-
-const EmbedIcon = {
-  template:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>'
-}
-
-const KgIcon = {
-  template:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="12" r="2"></circle><circle cx="18" cy="6" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M7.7 11.2l8-4.4"></path><path d="M7.7 12.8l8 4.4"></path></svg>'
+    progress.value = currentProgress
+  }, 150)
 }
 
 /**
