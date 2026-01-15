@@ -542,8 +542,33 @@ const emit = defineEmits<{
 const currentTab = ref<'info' | 'parse' | 'preview'>('info')
 const isDeleting = ref(false)
 
-const isParsing = ref(false)
-const progress = ref(0)
+const parsingStore = useParsingStore()
+
+const fileKey = computed((): string => {
+  if (!props.fileData) return ''
+  return props.fileData.path || props.fileData.name || ''
+})
+
+const parsingState = computed(() => {
+  if (!fileKey.value) return null
+  return parsingStore.getState(fileKey.value)
+})
+
+const versions = computed(() => parsingState.value?.versions ?? [])
+
+const activeVersionId = computed(() => parsingState.value?.activeVersionId ?? null)
+
+const isParsing = computed(() => {
+  const st = parsingStore.getState(fileKey.value)
+  const v = st?.activeVersionId ? st.versions.find((x) => x.id === st.activeVersionId) : null
+  return Boolean(v && !v.name.includes('完成') && !v.name.includes('失败'))
+})
+
+const progress = computed(() => {
+  const st = parsingStore.getState(fileKey.value)
+  const p = st?.progress
+  return typeof p === 'number' ? p : 0
+})
 
 const tabs = [
   { id: 'info' as const, label: '基本信息' },
@@ -561,60 +586,32 @@ const statusText = computed(() => {
   return props.fileData?.status ? statusMap[props.fileData.status] : '未知'
 })
 
-const parsingStore = useParsingStore()
-
-const fileKey = computed((): string => {
-  if (!props.fileData) return ''
-  return props.fileData.path || props.fileData.name || ''
-})
-
-const parsingState = computed(() => {
-  if (!fileKey.value) return null
-  return parsingStore.getState(fileKey.value)
-})
-
-const versions = computed(() => parsingState.value?.versions ?? [])
-
-const activeVersionId = computed(() => parsingState.value?.activeVersionId ?? null)
-
 watch(
-  [() => props.visible, () => currentTab.value, () => fileKey.value],
-  async ([visible, tab, key]) => {
+  [() => props.visible, () => currentTab.value, () => fileKey.value, () => props.knowledgeBaseId],
+  async ([visible, tab, key, kbId]) => {
     if (!visible) return
     if (tab !== 'parse') return
     if (!key) return
-    await parsingStore.ensureState(key)
+    await parsingStore.ensureState(key, { knowledgeBaseId: kbId })
   },
   { immediate: true }
 )
 
-const handleSwitchVersion = (versionId: string) => {
+const handleSwitchVersion = async (versionId: string) => {
   if (!fileKey.value) return
   if (!versionId) return
-  parsingStore.switchActiveVersion(fileKey.value, versionId)
+  await parsingStore.switchActiveVersion(fileKey.value, versionId, props.knowledgeBaseId)
 }
 
 const handleStartParsing = async () => {
   if (!fileKey.value) return
-
+  if (!props.knowledgeBaseId) return
   if (isParsing.value) return
-  isParsing.value = true
-  progress.value = 0
 
-  await parsingStore.startParsing(fileKey.value, { parserName: 'MinerU Parser' })
-
-  let currentProgress = 0
-  const interval = window.setInterval(() => {
-    currentProgress += Math.random() * 8
-    if (currentProgress >= 100) {
-      currentProgress = 100
-      window.clearInterval(interval)
-      window.setTimeout(() => {
-        isParsing.value = false
-      }, 800)
-    }
-    progress.value = currentProgress
-  }, 150)
+  await parsingStore.startParsing(fileKey.value, {
+    parserName: 'MinerU Parser',
+    knowledgeBaseId: props.knowledgeBaseId
+  })
 }
 
 /**
@@ -624,24 +621,20 @@ const handleStartParsing = async () => {
 const getTypeDisplay = (): string => {
   if (!props.fileData) return '-'
 
-  // 如果是目录，显示 'list'
   if (props.fileData.type === 'folder') {
     return 'list'
   }
 
-  // 如果是文件，显示扩展名，没有扩展名则显示 '-'
   return props.fileData.extension || '-'
 }
 
 const close = (): void => {
   emit('update:visible', false)
-  // Reset tab after animation
   setTimeout(() => {
     currentTab.value = 'info'
   }, 300)
 }
 
-// 获取各个 Store 实例
 const fileListStore = useFileListStore()
 const fileCardStore = useFileCardStore()
 const fileTreeStore = useFileTreeStore()
@@ -652,7 +645,6 @@ const handleDelete = async (): Promise<void> => {
     return
   }
 
-  // 确认删除
   const confirmed = window.confirm(`确定要删除 "${props.fileData.name}" 吗？\n\n此操作不可撤销。`)
 
   if (!confirmed) {
@@ -662,27 +654,21 @@ const handleDelete = async (): Promise<void> => {
   isDeleting.value = true
 
   try {
-    // 获取文件路径（相对路径）
     const filePath = props.fileData.path || props.fileData.name
 
-    // 调用删除 API
     const result = await window.api.file.deleteFile(props.knowledgeBaseId, filePath)
 
     if (result.success) {
-      // 刷新所有视图的文件列表
       await Promise.allSettled([
         fileListStore.fetchFiles(props.knowledgeBaseId),
         fileCardStore.fetchFiles(props.knowledgeBaseId),
         fileTreeStore.fetchFiles(props.knowledgeBaseId)
       ])
 
-      // 关闭抽屉
       close()
 
-      // 触发删除事件，通知父组件
       emit('file-deleted')
     } else {
-      // 显示错误提示
       alert(`删除失败: ${result.error || '未知错误'}`)
     }
   } catch (error) {
@@ -1119,7 +1105,6 @@ const handleDelete = async (): Promise<void> => {
   opacity: 0;
 }
 
-/* 从右向左插入的非线性动画 */
 .drawer-slide-enter-active {
   transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }

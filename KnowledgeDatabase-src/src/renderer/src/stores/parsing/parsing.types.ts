@@ -14,8 +14,10 @@ export interface FileParsingState {
   fileKey: string
   activeVersionId: string | null
   versions: ParsingVersion[]
+  progress?: number
 }
 
 export interface StartParsingOptions {
   parserName: string
+  knowledgeBaseId: number
 }

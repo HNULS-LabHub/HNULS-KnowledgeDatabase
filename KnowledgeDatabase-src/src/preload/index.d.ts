@@ -1,5 +1,15 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { TestAPI, KnowledgeLibraryAPI, FileAPI, FileImportAPI, UserConfigAPI } from './types'
+import type {
+  TestAPI,
+  KnowledgeLibraryAPI,
+  FileAPI,
+  FileImportAPI,
+  UserConfigAPI,
+  MinerUAPI,
+  MinerUFileParsingState,
+  MinerUGetFileParsingStateRequest,
+  MinerUSetActiveVersionRequest
+} from './types'
 
 /**
  * Window API 类型定义
@@ -14,6 +24,14 @@ declare global {
       file: FileAPI
       fileImport: FileImportAPI
       userConfig: UserConfigAPI
+      minerU: MinerUAPI & {
+        getFileParsingState: (
+          req: MinerUGetFileParsingStateRequest
+        ) => Promise<{ success: boolean; data?: MinerUFileParsingState; error?: string }>
+        setActiveVersion: (
+          req: MinerUSetActiveVersionRequest
+        ) => Promise<{ success: boolean; data?: MinerUFileParsingState; error?: string }>
+      }
       utils: {
         getPathForFile: (file: File) => string
       }
@@ -22,3 +40,5 @@ declare global {
     }
   }
 }
+
+export {}

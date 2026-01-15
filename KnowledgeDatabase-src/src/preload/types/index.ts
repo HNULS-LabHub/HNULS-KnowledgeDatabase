@@ -4,7 +4,7 @@
  */
 
 // 通用类型
-export interface APIResponse<T = any> {
+export interface APIResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string
@@ -16,3 +16,7 @@ export type { KnowledgeLibraryAPI } from './knowledge-library.types'
 export type { FileAPI, FileNode } from './file.types'
 export type { FileImportAPI, ImportResult, FileImportOptions } from './file-import.types'
 export type { UserConfigAPI, UserConfig, MinerUConfig } from './user-config.types'
+
+// MinerU
+export * from './mineru.types'
+export * from './mineru-file-state.types'

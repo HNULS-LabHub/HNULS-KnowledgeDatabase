@@ -5,6 +5,7 @@ import { knowledgeLibraryAPI } from '../api/knowledge-library-api'
 import { fileAPI } from '../api/file-api'
 import { fileImportAPI } from '../api/file-import-api'
 import { userConfigAPI } from '../api/user-config-api'
+import { minerUAPI } from '../api/mineru-api'
 
 // 自定义 API 集合
 const customAPI = {
@@ -13,6 +14,7 @@ const customAPI = {
   file: fileAPI,
   fileImport: fileImportAPI,
   userConfig: userConfigAPI,
+  minerU: minerUAPI,
   // Electron 文件路径工具
   utils: {
     getPathForFile: (file: File): string => {

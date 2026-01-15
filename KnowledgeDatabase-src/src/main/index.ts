@@ -1,6 +1,18 @@
 import { AppService } from './services'
 import { IPCManager } from './ipc'
 
+// Windows: 强制 Node 控制台使用 UTF-8，避免中文日志乱码
+try {
+  if (process.platform === 'win32') {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { execSync } = require('child_process')
+    execSync('chcp 65001', { stdio: 'ignore' })
+    process.env.LANG = 'zh_CN.UTF-8'
+  }
+} catch {
+  // ignore
+}
+
 class Application {
   private appService: AppService
   private ipcManager: IPCManager
