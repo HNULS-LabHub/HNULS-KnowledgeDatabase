@@ -29,7 +29,10 @@ import { computed, onMounted, watch, ref } from 'vue'
 import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
 import { useTaskManagerStore } from '@renderer/stores/task-manager.store'
 import TreeNode from './TreeNode.vue'
-import type { FileNode, TreeNode as TreeNodeType } from '@renderer/stores/knowledge-library/file.types'
+import type {
+  FileNode,
+  TreeNode as TreeNodeType
+} from '@renderer/stores/knowledge-library/file.types'
 
 const props = defineProps<{
   knowledgeBaseId: number

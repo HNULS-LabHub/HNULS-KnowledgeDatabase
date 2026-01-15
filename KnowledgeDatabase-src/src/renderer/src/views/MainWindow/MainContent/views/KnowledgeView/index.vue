@@ -231,7 +231,7 @@ const handleBack = () => {
 const handleDeleteKnowledgeBase = async (id: number) => {
   try {
     await knowledgeLibraryStore.delete(id)
-    
+
     // 如果删除的是当前正在查看的知识库，返回列表视图
     if (selectedKb.value?.id === id) {
       handleBack()

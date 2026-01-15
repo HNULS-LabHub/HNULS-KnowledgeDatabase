@@ -96,7 +96,10 @@ export const fileAPI = {
   /**
    * 删除文件/目录
    */
-  deleteFile: (knowledgeBaseId: number, filePath: string): Promise<{ success: boolean; error?: string }> => {
+  deleteFile: (
+    knowledgeBaseId: number,
+    filePath: string
+  ): Promise<{ success: boolean; error?: string }> => {
     return ipcRenderer
       .invoke('file:deletefile', knowledgeBaseId, filePath)
       .then((response: IPCResponse<void>) => {

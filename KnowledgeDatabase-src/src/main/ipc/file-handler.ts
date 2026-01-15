@@ -159,11 +159,7 @@ export class FileIPCHandler extends BaseIPCHandler {
     conflictPolicy: 'rename' | 'skip' | 'overwrite' = 'rename'
   ) {
     try {
-      const result = await this.fileMoveService.moveMultiple(
-        knowledgeBaseId,
-        moves,
-        conflictPolicy
-      )
+      const result = await this.fileMoveService.moveMultiple(knowledgeBaseId, moves, conflictPolicy)
 
       return {
         success: true,
@@ -180,11 +176,7 @@ export class FileIPCHandler extends BaseIPCHandler {
   /**
    * 删除文件/目录
    */
-  async handleDeletefile(
-    _event: IpcMainInvokeEvent,
-    knowledgeBaseId: number,
-    filePath: string
-  ) {
+  async handleDeletefile(_event: IpcMainInvokeEvent, knowledgeBaseId: number, filePath: string) {
     try {
       const result = await this.fileMoveService.deleteFileOrDirectory(knowledgeBaseId, filePath)
 

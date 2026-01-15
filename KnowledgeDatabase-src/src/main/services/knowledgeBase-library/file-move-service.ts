@@ -18,7 +18,13 @@ export interface BatchMoveResult {
   total: number
   success: number
   failed: number
-  results: Array<{ source: string; target: string; success: boolean; error?: string; newPath?: string }>
+  results: Array<{
+    source: string
+    target: string
+    success: boolean
+    error?: string
+    newPath?: string
+  }>
 }
 
 /**
@@ -239,10 +245,13 @@ export class FileMoveService {
       const normalizedTarget = path.normalize(fullFilePath)
 
       if (!normalizedTarget.startsWith(normalizedBase)) {
-        logger.error('[FileMoveService] Security check failed: path outside knowledge base directory', {
-          baseDirectory: normalizedBase,
-          targetPath: normalizedTarget
-        })
+        logger.error(
+          '[FileMoveService] Security check failed: path outside knowledge base directory',
+          {
+            baseDirectory: normalizedBase,
+            targetPath: normalizedTarget
+          }
+        )
         return {
           success: false,
           error: 'Invalid file path: path outside knowledge base directory'

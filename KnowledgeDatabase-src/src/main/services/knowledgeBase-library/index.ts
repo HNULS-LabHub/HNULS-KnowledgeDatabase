@@ -9,8 +9,4 @@ export type {
   CreateKnowledgeBaseData,
   UpdateKnowledgeBaseData
 } from './types'
-export type {
-  FileMoveOptions,
-  MoveResult,
-  BatchMoveResult
-} from './file-move-service'
+export type { FileMoveOptions, MoveResult, BatchMoveResult } from './file-move-service'

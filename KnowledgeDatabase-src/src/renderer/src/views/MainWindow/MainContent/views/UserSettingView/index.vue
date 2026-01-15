@@ -1,24 +1,24 @@
 <template>
   <div class="UserSettingView flex flex-col h-full overflow-hidden">
     <!-- TopBar will be automatically added by MainContent -->
-    
+
     <div class="UserSettingView_content flex-1 overflow-auto p-8">
       <div class="max-w-4xl mx-auto">
-        <h1 class="UserSettingView_title text-2xl font-bold text-slate-900 mb-8">
-          用户设置
-        </h1>
-        
+        <h1 class="UserSettingView_title text-2xl font-bold text-slate-900 mb-8">用户设置</h1>
+
         <!-- Secret Management Section -->
         <div class="UserSettingView_section mb-10">
           <h2 class="UserSettingView_sectionTitle text-lg font-semibold text-slate-800 mb-4">
             秘钥管理
           </h2>
-          
-          <div class="UserSettingView_sectionContent bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+
+          <div
+            class="UserSettingView_sectionContent bg-white rounded-xl p-6 shadow-sm border border-slate-200"
+          >
             <h3 class="UserSettingView_subsectionTitle text-base font-medium text-slate-700 mb-4">
               minerU
             </h3>
-            
+
             <div class="UserSettingView_formGroup">
               <label class="UserSettingView_label block text-sm font-medium text-slate-700 mb-2">
                 API 密钥
@@ -44,7 +44,7 @@
             </div>
           </div>
         </div>
-        
+
         <!-- More sections can be added here in the future -->
       </div>
     </div>

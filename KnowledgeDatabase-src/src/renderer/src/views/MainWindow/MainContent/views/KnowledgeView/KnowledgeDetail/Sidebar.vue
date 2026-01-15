@@ -1,8 +1,14 @@
 <template>
-  <div class="KnowledgeView_KnowledgeDetail_Sidebar_container sidebar-container w-[260px] h-full p-6 bg-white/60 backdrop-blur-[20px] border-r border-slate-200/80 flex flex-col gap-8 flex-shrink-0 box-border overflow-y-auto overflow-x-hidden">
+  <div
+    class="KnowledgeView_KnowledgeDetail_Sidebar_container sidebar-container w-[260px] h-full p-6 bg-white/60 backdrop-blur-[20px] border-r border-slate-200/80 flex flex-col gap-8 flex-shrink-0 box-border overflow-y-auto overflow-x-hidden"
+  >
     <!-- 顶部 KB 信息卡片 -->
-    <div class="KnowledgeView_KnowledgeDetail_Sidebar_infoCard info-card bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60">
-      <div class="KnowledgeView_KnowledgeDetail_Sidebar_infoHeader info-header flex gap-3 mb-4 items-center">
+    <div
+      class="KnowledgeView_KnowledgeDetail_Sidebar_infoCard info-card bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60"
+    >
+      <div
+        class="KnowledgeView_KnowledgeDetail_Sidebar_infoHeader info-header flex gap-3 mb-4 items-center"
+      >
         <div
           class="KnowledgeView_KnowledgeDetail_Sidebar_iconWrapper icon-wrapper w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
           :style="{
@@ -11,29 +17,51 @@
           }"
           v-html="kb.icon"
         ></div>
-        <div class="KnowledgeView_KnowledgeDetail_Sidebar_textInfo text-info flex-1 min-w-0 flex flex-col justify-center">
-          <h2 class="KnowledgeView_KnowledgeDetail_Sidebar_kbName kb-name m-0 text-base font-semibold text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis" :title="kb.name">
+        <div
+          class="KnowledgeView_KnowledgeDetail_Sidebar_textInfo text-info flex-1 min-w-0 flex flex-col justify-center"
+        >
+          <h2
+            class="KnowledgeView_KnowledgeDetail_Sidebar_kbName kb-name m-0 text-base font-semibold text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis"
+            :title="kb.name"
+          >
             {{ kb.name }}
           </h2>
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_kbId kb-id text-xs text-slate-400 font-mono mt-0.5"
+          <span
+            class="KnowledgeView_KnowledgeDetail_Sidebar_kbId kb-id text-xs text-slate-400 font-mono mt-0.5"
             >ID: {{ String(kb.id).padStart(4, '0') }}</span
           >
         </div>
       </div>
 
-      <div class="KnowledgeView_KnowledgeDetail_Sidebar_statsRow stats-row flex items-center pt-3 border-t border-slate-100">
-        <div class="KnowledgeView_KnowledgeDetail_Sidebar_statItem stat-item flex-1 flex flex-col items-center gap-0.5">
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue stat-value text-sm font-semibold text-slate-700">{{
-            currentKB?.docCount ?? kb.docCount
-          }}</span>
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel stat-label text-[0.7rem] text-slate-400">文件</span>
+      <div
+        class="KnowledgeView_KnowledgeDetail_Sidebar_statsRow stats-row flex items-center pt-3 border-t border-slate-100"
+      >
+        <div
+          class="KnowledgeView_KnowledgeDetail_Sidebar_statItem stat-item flex-1 flex flex-col items-center gap-0.5"
+        >
+          <span
+            class="KnowledgeView_KnowledgeDetail_Sidebar_statValue stat-value text-sm font-semibold text-slate-700"
+            >{{ currentKB?.docCount ?? kb.docCount }}</span
+          >
+          <span
+            class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel stat-label text-[0.7rem] text-slate-400"
+            >文件</span
+          >
         </div>
-        <div class="KnowledgeView_KnowledgeDetail_Sidebar_statDivider stat-divider w-px h-6 bg-slate-100"></div>
-        <div class="KnowledgeView_KnowledgeDetail_Sidebar_statItem stat-item flex-1 flex flex-col items-center gap-0.5">
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue stat-value text-sm font-semibold text-slate-700">{{
-            currentKB?.chunkCount ?? kb.chunkCount
-          }}</span>
-          <span class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel stat-label text-[0.7rem] text-slate-400">分片</span>
+        <div
+          class="KnowledgeView_KnowledgeDetail_Sidebar_statDivider stat-divider w-px h-6 bg-slate-100"
+        ></div>
+        <div
+          class="KnowledgeView_KnowledgeDetail_Sidebar_statItem stat-item flex-1 flex flex-col items-center gap-0.5"
+        >
+          <span
+            class="KnowledgeView_KnowledgeDetail_Sidebar_statValue stat-value text-sm font-semibold text-slate-700"
+            >{{ currentKB?.chunkCount ?? kb.chunkCount }}</span
+          >
+          <span
+            class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel stat-label text-[0.7rem] text-slate-400"
+            >分片</span
+          >
         </div>
       </div>
     </div>
@@ -44,14 +72,20 @@
         v-for="item in navItems"
         :key="item.id"
         class="KnowledgeView_KnowledgeDetail_Sidebar_navItem nav-item w-full flex items-center justify-start gap-3 px-4 py-3 border-none bg-transparent text-slate-500 rounded-xl cursor-pointer transition-all duration-200 text-left text-sm font-medium"
-        :class="{ 
-          'KnowledgeView_KnowledgeDetail_Sidebar_navItem_active nav-item-active bg-blue-50 text-blue-600 hover:bg-blue-50 hover:text-blue-600': currentNav === item.id,
+        :class="{
+          'KnowledgeView_KnowledgeDetail_Sidebar_navItem_active nav-item-active bg-blue-50 text-blue-600 hover:bg-blue-50 hover:text-blue-600':
+            currentNav === item.id,
           'hover:bg-slate-50 hover:text-slate-900': currentNav !== item.id
         }"
         @click="$emit('update:currentNav', item.id)"
       >
-        <span class="KnowledgeView_KnowledgeDetail_Sidebar_navIcon nav-icon flex items-center justify-center" v-html="item.icon"></span>
-        <span class="KnowledgeView_KnowledgeDetail_Sidebar_navLabel nav-label">{{ item.label }}</span>
+        <span
+          class="KnowledgeView_KnowledgeDetail_Sidebar_navIcon nav-icon flex items-center justify-center"
+          v-html="item.icon"
+        ></span>
+        <span class="KnowledgeView_KnowledgeDetail_Sidebar_navLabel nav-label">{{
+          item.label
+        }}</span>
       </button>
     </nav>
   </div>

@@ -104,7 +104,9 @@ const handleDragOver = (event: DragEvent): void => {
 const handleDragLeave = (event: DragEvent): void => {
   // 在树视图模式下，如果离开到树节点，不处理
   if (props.isTreeView && event.relatedTarget instanceof HTMLElement) {
-    const treeContainer = document.querySelector('.KnowledgeView_KnowledgeDetail_Views_FileTreeView_container')
+    const treeContainer = document.querySelector(
+      '.KnowledgeView_KnowledgeDetail_Views_FileTreeView_container'
+    )
     if (treeContainer?.contains(event.relatedTarget)) {
       return
     }
@@ -119,15 +121,19 @@ const handleDragLeave = (event: DragEvent): void => {
 // 监听树节点的外部拖拽事件
 const handleTreeNodeExternalDrop = (event: CustomEvent): void => {
   externalDropTargetPath = event.detail.targetPath || null
-  console.log('[DropZone] Tree node external drop target set', { targetPath: externalDropTargetPath })
+  console.log('[DropZone] Tree node external drop target set', {
+    targetPath: externalDropTargetPath
+  })
 }
 
 const handleDrop = async (event: DragEvent): Promise<void> => {
   console.log('[DropZone] handleDrop called', { event, hasDataTransfer: !!event.dataTransfer })
-  
+
   // 在树视图模式下，如果拖拽到树节点，不处理（由树节点自己处理）
   if (props.isTreeView && event.target !== event.currentTarget) {
-    const treeContainer = document.querySelector('.KnowledgeView_KnowledgeDetail_Views_FileTreeView_container')
+    const treeContainer = document.querySelector(
+      '.KnowledgeView_KnowledgeDetail_Views_FileTreeView_container'
+    )
     if (treeContainer?.contains(event.target as Node)) {
       // 事件来自树节点，不处理
       return
@@ -193,19 +199,26 @@ const handleDrop = async (event: DragEvent): Promise<void> => {
     })
 
     // 如果有目标目录（从树节点拖拽），添加到选项中
-    const importOptions: { keepStructure: boolean; conflictPolicy: 'rename'; targetPath?: string } = {
-      keepStructure: true,
-      conflictPolicy: 'rename'
-    }
+    const importOptions: { keepStructure: boolean; conflictPolicy: 'rename'; targetPath?: string } =
+      {
+        keepStructure: true,
+        conflictPolicy: 'rename'
+      }
 
     // 如果设置了目标目录，添加到选项
     if (externalDropTargetPath) {
       importOptions.targetPath = externalDropTargetPath
-      console.log('[DropZone] Importing to target directory', { targetPath: externalDropTargetPath })
+      console.log('[DropZone] Importing to target directory', {
+        targetPath: externalDropTargetPath
+      })
     }
 
     // 启动异步导入（立即返回，不等待）
-    const { taskId } = await window.api.fileImport.importAsync(props.knowledgeBaseId, paths, importOptions)
+    const { taskId } = await window.api.fileImport.importAsync(
+      props.knowledgeBaseId,
+      paths,
+      importOptions
+    )
 
     console.log('[DropZone] Async import started', { taskId, importOptions })
 

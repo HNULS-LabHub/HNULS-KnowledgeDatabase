@@ -195,7 +195,10 @@ export const useFileTreeStore = defineStore('file-tree', () => {
   /**
    * 验证移动操作的合法性
    */
-  function validateMove(sourcePath: string, targetPath: string): { valid: boolean; reason?: string } {
+  function validateMove(
+    sourcePath: string,
+    targetPath: string
+  ): { valid: boolean; reason?: string } {
     const sourceNode = findNodeByPath(sourcePath)
     if (!sourceNode) {
       return { valid: false, reason: 'Source node not found' }

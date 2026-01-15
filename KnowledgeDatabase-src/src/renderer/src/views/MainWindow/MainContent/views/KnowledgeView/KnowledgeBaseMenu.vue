@@ -4,13 +4,7 @@
       class="p-2 text-slate-400 bg-transparent border-none cursor-pointer rounded-lg transition-all duration-200 hover:text-slate-600 hover:bg-slate-100 flex-shrink-0"
       @click.stop="toggleMenu"
     >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        class="w-5 h-5"
-      >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
         <circle cx="12" cy="12" r="1"></circle>
         <circle cx="19" cy="12" r="1"></circle>
         <circle cx="5" cy="12" r="1"></circle>
@@ -36,7 +30,9 @@
             class="w-4 h-4"
           >
             <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <path
+              d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+            ></path>
           </svg>
           <span>删除知识库</span>
         </button>
@@ -71,7 +67,8 @@
               <div class="flex-1">
                 <h3 class="text-lg font-semibold text-slate-900 mb-2">确认删除</h3>
                 <p class="text-sm text-slate-600">
-                  确定要删除知识库 <span class="font-medium text-slate-900">"{{ kbName }}"</span> 吗？
+                  确定要删除知识库
+                  <span class="font-medium text-slate-900">"{{ kbName }}"</span> 吗？
                 </p>
                 <p class="text-xs text-red-600 mt-2">
                   此操作将永久删除知识库及其所有文档，且无法恢复。
@@ -157,7 +154,9 @@ onBeforeUnmount(() => {
 <style scoped>
 .menu-enter-active,
 .menu-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 
 .menu-enter-from,
@@ -178,7 +177,9 @@ onBeforeUnmount(() => {
 
 .dialog-enter-active > div,
 .dialog-leave-active > div {
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .dialog-enter-from > div,
