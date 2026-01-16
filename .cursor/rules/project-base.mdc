@@ -143,10 +143,8 @@ alwaysApply: true
 
 - **必须**：每个 Vue 组件的**根容器**（template 最外层元素）包含一个"定位类"。
 - **命名规范**：
-  - 前缀：`kb-`（表示 KnowledgeBase 模块）
-  - 中间：功能区域（如 `doc-list`、`editor-toolbar`）
-  - 后缀：随机 8 位字符（如 `a1b2c3d4`）
-  - 完整示例：`kb-doc-list-a1b2c3d4`
+  - 前缀：`根分页简写 类似于kb 就是knowledege分页的根分页简写 如果后面有usersetting 那么可以用us-`
+  - 主体：功能区域（如 `doc-list`、`editor-toolbar`）
 
 - **定位类定义**：
   - **无样式意义**：类名不表达任何样式意图，仅用于定位
@@ -157,7 +155,7 @@ alwaysApply: true
   ```vue
   <!-- Good -->
   <template>
-    <div class="kb-doc-list-a1b2c3d4 flex flex-col">
+    <div class="kb-doc-list flex flex-col">
       <!-- 组件内容 -->
     </div>
   </template>
@@ -166,13 +164,8 @@ alwaysApply: true
   <div class="flex flex-col">...</div>
   
   <!-- Bad: 类名有样式含义 -->
-  <div class="kb-blue-card-a1b2c3d4">...</div>
+  <div class="kb-blue-card">...</div>
   ```
-
-- **验证规则**：
-  1. 每个 `.vue` 文件的根元素必须包含 `kb-` 前缀的类
-  2. 类名必须包含随机后缀
-  3. 禁止在 CSS 中使用 `kb-` 开头的类设置样式
 
 ---
 
