@@ -36,6 +36,9 @@
         </DropZone>
       </template>
 
+      <!-- 配置页面 -->
+      <SettingsView v-else-if="currentNav === 'settings'" :knowledge-base-id="kb.id" />
+
       <!-- 其他导航项占位 -->
       <div
         v-else
@@ -64,6 +67,7 @@ import Sidebar from './Sidebar.vue'
 import ContentHeader from './ContentHeader.vue'
 import DetailDrawer from './DetailDrawer.vue'
 import DropZone from './DropZone.vue'
+import SettingsView from './SettingsView/index.vue'
 import { FileListView, FileCardView, FileTreeView } from './Views'
 import type { KnowledgeBase, ViewType, NavItem, FileNode } from '../types'
 
