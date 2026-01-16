@@ -19,6 +19,18 @@
       class="KnowledgeView_KnowledgeDetail_Views_FileCardView_card"
       @contextmenu.prevent="handleContextMenu($event, file)"
     >
+      <div
+        v-if="isSelectionModeEnabled"
+        class="KnowledgeView_KnowledgeDetail_Views_FileCardView_checkbox"
+      >
+        <input
+          type="checkbox"
+          class="checkbox-input"
+          :checked="isFileSelected(file.id)"
+          @change="handleToggleSelection(file.id)"
+          @click.stop
+        />
+      </div>
       <div class="KnowledgeView_KnowledgeDetail_Views_FileCardView_icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -97,6 +109,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
+import { useFileSelectionStore } from '@renderer/stores/knowledge-library/file-selection.store'
 import type { FileNode } from '../../types'
 
 const props = defineProps<{
@@ -109,6 +122,7 @@ const emit = defineEmits<{
 
 // 使用 Pinia Store
 const fileCardStore = useFileCardStore()
+const selectionStore = useFileSelectionStore()
 
 // 从 Store 获取数据
 const files = computed(() => fileCardStore.filteredFiles)
@@ -187,6 +201,19 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeContextMenu)
 })
+
+// 选择相关功能
+const isSelectionModeEnabled = computed(() => {
+  return selectionStore.isSelectionModeEnabled(props.knowledgeBaseId)
+})
+
+const isFileSelected = (fileId: string | number): boolean => {
+  return selectionStore.isSelected(props.knowledgeBaseId, fileId)
+}
+
+const handleToggleSelection = (fileId: string | number): void => {
+  selectionStore.toggleSelection(props.knowledgeBaseId, fileId)
+}
 </script>
 
 <style scoped>
@@ -206,6 +233,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   cursor: pointer;
+  position: relative;
 }
 
 .KnowledgeView_KnowledgeDetail_Views_FileCardView_card:hover {
@@ -376,5 +404,31 @@ onBeforeUnmount(() => {
 .context-fade-enter-from,
 .context-fade-leave-to {
   opacity: 0;
+}
+
+/* Checkbox styles */
+.KnowledgeView_KnowledgeDetail_Views_FileCardView_checkbox {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 200ms;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+  backdrop-filter: blur(4px);
+}
+
+.KnowledgeView_KnowledgeDetail_Views_FileCardView_card:hover
+  .KnowledgeView_KnowledgeDetail_Views_FileCardView_checkbox {
+  opacity: 1;
+}
+
+.KnowledgeView_KnowledgeDetail_Views_FileCardView_checkbox .checkbox-input {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: #4f46e5;
 }
 </style>

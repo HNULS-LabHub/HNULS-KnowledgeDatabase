@@ -3,6 +3,18 @@
     <table class="KnowledgeView_KnowledgeDetail_Views_FileListView_table">
       <thead>
         <tr>
+          <th
+            v-if="isSelectionModeEnabled"
+            class="KnowledgeView_KnowledgeDetail_Views_FileListView_th checkbox-col"
+          >
+            <input
+              type="checkbox"
+              class="checkbox-input"
+              :checked="isAllSelected"
+              :indeterminate="isIndeterminate"
+              @change="handleSelectAll"
+            />
+          </th>
           <th class="KnowledgeView_KnowledgeDetail_Views_FileListView_th name-col">名称</th>
           <th class="KnowledgeView_KnowledgeDetail_Views_FileListView_th">状态</th>
           <th class="KnowledgeView_KnowledgeDetail_Views_FileListView_th">大小</th>
@@ -13,13 +25,17 @@
       </thead>
       <tbody>
         <tr v-if="loading" class="KnowledgeView_KnowledgeDetail_Views_FileListView_tr">
-          <td colspan="6" style="text-align: center; padding: 2rem; color: #94a3b8">加载中...</td>
+          <td :colspan="isSelectionModeEnabled ? 7 : 6" style="text-align: center; padding: 2rem; color: #94a3b8">
+            加载中...
+          </td>
         </tr>
         <tr
           v-else-if="paginatedFiles.length === 0"
           class="KnowledgeView_KnowledgeDetail_Views_FileListView_tr"
         >
-          <td colspan="6" style="text-align: center; padding: 2rem; color: #94a3b8">暂无文件</td>
+          <td :colspan="isSelectionModeEnabled ? 7 : 6" style="text-align: center; padding: 2rem; color: #94a3b8">
+            暂无文件
+          </td>
         </tr>
         <tr
           v-else
@@ -28,6 +44,18 @@
           class="KnowledgeView_KnowledgeDetail_Views_FileListView_tr"
           @contextmenu.prevent="handleContextMenu($event, file)"
         >
+          <td
+            v-if="isSelectionModeEnabled"
+            class="KnowledgeView_KnowledgeDetail_Views_FileListView_td checkbox-cell"
+          >
+            <input
+              type="checkbox"
+              class="checkbox-input"
+              :checked="isFileSelected(file.id)"
+              @change="handleToggleSelection(file.id)"
+              @click.stop
+            />
+          </td>
           <td class="KnowledgeView_KnowledgeDetail_Views_FileListView_td name-cell">
             <div class="file-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -159,6 +187,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
+import { useFileSelectionStore } from '@renderer/stores/knowledge-library/file-selection.store'
 import type { FileNode } from '../../types'
 
 const props = defineProps<{
@@ -172,6 +201,7 @@ const emit = defineEmits<{
 
 // 使用 Pinia Store
 const fileListStore = useFileListStore()
+const selectionStore = useFileSelectionStore()
 
 // Watch pageSize changes from parent and update store
 watch(
@@ -295,6 +325,41 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeContextMenu)
 })
+
+// 选择相关功能
+const isSelectionModeEnabled = computed(() => {
+  return selectionStore.isSelectionModeEnabled(props.knowledgeBaseId)
+})
+
+const isFileSelected = (fileId: string | number): boolean => {
+  return selectionStore.isSelected(props.knowledgeBaseId, fileId)
+}
+
+const handleToggleSelection = (fileId: string | number): void => {
+  selectionStore.toggleSelection(props.knowledgeBaseId, fileId)
+}
+
+const isAllSelected = computed(() => {
+  const allFileIds = fileListStore.files.map(f => f.id)
+  return selectionStore.isAllSelected(props.knowledgeBaseId, allFileIds)
+})
+
+const isIndeterminate = computed(() => {
+  const allFileIds = fileListStore.files.map(f => f.id)
+  const selectedCount = selectionStore.getSelectedCount(props.knowledgeBaseId)
+  return selectedCount > 0 && selectedCount < allFileIds.length
+})
+
+const handleSelectAll = (event: Event): void => {
+  const target = event.target as HTMLInputElement
+  const allFileIds = fileListStore.files.map(f => f.id)
+  
+  if (target.checked) {
+    selectionStore.selectAll(props.knowledgeBaseId, allFileIds)
+  } else {
+    selectionStore.deselectAll(props.knowledgeBaseId)
+  }
+}
 </script>
 
 <style scoped>
@@ -573,5 +638,24 @@ onBeforeUnmount(() => {
 .context-fade-enter-from,
 .context-fade-leave-to {
   opacity: 0;
+}
+
+/* Checkbox styles */
+.checkbox-col {
+  width: 3rem;
+  text-align: center;
+}
+
+.checkbox-cell {
+  width: 3rem;
+  text-align: center;
+  padding: 0.875rem 0.5rem;
+}
+
+.checkbox-input {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: #4f46e5;
 }
 </style>

@@ -15,6 +15,7 @@
           title="文件列表"
           v-model:currentView="currentViewType"
           :page-size="pageSize"
+          :knowledge-base-id="kb.id"
           @update:pageSize="pageSize = $event"
         />
 

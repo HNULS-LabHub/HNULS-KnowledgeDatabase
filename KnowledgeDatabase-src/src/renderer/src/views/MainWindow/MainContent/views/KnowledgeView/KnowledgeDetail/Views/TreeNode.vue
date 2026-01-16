@@ -18,6 +18,20 @@
       @drop.prevent="handleDrop($event, node)"
       @dragend="handleDragEnd"
     >
+      <div
+        v-if="isSelectionModeEnabled"
+        class="checkbox-wrapper"
+        @click.stop="handleCheckboxClick"
+      >
+        <input
+          type="checkbox"
+          class="checkbox-input"
+          :checked="checkboxState === 'checked'"
+          :indeterminate="checkboxState === 'indeterminate'"
+          @change="handleCheckboxChange"
+          @click.stop
+        />
+      </div>
       <span class="toggle-icon">
         <svg
           viewBox="0 0 24 24"
@@ -63,6 +77,19 @@
       @dragstart="handleDragStart($event, node)"
       @dragend="handleDragEnd"
     >
+      <div
+        v-if="isSelectionModeEnabled"
+        class="checkbox-wrapper"
+        @click.stop="handleCheckboxClick"
+      >
+        <input
+          type="checkbox"
+          class="checkbox-input"
+          :checked="isFileSelected(node.id)"
+          @change="handleCheckboxChange"
+          @click.stop
+        />
+      </div>
       <span class="icon file-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -95,6 +122,7 @@
         :node="child"
         :expanded-folders="expandedFolders"
         :knowledge-base-id="knowledgeBaseId"
+        :tree-structure="props.treeStructure"
         @toggle-folder="$emit('toggle-folder', $event)"
         @show-detail="$emit('show-detail', $event)"
         @node-moved="$emit('node-moved')"
@@ -143,14 +171,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
+import { useFileSelectionStore } from '@renderer/stores/knowledge-library/file-selection.store'
 import type { TreeNode, FileNode } from '@renderer/stores/knowledge-library/file.types'
 
 const props = defineProps<{
   node: TreeNode
   expandedFolders: Set<string | number>
   knowledgeBaseId?: number
+  treeStructure?: TreeNode[]
 }>()
 
 const emit = defineEmits<{
@@ -161,6 +191,7 @@ const emit = defineEmits<{
 }>()
 
 const fileTreeStore = useFileTreeStore()
+const selectionStore = useFileSelectionStore()
 
 // 拖拽状态
 const isDragging = ref(false)
@@ -439,6 +470,50 @@ const handleDragEnd = (): void => {
   draggedNode.value = null
   currentDragSourcePath.value = null
 }
+
+// 选择相关功能
+const isSelectionModeEnabled = computed(() => {
+  if (!props.knowledgeBaseId) return false
+  return selectionStore.isSelectionModeEnabled(props.knowledgeBaseId)
+})
+
+const isFileSelected = (fileId: string | number): boolean => {
+  if (!props.knowledgeBaseId) return false
+  return selectionStore.isSelected(props.knowledgeBaseId, fileId)
+}
+
+// 计算复选框状态（用于文件夹节点，支持中间状态）
+const checkboxState = computed(() => {
+  if (!props.knowledgeBaseId) return 'unchecked'
+  if (props.node.type === 'file') {
+    return isFileSelected(props.node.id) ? 'checked' : 'unchecked'
+  }
+  // 文件夹节点：计算父节点状态
+  return selectionStore.getParentNodeState(props.node, props.knowledgeBaseId)
+})
+
+const handleCheckboxClick = (): void => {
+  if (!props.knowledgeBaseId) return
+  
+  // 对于文件夹节点，使用递归选择
+  if (props.node.type === 'folder') {
+    // 使用传递的完整树结构，如果不存在则使用当前节点的子树结构
+    const treeStructure = props.treeStructure || (props.node.children ? [props.node] : [])
+    selectionStore.selectNodeAndChildren(
+      props.knowledgeBaseId,
+      props.node.id,
+      treeStructure
+    )
+  } else {
+    // 文件节点：直接切换选择状态
+    selectionStore.toggleSelection(props.knowledgeBaseId, props.node.id)
+  }
+}
+
+const handleCheckboxChange = (event: Event): void => {
+  // 这个事件处理主要用于阻止默认行为，实际逻辑在 handleCheckboxClick 中
+  event.stopPropagation()
+}
 </script>
 
 <style scoped>
@@ -635,5 +710,21 @@ const handleDragEnd = (): void => {
   border: 2px dashed #ef4444 !important;
   border-radius: 0.5rem;
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+}
+
+/* Checkbox styles */
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  flex-shrink: 0;
+}
+
+.checkbox-input {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: #4f46e5;
 }
 </style>
