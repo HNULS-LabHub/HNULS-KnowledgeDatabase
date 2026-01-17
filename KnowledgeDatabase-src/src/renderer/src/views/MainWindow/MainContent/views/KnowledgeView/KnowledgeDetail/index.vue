@@ -66,7 +66,7 @@ import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.s
 import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
 import Sidebar from './Sidebar.vue'
 import ContentHeader from './ContentHeader.vue'
-import DetailDrawer from './DetailDrawer.vue'
+import DetailDrawer from './DetailDrawer/index.vue'
 import DropZone from './DropZone.vue'
 import SettingsView from './SettingsView/index.vue'
 import { FileListView, FileCardView, FileTreeView } from './Views'
