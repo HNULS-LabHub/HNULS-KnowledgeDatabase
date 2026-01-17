@@ -25,7 +25,10 @@
       </thead>
       <tbody>
         <tr v-if="loading" class="KnowledgeView_KnowledgeDetail_Views_FileListView_tr">
-          <td :colspan="isSelectionModeEnabled ? 7 : 6" style="text-align: center; padding: 2rem; color: #94a3b8">
+          <td
+            :colspan="isSelectionModeEnabled ? 7 : 6"
+            style="text-align: center; padding: 2rem; color: #94a3b8"
+          >
             加载中...
           </td>
         </tr>
@@ -33,7 +36,10 @@
           v-else-if="paginatedFiles.length === 0"
           class="KnowledgeView_KnowledgeDetail_Views_FileListView_tr"
         >
-          <td :colspan="isSelectionModeEnabled ? 7 : 6" style="text-align: center; padding: 2rem; color: #94a3b8">
+          <td
+            :colspan="isSelectionModeEnabled ? 7 : 6"
+            style="text-align: center; padding: 2rem; color: #94a3b8"
+          >
             暂无文件
           </td>
         </tr>
@@ -340,20 +346,20 @@ const handleToggleSelection = (fileId: string | number): void => {
 }
 
 const isAllSelected = computed(() => {
-  const allFileIds = fileListStore.files.map(f => f.id)
+  const allFileIds = fileListStore.files.map((f) => f.id)
   return selectionStore.isAllSelected(props.knowledgeBaseId, allFileIds)
 })
 
 const isIndeterminate = computed(() => {
-  const allFileIds = fileListStore.files.map(f => f.id)
+  const allFileIds = fileListStore.files.map((f) => f.id)
   const selectedCount = selectionStore.getSelectedCount(props.knowledgeBaseId)
   return selectedCount > 0 && selectedCount < allFileIds.length
 })
 
 const handleSelectAll = (event: Event): void => {
   const target = event.target as HTMLInputElement
-  const allFileIds = fileListStore.files.map(f => f.id)
-  
+  const allFileIds = fileListStore.files.map((f) => f.id)
+
   if (target.checked) {
     selectionStore.selectAll(props.knowledgeBaseId, allFileIds)
   } else {

@@ -6,10 +6,7 @@
       class="kb-accordion-item"
       :class="{ 'kb-accordion-item-active': activeIndex === index }"
     >
-      <button
-        class="kb-accordion-trigger"
-        @click="toggle(index)"
-      >
+      <button class="kb-accordion-trigger" @click="toggle(index)">
         <span class="kb-accordion-title">{{ item.title }}</span>
         <svg
           class="kb-accordion-icon"
@@ -23,10 +20,7 @@
         </svg>
       </button>
       <Transition name="accordion-content">
-        <div
-          v-if="activeIndex === index"
-          class="kb-accordion-content"
-        >
+        <div v-if="activeIndex === index" class="kb-accordion-content">
           <div class="kb-accordion-inner">
             <slot :name="`item-${index}`" :item="item">
               {{ item.content }}

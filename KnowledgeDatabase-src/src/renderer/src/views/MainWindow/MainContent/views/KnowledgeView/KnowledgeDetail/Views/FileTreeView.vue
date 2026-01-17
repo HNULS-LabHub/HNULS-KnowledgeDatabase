@@ -13,7 +13,7 @@
         v-for="node in treeStructure"
         :key="node.id"
         :node="node"
-        :expanded-folders="expanded-folders"
+        :expanded-folders="expanded - folders"
         :knowledge-base-id="knowledgeBaseId"
         :tree-structure="treeStructure"
         @toggle-folder="toggleFolder"

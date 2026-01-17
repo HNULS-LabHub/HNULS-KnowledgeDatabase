@@ -51,7 +51,7 @@ export const useFileSelectionStore = defineStore('file-selection', () => {
     return (knowledgeBaseId: number, allFileIds: (string | number)[]): boolean => {
       if (allFileIds.length === 0) return false
       const selectedSet = getSelectedSet(knowledgeBaseId)
-      return allFileIds.every(id => selectedSet.has(id))
+      return allFileIds.every((id) => selectedSet.has(id))
     }
   })
 
@@ -97,7 +97,7 @@ export const useFileSelectionStore = defineStore('file-selection', () => {
    */
   function selectAll(knowledgeBaseId: number, fileIds: (string | number)[]): void {
     const selectedSet = getSelectedSet(knowledgeBaseId)
-    fileIds.forEach(id => selectedSet.add(id))
+    fileIds.forEach((id) => selectedSet.add(id))
   }
 
   /**
@@ -118,10 +118,7 @@ export const useFileSelectionStore = defineStore('file-selection', () => {
   /**
    * 在树形结构中查找节点
    */
-  function findNodeInTree(
-    treeStructure: TreeNode[],
-    nodeId: string | number
-  ): TreeNode | null {
+  function findNodeInTree(treeStructure: TreeNode[], nodeId: string | number): TreeNode | null {
     for (const node of treeStructure) {
       if (node.id === nodeId) {
         return node
@@ -140,7 +137,7 @@ export const useFileSelectionStore = defineStore('file-selection', () => {
   function getAllChildNodeIds(node: TreeNode): (string | number)[] {
     const ids: (string | number)[] = [node.id]
     if (node.children) {
-      node.children.forEach(child => {
+      node.children.forEach((child) => {
         ids.push(...getAllChildNodeIds(child))
       })
     }
@@ -163,14 +160,14 @@ export const useFileSelectionStore = defineStore('file-selection', () => {
 
     // 检查当前是否已全选
     const selectedSet = getSelectedSet(knowledgeBaseId)
-    const isCurrentlySelected = allNodeIds.every(id => selectedSet.has(id))
+    const isCurrentlySelected = allNodeIds.every((id) => selectedSet.has(id))
 
     if (isCurrentlySelected) {
       // 如果已全选，则取消选择所有节点
-      allNodeIds.forEach(id => selectedSet.delete(id))
+      allNodeIds.forEach((id) => selectedSet.delete(id))
     } else {
       // 如果未全选，则选择所有节点
-      allNodeIds.forEach(id => selectedSet.add(id))
+      allNodeIds.forEach((id) => selectedSet.add(id))
     }
   }
 
@@ -190,14 +187,10 @@ export const useFileSelectionStore = defineStore('file-selection', () => {
     }
 
     // 检查所有子节点的状态
-    const childrenStates = node.children.map(child =>
-      getParentNodeState(child, knowledgeBaseId)
-    )
+    const childrenStates = node.children.map((child) => getParentNodeState(child, knowledgeBaseId))
 
-    const allChecked = childrenStates.every(s => s === 'checked')
-    const someChecked = childrenStates.some(
-      s => s === 'checked' || s === 'indeterminate'
-    )
+    const allChecked = childrenStates.every((s) => s === 'checked')
+    const someChecked = childrenStates.some((s) => s === 'checked' || s === 'indeterminate')
 
     if (allChecked) return 'checked'
     if (someChecked) return 'indeterminate'
@@ -210,7 +203,7 @@ export const useFileSelectionStore = defineStore('file-selection', () => {
   function getAllNodeIds(treeStructure: TreeNode[]): (string | number)[] {
     const ids: (string | number)[] = []
     function traverse(nodes: TreeNode[]) {
-      nodes.forEach(node => {
+      nodes.forEach((node) => {
         ids.push(node.id)
         if (node.children) {
           traverse(node.children)
@@ -234,7 +227,7 @@ export const useFileSelectionStore = defineStore('file-selection', () => {
   function toggleSelectionMode(knowledgeBaseId: number): void {
     const currentMode = selectionMode.value.get(knowledgeBaseId) || false
     selectionMode.value.set(knowledgeBaseId, !currentMode)
-    
+
     // 如果退出选择模式，清空选择
     if (currentMode) {
       clearSelection(knowledgeBaseId)
@@ -246,7 +239,7 @@ export const useFileSelectionStore = defineStore('file-selection', () => {
    */
   function setSelectionMode(knowledgeBaseId: number, enabled: boolean): void {
     selectionMode.value.set(knowledgeBaseId, enabled)
-    
+
     // 如果禁用选择模式，清空选择
     if (!enabled) {
       clearSelection(knowledgeBaseId)

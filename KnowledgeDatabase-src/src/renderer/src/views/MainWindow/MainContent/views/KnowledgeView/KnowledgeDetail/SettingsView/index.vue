@@ -24,28 +24,16 @@
       class="kb-settings-content flex-1 overflow-y-auto overflow-x-hidden scroll-smooth"
     >
       <!-- 文档解析配置区 -->
-      <DocumentParsingSection
-        ref="documentParsingRef"
-        :knowledge-base-id="knowledgeBaseId"
-      />
+      <DocumentParsingSection ref="documentParsingRef" :knowledge-base-id="knowledgeBaseId" />
 
       <!-- 分块配置区 -->
-      <ChunkingSection
-        ref="chunkingRef"
-        :knowledge-base-id="knowledgeBaseId"
-      />
+      <ChunkingSection ref="chunkingRef" :knowledge-base-id="knowledgeBaseId" />
 
       <!-- 嵌入配置区 -->
-      <EmbeddingSection
-        ref="embeddingRef"
-        :knowledge-base-id="knowledgeBaseId"
-      />
+      <EmbeddingSection ref="embeddingRef" :knowledge-base-id="knowledgeBaseId" />
 
       <!-- 知识图谱配置区 -->
-      <KnowledgeGraphSection
-        ref="knowledgeGraphRef"
-        :knowledge-base-id="knowledgeBaseId"
-      />
+      <KnowledgeGraphSection ref="knowledgeGraphRef" :knowledge-base-id="knowledgeBaseId" />
     </div>
   </div>
 </template>
@@ -77,8 +65,8 @@ const knowledgeGraphRef = ref<InstanceType<typeof KnowledgeGraphSection> | null>
 
 const sectionRefs = {
   'document-parsing': documentParsingRef,
-  'chunking': chunkingRef,
-  'embedding': embeddingRef,
+  chunking: chunkingRef,
+  embedding: embeddingRef,
   'knowledge-graph': knowledgeGraphRef
 }
 

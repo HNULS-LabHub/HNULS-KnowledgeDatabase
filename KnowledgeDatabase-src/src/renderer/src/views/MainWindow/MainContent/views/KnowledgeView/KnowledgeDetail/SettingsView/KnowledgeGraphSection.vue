@@ -1,5 +1,7 @@
 <template>
-  <div class="kb-knowledge-graph-section flex flex-col gap-6 p-6 bg-white border-b border-slate-100">
+  <div
+    class="kb-knowledge-graph-section flex flex-col gap-6 p-6 bg-white border-b border-slate-100"
+  >
     <div class="kb-knowledge-graph-header">
       <h3 class="kb-knowledge-graph-title text-lg font-semibold text-slate-900 mb-1">
         知识图谱配置

@@ -1,5 +1,7 @@
 <template>
-  <div class="kb-document-parsing-section flex flex-col gap-6 p-6 bg-white border-b border-slate-100">
+  <div
+    class="kb-document-parsing-section flex flex-col gap-6 p-6 bg-white border-b border-slate-100"
+  >
     <div class="kb-document-parsing-header">
       <h3 class="kb-document-parsing-title text-lg font-semibold text-slate-900 mb-1">
         文档解析配置
@@ -32,9 +34,7 @@
           />
           <span class="text-sm font-medium text-slate-700">启用公式识别</span>
         </label>
-        <p class="text-xs text-slate-400 ml-6">
-          仅对 pipeline 模型且非 HTML 文件有效，默认开启
-        </p>
+        <p class="text-xs text-slate-400 ml-6">仅对 pipeline 模型且非 HTML 文件有效，默认开启</p>
       </div>
 
       <!-- 表格识别 -->
@@ -47,9 +47,7 @@
           />
           <span class="text-sm font-medium text-slate-700">启用表格识别</span>
         </label>
-        <p class="text-xs text-slate-400 ml-6">
-          仅对 pipeline 模型且非 HTML 文件有效，默认开启
-        </p>
+        <p class="text-xs text-slate-400 ml-6">仅对 pipeline 模型且非 HTML 文件有效，默认开启</p>
       </div>
 
       <!-- 文档语言 -->
@@ -62,9 +60,7 @@
           :options="languageOptions"
           placeholder="请选择文档语言"
         />
-        <p class="text-xs text-slate-400 mt-1">
-          仅对 pipeline 模型且非 HTML 文件有效，默认中文
-        </p>
+        <p class="text-xs text-slate-400 mt-1">仅对 pipeline 模型且非 HTML 文件有效，默认中文</p>
       </div>
 
       <!-- OCR 功能 -->
@@ -77,9 +73,7 @@
           />
           <span class="text-sm font-medium text-slate-700">启用 OCR 功能</span>
         </label>
-        <p class="text-xs text-slate-400 ml-6">
-          仅对 pipeline 模型且非 HTML 文件有效，默认关闭
-        </p>
+        <p class="text-xs text-slate-400 ml-6">仅对 pipeline 模型且非 HTML 文件有效，默认关闭</p>
       </div>
 
       <!-- 页码范围 -->

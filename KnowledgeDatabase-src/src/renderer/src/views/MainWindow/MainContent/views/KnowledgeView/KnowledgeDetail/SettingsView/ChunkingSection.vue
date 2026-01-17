@@ -1,9 +1,7 @@
 <template>
   <div class="kb-chunking-section flex flex-col gap-6 p-6 bg-white border-b border-slate-100">
     <div class="kb-chunking-header">
-      <h3 class="kb-chunking-title text-lg font-semibold text-slate-900 mb-1">
-        分块配置
-      </h3>
+      <h3 class="kb-chunking-title text-lg font-semibold text-slate-900 mb-1">分块配置</h3>
       <p class="kb-chunking-desc text-sm text-slate-500">
         配置文档分块策略，控制文本如何被分割成更小的片段
       </p>
@@ -61,10 +59,7 @@
     </div>
 
     <!-- 预览对话框 -->
-    <ChunkingPreviewDialog
-      v-model:visible="showPreviewDialog"
-      :config="chunkingConfig"
-    />
+    <ChunkingPreviewDialog v-model:visible="showPreviewDialog" :config="chunkingConfig" />
   </div>
 </template>
 

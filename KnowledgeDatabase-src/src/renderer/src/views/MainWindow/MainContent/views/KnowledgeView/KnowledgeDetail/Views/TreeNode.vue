@@ -18,11 +18,7 @@
       @drop.prevent="handleDrop($event, node)"
       @dragend="handleDragEnd"
     >
-      <div
-        v-if="isSelectionModeEnabled"
-        class="checkbox-wrapper"
-        @click.stop="handleCheckboxClick"
-      >
+      <div v-if="isSelectionModeEnabled" class="checkbox-wrapper" @click.stop="handleCheckboxClick">
         <input
           type="checkbox"
           class="checkbox-input"
@@ -77,11 +73,7 @@
       @dragstart="handleDragStart($event, node)"
       @dragend="handleDragEnd"
     >
-      <div
-        v-if="isSelectionModeEnabled"
-        class="checkbox-wrapper"
-        @click.stop="handleCheckboxClick"
-      >
+      <div v-if="isSelectionModeEnabled" class="checkbox-wrapper" @click.stop="handleCheckboxClick">
         <input
           type="checkbox"
           class="checkbox-input"
@@ -494,16 +486,12 @@ const checkboxState = computed(() => {
 
 const handleCheckboxClick = (): void => {
   if (!props.knowledgeBaseId) return
-  
+
   // 对于文件夹节点，使用递归选择
   if (props.node.type === 'folder') {
     // 使用传递的完整树结构，如果不存在则使用当前节点的子树结构
     const treeStructure = props.treeStructure || (props.node.children ? [props.node] : [])
-    selectionStore.selectNodeAndChildren(
-      props.knowledgeBaseId,
-      props.node.id,
-      treeStructure
-    )
+    selectionStore.selectNodeAndChildren(props.knowledgeBaseId, props.node.id, treeStructure)
   } else {
     // 文件节点：直接切换选择状态
     selectionStore.toggleSelection(props.knowledgeBaseId, props.node.id)

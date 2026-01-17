@@ -3,13 +3,11 @@
     <Transition name="dialog-fade">
       <div v-if="visible" class="kb-chunking-preview-overlay" @click="handleClose">
         <Transition name="dialog-scale">
-          <div
-            v-if="visible"
-            class="kb-chunking-preview-dialog"
-            @click.stop
-          >
+          <div v-if="visible" class="kb-chunking-preview-dialog" @click.stop>
             <!-- 头部 -->
-            <div class="kb-chunking-preview-header flex items-center justify-between p-4 border-b border-slate-200">
+            <div
+              class="kb-chunking-preview-header flex items-center justify-between p-4 border-b border-slate-200"
+            >
               <h3 class="kb-chunking-preview-title text-lg font-semibold text-slate-900 m-0">
                 分块预览
               </h3>
@@ -17,7 +15,13 @@
                 class="kb-chunking-preview-close w-8 h-8 flex items-center justify-center border-none bg-transparent text-slate-400 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                 @click="handleClose"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  class="w-5 h-5"
+                >
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
@@ -31,17 +35,16 @@
               </p>
 
               <!-- 手风琴组件 -->
-              <Accordion
-                :items="mockChunks"
-                class="kb-chunking-preview-accordion"
-              >
+              <Accordion :items="mockChunks" class="kb-chunking-preview-accordion">
                 <template
                   v-for="(chunk, index) in mockChunks"
                   :key="index"
                   #[`item-${index}`]="{ item }"
                 >
                   <div class="kb-chunking-preview-chunk">
-                    <div class="kb-chunking-preview-chunk-header flex items-center justify-between mb-2">
+                    <div
+                      class="kb-chunking-preview-chunk-header flex items-center justify-between mb-2"
+                    >
                       <span class="kb-chunking-preview-chunk-id text-xs font-mono text-slate-400">
                         分块 #{{ index + 1 }}
                       </span>
@@ -49,7 +52,9 @@
                         {{ item.size }} 字符
                       </span>
                     </div>
-                    <div class="kb-chunking-preview-chunk-content text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                    <div
+                      class="kb-chunking-preview-chunk-content text-sm text-slate-700 leading-relaxed whitespace-pre-wrap"
+                    >
                       {{ item.content }}
                     </div>
                   </div>
