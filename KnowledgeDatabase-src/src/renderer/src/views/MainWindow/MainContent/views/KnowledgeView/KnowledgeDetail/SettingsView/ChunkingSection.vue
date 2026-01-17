@@ -46,27 +46,13 @@
           建议范围：500-2000 字符，过小可能导致上下文丢失，过大可能影响检索效果
         </p>
       </div>
-
-      <!-- 预览按钮 -->
-      <div class="kb-chunking-preview">
-        <button
-          class="kb-chunking-preview-btn px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200"
-          @click="showPreviewDialog = true"
-        >
-          预览
-        </button>
-      </div>
     </div>
-
-    <!-- 预览对话框 -->
-    <ChunkingPreviewDialog v-model:visible="showPreviewDialog" :config="chunkingConfig" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
-import ChunkingPreviewDialog from './ChunkingPreviewDialog.vue'
 
 const props = defineProps<{
   knowledgeBaseId: number
@@ -109,8 +95,6 @@ const selectedModeDescription = computed(() => {
   const selected = chunkingModeOptions.find((opt) => opt.value === chunkingConfig.value.mode)
   return selected?.description || ''
 })
-
-const showPreviewDialog = ref(false)
 
 const handleModeChange = (value: string | number | null) => {
   console.log('[ChunkingSection] Mode changed to:', value)

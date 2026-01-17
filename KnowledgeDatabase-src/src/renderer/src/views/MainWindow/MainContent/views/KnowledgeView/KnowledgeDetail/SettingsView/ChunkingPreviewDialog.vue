@@ -35,9 +35,9 @@
               </p>
 
               <!-- 手风琴组件 -->
-              <Accordion :items="mockChunks" class="kb-chunking-preview-accordion">
+              <Accordion :items="displayChunks" class="kb-chunking-preview-accordion">
                 <template
-                  v-for="(chunk, index) in mockChunks"
+                  v-for="(chunk, index) in displayChunks"
                   :key="index"
                   #[`item-${index}`]="{ item }"
                 >
@@ -78,14 +78,29 @@ const props = defineProps<{
     mode: string
     maxChars: number
   }
+  chunks?: Array<{
+    id: string
+    content: string
+    size: number
+    index: number
+  }>
 }>()
 
 const emit = defineEmits<{
   (e: 'update:visible', val: boolean): void
 }>()
 
-// Mock 分块数据
-const mockChunks = computed(() => {
+// 使用传入的 chunks 或 fallback 到 mock 数据
+const displayChunks = computed(() => {
+  if (props.chunks && props.chunks.length > 0) {
+    return props.chunks.map((chunk) => ({
+      title: `分块 ${chunk.index + 1}`,
+      content: chunk.content,
+      size: chunk.size
+    }))
+  }
+
+  // Fallback: Mock 分块数据
   const chunks = []
   const sampleTexts = [
     '这是第一个分块的示例内容。它展示了如何根据配置的分块模式将文档分割成更小的片段。分块的质量直接影响后续的检索和嵌入效果。',
