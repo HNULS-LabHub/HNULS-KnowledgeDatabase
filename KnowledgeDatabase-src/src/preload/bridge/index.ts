@@ -6,6 +6,7 @@ import { fileAPI } from '../api/file-api'
 import { fileImportAPI } from '../api/file-import-api'
 import { userConfigAPI } from '../api/user-config-api'
 import { minerUAPI } from '../api/mineru-api'
+import { chunkingAPI } from '../api/chunking-api'
 
 // 自定义 API 集合
 const customAPI = {
@@ -15,6 +16,7 @@ const customAPI = {
   fileImport: fileImportAPI,
   userConfig: userConfigAPI,
   minerU: minerUAPI,
+  chunking: chunkingAPI,
   // Electron 文件路径工具
   utils: {
     getPathForFile: (file: File): string => {

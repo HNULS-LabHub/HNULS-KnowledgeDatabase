@@ -5,10 +5,12 @@ import { FileIPCHandler } from './file-handler'
 import { FileImportIPCHandler } from './file-import-handler'
 import { UserConfigIPCHandler } from './user-config-handler'
 import { MinerUIPCHandler } from './mineru-handler'
+import { ChunkingIPCHandler } from './chunking-handler'
 import { SurrealDBService } from '../services/surrealdb-service'
 import { KnowledgeLibraryService } from '../services/knowledgeBase-library'
 import { UserConfigService } from '../services/user-config-service'
 import { MinerUParserService } from '../services/mineru-parser'
+import { ChunkingService } from '../services/chunking'
 
 export class IPCManager {
   private handlers: any[] = []
@@ -42,6 +44,10 @@ export class IPCManager {
       // ignore init errors
     })
     this.handlers.push(new MinerUIPCHandler(minerUParserService))
+
+    // 注册分块处理器
+    const chunkingService = new ChunkingService()
+    this.handlers.push(new ChunkingIPCHandler(chunkingService))
 
     console.log(`Registered ${this.handlers.length} IPC handlers`)
   }

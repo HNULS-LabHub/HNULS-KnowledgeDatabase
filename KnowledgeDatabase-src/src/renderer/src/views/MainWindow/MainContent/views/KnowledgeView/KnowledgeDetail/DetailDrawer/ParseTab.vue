@@ -353,34 +353,79 @@
                   </p>
                 </div>
 
-                <!-- 预览按钮 -->
+                <!-- 分块操作按钮（左半分块，右半预览） -->
                 <div class="pt-2">
-                  <button
-                    class="KnowledgeView_KnowledgeDetail_DetailDrawer_chunkingPreviewBtn w-full relative group/btn overflow-hidden rounded-lg border transition-all duration-300 py-2.5 shadow-sm"
-                    :class="
-                      !fileKey || isLoadingChunking
-                        ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
-                        : 'bg-white border-slate-300 text-slate-700 hover:border-blue-500 hover:text-blue-600 hover:shadow-md'
-                    "
-                    :disabled="!fileKey || isLoadingChunking || !canChunk"
-                    @click="handleShowPreview"
-                  >
-                    <div
-                      class="relative z-10 flex items-center justify-center gap-2 text-xs font-bold tracking-wider"
+                  <div class="flex gap-2">
+                    <!-- 左半：分块按钮 -->
+                    <button
+                      class="KnowledgeView_KnowledgeDetail_DetailDrawer_chunkingBtn flex-1 relative group/btn overflow-hidden rounded-lg border transition-all duration-300 py-2.5 shadow-sm"
+                      :class="
+                        !fileKey || isLoadingChunking || !canChunk
+                          ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                          : 'bg-white border-slate-300 text-slate-700 hover:border-blue-500 hover:text-blue-600 hover:shadow-md'
+                      "
+                      :disabled="!fileKey || isLoadingChunking || !canChunk"
+                      @click="handleStartChunking"
                     >
-                      <svg
-                        class="w-3.5 h-3.5"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
+                      <div
+                        class="relative z-10 flex items-center justify-center gap-2 text-xs font-bold tracking-wider"
                       >
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                        <circle cx="12" cy="12" r="3"></circle>
-                      </svg>
-                      <span>预览分块</span>
-                    </div>
-                  </button>
+                        <svg
+                          v-if="isLoadingChunking"
+                          class="w-3.5 h-3.5 animate-spin"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                        </svg>
+                        <svg
+                          v-else
+                          class="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <path d="M14 2v6h6" />
+                          <path d="M16 13H8" />
+                          <path d="M16 17H8" />
+                          <path d="M10 9H8" />
+                        </svg>
+                        <span>{{ isLoadingChunking ? '分块中...' : '分块' }}</span>
+                      </div>
+                    </button>
+
+                    <!-- 右半：预览按钮 -->
+                    <button
+                      class="KnowledgeView_KnowledgeDetail_DetailDrawer_chunkingPreviewBtn flex-1 relative group/btn overflow-hidden rounded-lg border transition-all duration-300 py-2.5 shadow-sm"
+                      :class="
+                        !fileKey || !hasChunks || isLoadingChunking
+                          ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                          : 'bg-white border-slate-300 text-slate-700 hover:border-blue-500 hover:text-blue-600 hover:shadow-md'
+                      "
+                      :disabled="!fileKey || !hasChunks || isLoadingChunking"
+                      @click="handleShowPreview"
+                    >
+                      <div
+                        class="relative z-10 flex items-center justify-center gap-2 text-xs font-bold tracking-wider"
+                      >
+                        <svg
+                          class="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <span>预览</span>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </template>
             </div>
@@ -510,6 +555,12 @@ const isLoadingChunking = computed(() => {
   return chunkingStore.isLoading(props.fileKey)
 })
 
+// 检查是否有分块结果
+const hasChunks = computed(() => {
+  if (!props.fileKey) return false
+  return chunkingStore.hasChunks(props.fileKey, chunkingConfig.value)
+})
+
 // 文件扩展名
 const fileExtension = computed(() => {
   return props.fileData?.extension || ''
@@ -616,10 +667,17 @@ watch(
 
 // 监听分块配置变化，更新分块状态（仅在可以分块时）
 watch(
-  [() => props.fileKey, () => chunkingConfig.value, () => canChunk.value],
-  async ([key, config, canChunkFile]) => {
+  [
+    () => props.fileKey,
+    () => chunkingConfig.value,
+    () => canChunk.value,
+    () => props.knowledgeBaseId
+  ],
+  async ([key, config, canChunkFile, kbId]) => {
     if (!key || !canChunkFile) return
-    await chunkingStore.ensureState(key, config)
+    await chunkingStore.ensureState(key, config, {
+      knowledgeBaseId: kbId
+    })
   },
   { immediate: true, deep: true }
 )
@@ -674,10 +732,51 @@ const handleStartParsing = async (): Promise<void> => {
   })
 }
 
+// 分块操作处理
+const handleStartChunking = async (): Promise<void> => {
+  if (!props.fileKey) return
+  if (!props.knowledgeBaseId) return
+  if (isLoadingChunking.value) return
+  if (!canChunk.value) return
+
+  try {
+    // 获取解析版本 ID（对于非纯文本文件）
+    let parsingVersionId: string | undefined
+    if (!isPlainText.value) {
+      const state = parsingState.value
+      if (state?.activeVersionId) {
+        parsingVersionId = state.activeVersionId
+      } else {
+        // 提示需要先解析
+        console.warn('非纯文本文件需要先完成解析')
+        return
+      }
+    }
+
+    // 执行分块（异步，不阻塞）
+    await chunkingStore.startChunking(props.fileKey, chunkingConfig.value, {
+      knowledgeBaseId: props.knowledgeBaseId,
+      fileRelativePath: props.fileKey,
+      parsingVersionId
+    })
+
+    // 分块完成后可以自动显示预览（可选）
+    // showChunkingPreview.value = true
+  } catch (error) {
+    console.error('分块失败:', error)
+    // 可以添加错误提示
+  }
+}
+
+// 预览处理（确保状态已加载）
 const handleShowPreview = async (): Promise<void> => {
   if (!props.fileKey) return
+  if (!hasChunks.value) return
+
   // 确保分块状态已加载
-  await chunkingStore.ensureState(props.fileKey, chunkingConfig.value)
+  await chunkingStore.ensureState(props.fileKey, chunkingConfig.value, {
+    knowledgeBaseId: props.knowledgeBaseId
+  })
   showChunkingPreview.value = true
 }
 </script>
