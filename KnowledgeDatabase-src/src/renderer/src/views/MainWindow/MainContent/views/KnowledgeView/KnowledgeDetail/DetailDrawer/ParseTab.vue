@@ -296,60 +296,93 @@
             </div>
 
             <div class="space-y-4 relative z-10">
-              <!-- 分块模式显示（固定为段落分块） -->
-              <div class="flex flex-col gap-2">
-                <label class="text-xs font-medium text-slate-700">分块模式</label>
-                <div
-                  class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600"
+              <!-- 分块功能不可用提示 -->
+              <div
+                v-if="!canChunk"
+                class="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg"
+              >
+                <svg
+                  class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
                 >
-                  段落分块模式
+                  <path d="M12 9v4"></path>
+                  <path d="M12 17h.01"></path>
+                  <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path>
+                </svg>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-medium text-amber-800 mb-1">分块功能暂不可用</p>
+                  <p class="text-xs text-amber-700 leading-relaxed">
+                    {{ chunkingDisabledReason }}
+                  </p>
                 </div>
-                <p class="text-xs text-slate-500 leading-relaxed">
-                  递归地将文档分割成更小的块，优先保持段落、句子等自然边界。适合层次化文档结构，分块更加精细。
-                </p>
               </div>
 
-              <!-- 单个分段最大字符数 -->
-              <div class="flex flex-col gap-2">
-                <label class="text-xs font-medium text-slate-700">单个分段最大字符数</label>
-                <input
-                  v-model.number="chunkingConfig.maxChars"
-                  type="number"
-                  min="100"
-                  max="10000"
-                  step="50"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                  placeholder="例如：1000"
-                />
-                <p class="text-xs text-slate-400">
-                  建议范围：500-2000 字符，过小可能导致上下文丢失，过大可能影响检索效果
-                </p>
-              </div>
-
-              <!-- 预览按钮 -->
-              <div class="pt-2">
-                <button
-                  class="KnowledgeView_KnowledgeDetail_DetailDrawer_chunkingPreviewBtn w-full relative group/btn overflow-hidden rounded-lg border transition-all duration-300 py-2.5 shadow-sm bg-white border-slate-300 text-slate-700 hover:border-blue-500 hover:text-blue-600 hover:shadow-md"
-                  :disabled="!fileKey || isLoadingChunking"
-                  @click="handleShowPreview"
-                >
+              <!-- 分块配置（仅在可用时显示） -->
+              <template v-if="canChunk">
+                <!-- 分块模式显示（固定为段落分块） -->
+                <div class="flex flex-col gap-2">
+                  <label class="text-xs font-medium text-slate-700">分块模式</label>
                   <div
-                    class="relative z-10 flex items-center justify-center gap-2 text-xs font-bold tracking-wider"
+                    class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600"
                   >
-                    <svg
-                      class="w-3.5 h-3.5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                      <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                    <span>预览分块</span>
+                    段落分块模式
                   </div>
-                </button>
-              </div>
+                  <p class="text-xs text-slate-500 leading-relaxed">
+                    按照设置的单个分段最大字符数来尽量凑满，结束时优先结束在段尾，其次是句尾。适合层次化文档结构，分块更加精细。
+                  </p>
+                </div>
+
+                <!-- 单个分段最大字符数 -->
+                <div class="flex flex-col gap-2">
+                  <label class="text-xs font-medium text-slate-700">单个分段最大字符数</label>
+                  <input
+                    v-model.number="chunkingConfig.maxChars"
+                    type="number"
+                    min="100"
+                    max="10000"
+                    step="50"
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    placeholder="例如：1000"
+                    :disabled="!canChunk"
+                  />
+                  <p class="text-xs text-slate-400">
+                    建议范围：500-2000 字符，过小可能导致上下文丢失，过大可能影响检索效果
+                  </p>
+                </div>
+
+                <!-- 预览按钮 -->
+                <div class="pt-2">
+                  <button
+                    class="KnowledgeView_KnowledgeDetail_DetailDrawer_chunkingPreviewBtn w-full relative group/btn overflow-hidden rounded-lg border transition-all duration-300 py-2.5 shadow-sm"
+                    :class="
+                      !fileKey || isLoadingChunking
+                        ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                        : 'bg-white border-slate-300 text-slate-700 hover:border-blue-500 hover:text-blue-600 hover:shadow-md'
+                    "
+                    :disabled="!fileKey || isLoadingChunking || !canChunk"
+                    @click="handleShowPreview"
+                  >
+                    <div
+                      class="relative z-10 flex items-center justify-center gap-2 text-xs font-bold tracking-wider"
+                    >
+                      <svg
+                        class="w-3.5 h-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <span>预览分块</span>
+                    </div>
+                  </button>
+                </div>
+              </template>
             </div>
           </div>
 
@@ -441,12 +474,15 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useParsingStore } from '@renderer/stores/parsing/parsing.store'
 import { useChunkingStore } from '@renderer/stores/chunking/chunking.store'
+import { canChunkFile, isPlainTextFile } from '@renderer/stores/chunking/chunking.util'
 import ChunkingPreviewDialog from '../SettingsView/ChunkingPreviewDialog.vue'
 import type { ChunkingConfig } from '@renderer/stores/chunking/chunking.types'
+import type { FileNode } from '../../types'
 
 const props = defineProps<{
   fileKey: string
   knowledgeBaseId?: number
+  fileData?: FileNode | null
 }>()
 
 const parsingStore = useParsingStore()
@@ -472,6 +508,49 @@ const chunkingChunks = computed(() => {
 const isLoadingChunking = computed(() => {
   if (!props.fileKey) return false
   return chunkingStore.isLoading(props.fileKey)
+})
+
+// 文件扩展名
+const fileExtension = computed(() => {
+  return props.fileData?.extension || ''
+})
+
+// 是否为纯文本文件
+const isPlainText = computed(() => {
+  return isPlainTextFile(fileExtension.value)
+})
+
+// 是否已解析（对于非纯文本文件需要先解析）
+const isFileParsed = computed(() => {
+  // 优先使用 fileData 的 status 字段
+  if (props.fileData?.status === 'parsed') {
+    return true
+  }
+
+  // 其次检查 parsingState
+  const state = parsingState.value
+  if (!state || !state.activeVersionId) return false
+  const version = state.versions.find((v) => v.id === state.activeVersionId)
+  return version?.name.includes('完成') || false
+})
+
+// 是否可以进行分块操作
+const canChunk = computed(() => {
+  return canChunkFile(fileExtension.value, isFileParsed.value)
+})
+
+// 分块功能不可用的原因提示
+const chunkingDisabledReason = computed(() => {
+  if (!fileExtension.value) {
+    return '无法识别文件类型'
+  }
+  if (isPlainText.value) {
+    return '' // 纯文本文件可以直接分块
+  }
+  if (!isFileParsed.value) {
+    return '该文件类型需要先完成文档解析才能进行分块'
+  }
+  return ''
 })
 
 const sections = [
@@ -535,11 +614,11 @@ watch(
   { immediate: true }
 )
 
-// 监听分块配置变化，更新分块状态
+// 监听分块配置变化，更新分块状态（仅在可以分块时）
 watch(
-  [() => props.fileKey, () => chunkingConfig.value],
-  async ([key, config]) => {
-    if (!key) return
+  [() => props.fileKey, () => chunkingConfig.value, () => canChunk.value],
+  async ([key, config, canChunkFile]) => {
+    if (!key || !canChunkFile) return
     await chunkingStore.ensureState(key, config)
   },
   { immediate: true, deep: true }

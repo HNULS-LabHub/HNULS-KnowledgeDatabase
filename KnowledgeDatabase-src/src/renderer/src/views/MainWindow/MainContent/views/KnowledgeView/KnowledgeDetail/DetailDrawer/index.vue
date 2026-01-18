@@ -61,6 +61,7 @@
                 v-else-if="currentTab === 'parse'"
                 :file-key="fileKey"
                 :knowledge-base-id="knowledgeBaseId"
+                :file-data="fileData"
               />
 
               <!-- Tab 3: 预览 -->
