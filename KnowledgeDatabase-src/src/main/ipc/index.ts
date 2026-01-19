@@ -6,11 +6,13 @@ import { FileImportIPCHandler } from './file-import-handler'
 import { UserConfigIPCHandler } from './user-config-handler'
 import { MinerUIPCHandler } from './mineru-handler'
 import { ChunkingIPCHandler } from './chunking-handler'
+import { ModelConfigIPCHandler } from './model-config-handler'
 import { SurrealDBService } from '../services/surrealdb-service'
 import { KnowledgeLibraryService } from '../services/knowledgeBase-library'
 import { UserConfigService } from '../services/user-config-service'
 import { MinerUParserService } from '../services/mineru-parser'
 import { ChunkingService } from '../services/chunking'
+import { ModelConfigService } from '../services/model-config/model-config-service'
 
 export class IPCManager {
   private handlers: any[] = []
@@ -48,6 +50,10 @@ export class IPCManager {
     // 注册分块处理器
     const chunkingService = new ChunkingService()
     this.handlers.push(new ChunkingIPCHandler(chunkingService))
+
+    // 注册模型配置处理器（明文 JSON 存储于 userData/data）
+    const modelConfigService = new ModelConfigService()
+    this.handlers.push(new ModelConfigIPCHandler(modelConfigService))
 
     console.log(`Registered ${this.handlers.length} IPC handlers`)
   }

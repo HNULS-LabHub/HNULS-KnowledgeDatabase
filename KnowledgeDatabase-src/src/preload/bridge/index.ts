@@ -1,4 +1,4 @@
-import { contextBridge, webUtils } from 'electron'
+import { contextBridge } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import { testAPI } from '../api/test-api'
 import { knowledgeLibraryAPI } from '../api/knowledge-library-api'
@@ -7,6 +7,8 @@ import { fileImportAPI } from '../api/file-import-api'
 import { userConfigAPI } from '../api/user-config-api'
 import { minerUAPI } from '../api/mineru-api'
 import { chunkingAPI } from '../api/chunking-api'
+import { modelConfigAPI } from '../api/model-config-api'
+import { utilsAPI } from '../api/utils-api'
 
 // 自定义 API 集合
 const customAPI = {
@@ -17,12 +19,9 @@ const customAPI = {
   userConfig: userConfigAPI,
   minerU: minerUAPI,
   chunking: chunkingAPI,
+  modelConfig: modelConfigAPI,
   // Electron 文件路径工具
-  utils: {
-    getPathForFile: (file: File): string => {
-      return webUtils.getPathForFile(file)
-    }
-  }
+  utils: utilsAPI
   // TODO: 添加其他业务域 API
   // database: databaseAPI,
 }
