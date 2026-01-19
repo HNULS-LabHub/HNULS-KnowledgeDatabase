@@ -56,6 +56,19 @@
           <line x1="8.59" y1="7.41" x2="15.42" y2="16.59"></line>
           <line x1="8.59" y1="16.59" x2="15.42" y2="7.41"></line>
         </svg>
+        <svg
+          v-else-if="currentPage === 'user-setting'"
+          class="context-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="3"></circle>
+          <path
+            d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"
+          ></path>
+        </svg>
         {{ pageTitle }}
       </span>
 
@@ -151,7 +164,8 @@ const pageTitle = computed(() => {
     dashboard: '首页',
     rag: 'Retrieval',
     graph: 'Graph',
-    docs: 'Docs'
+    docs: 'Docs',
+    'user-setting': '用户设置'
   }
   return titles[props.currentPage] || props.currentPage
 })
