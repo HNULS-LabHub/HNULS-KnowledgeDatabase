@@ -8,6 +8,7 @@ import { userConfigAPI } from '../api/user-config-api'
 import { minerUAPI } from '../api/mineru-api'
 import { chunkingAPI } from '../api/chunking-api'
 import { utilsAPI } from '../api/utils-api'
+import { modelConfigAPI } from '../api/model-config-api'
 
 // 自定义 API 集合
 const customAPI = {
@@ -18,6 +19,7 @@ const customAPI = {
   userConfig: userConfigAPI,
   minerU: minerUAPI,
   chunking: chunkingAPI,
+  modelConfig: modelConfigAPI,
   // Electron 文件路径工具
   utils: utilsAPI
   // TODO: 添加其他业务域 API

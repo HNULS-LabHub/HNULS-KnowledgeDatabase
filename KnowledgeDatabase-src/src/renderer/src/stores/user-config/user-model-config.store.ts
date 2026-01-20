@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { UserModelConfigDataSource } from './user-model-config.datasource'
-import { MOCK_REMOTE_MODELS } from './user-model-config.mock'
 import type {
   ModelProvider,
   RemoteModelGroups,
   NewProviderForm,
-  NewModelForm
+  NewModelForm,
+  ProviderIcon
 } from './user-model-config.types'
 
 /**
@@ -26,7 +26,6 @@ export const useUserModelConfigStore = defineStore('user-model-config', () => {
   // 管理模型弹窗的状态
   const isLoadingModels = ref(false)
   const remoteModelGroups = ref<RemoteModelGroups>({})
-  const selectedRemoteModels = ref<Set<string>>(new Set())
 
   // 表单状态
   const newProviderForm = ref<NewProviderForm>({ type: 'openai', name: '' })
@@ -37,88 +36,154 @@ export const useUserModelConfigStore = defineStore('user-model-config', () => {
     return providers.value.find((p) => p.id === selectedProviderId.value) || providers.value[0]
   })
 
+  // === 自动保存辅助函数 ===
+  /**
+   * 自动保存配置到后端
+   */
+  async function autoSave(): Promise<void> {
+    try {
+      await UserModelConfigDataSource.saveProviders(providers.value, selectedProviderId.value)
+    } catch (error) {
+      console.error('Auto save failed:', error)
+      // 静默失败，不打断用户操作
+    }
+  }
+
   // === Actions ===
 
   /**
-   * 1. 打开管理模态框并模拟 Fetch
+   * 1. 打开管理模态框并从 API 获取模型列表
    */
   async function openManageModels(): Promise<void> {
+    if (!selectedProviderId.value) return
+
     isManageModelsModalOpen.value = true
     isLoadingModels.value = true
     remoteModelGroups.value = {}
 
     try {
-      // 模拟网络请求延迟
-      await new Promise((resolve) => setTimeout(resolve, 1200))
-      remoteModelGroups.value = { ...MOCK_REMOTE_MODELS }
-
-      // 默认选中当前列表中已存在的模型
-      const currentModelIds = new Set(selectedProvider.value?.models.map((m) => m.id) || [])
-      selectedRemoteModels.value = currentModelIds
+      // 从真实 API 获取模型列表
+      remoteModelGroups.value = await UserModelConfigDataSource.syncRemoteModels(
+        selectedProviderId.value
+      )
+    } catch (error) {
+      console.error('Failed to fetch models:', error)
+      // 如果请求失败，显示空列表
+      remoteModelGroups.value = {}
     } finally {
       isLoadingModels.value = false
     }
   }
 
   /**
-   * 2. 处理远程模型的勾选/取消
+   * 2. 添加单个远程模型
    */
-  function toggleRemoteModelSelection(modelId: string): void {
-    const newSet = new Set(selectedRemoteModels.value)
-    if (newSet.has(modelId)) {
-      newSet.delete(modelId)
-    } else {
-      newSet.add(modelId)
+  async function addSingleRemoteModel(remoteModel: any): Promise<void> {
+    if (!selectedProvider.value || !selectedProviderId.value) return
+
+    // 检查是否已存在
+    const existing = selectedProvider.value.models.find((m) => m.id === remoteModel.id)
+    if (existing) {
+      // 已存在，不重复添加
+      return
     }
-    selectedRemoteModels.value = newSet
-  }
 
-  /**
-   * 3. 确认批量添加模型
-   */
-  function handleBatchAddModels(): void {
-    if (!selectedProvider.value) return
+    // 推断分组
+    const group = inferGroupFromModelId(remoteModel.id)
 
-    // 找出所有被选中的模型详情
-    const modelsToAdd: ModelProvider['models'] = []
-    Object.values(remoteModelGroups.value)
-      .flat()
-      .forEach((remoteModel) => {
-        if (selectedRemoteModels.value.has(remoteModel.id)) {
-          // 检查是否已存在，如果存在保留旧配置(如 enabled 状态)，如果不存在则新建
-          const existing = selectedProvider.value?.models.find((m) => m.id === remoteModel.id)
-          if (existing) {
-            modelsToAdd.push(existing)
-          } else {
-            modelsToAdd.push({
-              id: remoteModel.id,
-              name: remoteModel.id, // 默认用 ID 作名称
-              enabled: true
-            })
-          }
-        }
-      })
+    // 添加新模型
+    const newModel = {
+      id: remoteModel.id,
+      name: remoteModel.id, // 默认用 ID 作名称
+      group
+    }
 
-    // 更新 Provider
     providers.value = providers.value.map((p) => {
       if (p.id === selectedProviderId.value) {
-        return { ...p, models: modelsToAdd }
+        return { ...p, models: [...p.models, newModel] }
       }
       return p
     })
 
-    isManageModelsModalOpen.value = false
+    await autoSave()
+  }
+
+  /**
+   * 3. 批量添加整组模型
+   */
+  async function addGroupModels(groupName: string, models: any[]): Promise<void> {
+    if (!selectedProvider.value || !selectedProviderId.value) return
+
+    const currentModelIds = new Set(selectedProvider.value.models.map((m) => m.id))
+    const modelsToAdd: ModelProvider['models'] = []
+
+    models.forEach((remoteModel) => {
+      // 如果已存在，跳过
+      if (currentModelIds.has(remoteModel.id)) {
+        return
+      }
+
+      // 推断分组（使用传入的 groupName，如果没有则从 modelId 推断）
+      const group = groupName !== 'default' ? groupName : inferGroupFromModelId(remoteModel.id)
+
+      modelsToAdd.push({
+        id: remoteModel.id,
+        name: remoteModel.id, // 默认用 ID 作名称
+        group
+      })
+    })
+
+    if (modelsToAdd.length === 0) {
+      // 没有新模型需要添加
+      return
+    }
+
+    // 更新 Provider
+    providers.value = providers.value.map((p) => {
+      if (p.id === selectedProviderId.value) {
+        return { ...p, models: [...p.models, ...modelsToAdd] }
+      }
+      return p
+    })
+
+    await autoSave()
+  }
+
+  /**
+   * 从模型 ID 推断分组名称（与后端逻辑一致）
+   */
+  function inferGroupFromModelId(modelId: string): string {
+    const DEFAULT = 'default'
+
+    if (!modelId) return DEFAULT
+
+    // 1) 有 "/"："/" 前面就是组名
+    const slashIndex = modelId.indexOf('/')
+    if (slashIndex > 0) {
+      return modelId.slice(0, slashIndex)
+    }
+
+    // 2) 无 "/"：去掉类似 "[aws]" 前缀后再做 "-" 规则
+    const normalized = modelId.replace(/^\[[^\]]+\]/, '') // 删除最前面的 [xxx]
+
+    // 3) 正则/分段：取 "第二个 '-' 前的部分"，也就是前两段拼起来
+    const parts = normalized.split('-')
+    if (parts.length >= 3 && parts[0] && parts[1]) {
+      return `${parts[0]}-${parts[1]}`
+    }
+
+    // 4) 其他都进默认组
+    return DEFAULT
   }
 
   /**
    * 4. 手动添加单个模型
    */
-  function handleManualAddModel(): void {
+  async function handleManualAddModel(): Promise<void> {
     if (!newModelForm.value.id || !selectedProviderId.value) return
 
     const newModel = {
       ...newModelForm.value,
-      enabled: true,
       group: newModelForm.value.group || undefined // 空字符串转为 undefined
     }
     providers.value = providers.value.map((p) => {
@@ -129,19 +194,22 @@ export const useUserModelConfigStore = defineStore('user-model-config', () => {
     })
     isAddModelModalOpen.value = false
     newModelForm.value = { id: '', name: '', group: '' }
+    await autoSave()
   }
 
   /**
    * 5. 添加提供商
    */
-  function handleAddProvider(): void {
+  async function handleAddProvider(): Promise<void> {
+    // 根据协议类型推断图标
+    const icon: ProviderIcon = newProviderForm.value.type === 'openai' ? 'openai' : 'server'
     const newProvider: ModelProvider = {
       id: `provider-${Date.now()}`,
       type: newProviderForm.value.type,
       name: newProviderForm.value.name || 'New Provider',
       apiKey: '',
       baseUrl: '',
-      icon: 'box',
+      icon,
       enabled: true,
       models: []
     }
@@ -149,12 +217,13 @@ export const useUserModelConfigStore = defineStore('user-model-config', () => {
     selectedProviderId.value = newProvider.id
     isAddProviderModalOpen.value = false
     newProviderForm.value = { type: 'openai', name: '' }
+    await autoSave()
   }
 
   /**
    * 6. 删除提供商
    */
-  function handleDeleteProvider(id: string): void {
+  async function handleDeleteProvider(id: string): Promise<void> {
     const newList = providers.value.filter((p) => p.id !== id)
     providers.value = newList
     if (selectedProviderId.value === id && newList.length > 0) {
@@ -162,29 +231,61 @@ export const useUserModelConfigStore = defineStore('user-model-config', () => {
     } else if (newList.length === 0) {
       selectedProviderId.value = null
     }
+    await autoSave()
   }
 
   /**
-   * 7. Toggle 开关
+   * 7. 删除单个模型
    */
-  function toggleModelStatus(modelId: string): void {
+  async function removeModel(modelId: string): Promise<void> {
+    if (!selectedProviderId.value) return
     providers.value = providers.value.map((p) => {
       if (p.id === selectedProviderId.value) {
         return {
           ...p,
-          models: p.models.map((m) => (m.id === modelId ? { ...m, enabled: !m.enabled } : m))
+          models: p.models.filter((m) => m.id !== modelId)
         }
       }
       return p
     })
+    await autoSave()
+  }
+
+  /**
+   * 8. 取消订阅单个模型（从管理模型弹窗中移除已添加的模型）
+   */
+  async function removeSingleRemoteModel(modelId: string): Promise<void> {
+    await removeModel(modelId)
+  }
+
+  /**
+   * 9. 取消订阅整组模型（从管理模型弹窗中移除已添加的整组模型）
+   */
+  async function removeGroupModels(groupName: string, models: any[]): Promise<void> {
+    if (!selectedProviderId.value) return
+    const modelIdsToRemove = new Set(models.map((m) => m.id))
+    providers.value = providers.value.map((p) => {
+      if (p.id === selectedProviderId.value) {
+        return {
+          ...p,
+          models: p.models.filter((m) => !modelIdsToRemove.has(m.id))
+        }
+      }
+      return p
+    })
+    await autoSave()
   }
 
   /**
    * 初始化：获取提供商列表
    */
   async function fetchProviders(): Promise<void> {
-    providers.value = await UserModelConfigDataSource.getProviders()
-    if (providers.value.length > 0 && !selectedProviderId.value) {
+    const result = await UserModelConfigDataSource.getProviders()
+    providers.value = result.providers
+    // 优先使用后端保存的 activeProviderId，否则使用第一个
+    if (result.activeProviderId && providers.value.some((p) => p.id === result.activeProviderId)) {
+      selectedProviderId.value = result.activeProviderId
+    } else if (providers.value.length > 0 && !selectedProviderId.value) {
       selectedProviderId.value = providers.value[0].id
     }
   }
@@ -192,15 +293,42 @@ export const useUserModelConfigStore = defineStore('user-model-config', () => {
   /**
    * 选择提供商
    */
-  function selectProvider(id: string): void {
+  async function selectProvider(id: string): Promise<void> {
     selectedProviderId.value = id
+    await autoSave()
+  }
+
+  /**
+   * 更新提供商的 API Key
+   */
+  async function updateProviderApiKey(providerId: string, apiKey: string): Promise<void> {
+    providers.value = providers.value.map((p) => {
+      if (p.id === providerId) {
+        return { ...p, apiKey }
+      }
+      return p
+    })
+    await autoSave()
+  }
+
+  /**
+   * 更新提供商的 Base URL
+   */
+  async function updateProviderBaseUrl(providerId: string, baseUrl: string): Promise<void> {
+    providers.value = providers.value.map((p) => {
+      if (p.id === providerId) {
+        return { ...p, baseUrl }
+      }
+      return p
+    })
+    await autoSave()
   }
 
   /**
    * 保存配置
    */
   async function saveProvidersConfig(): Promise<void> {
-    await UserModelConfigDataSource.saveProviders(providers.value)
+    await UserModelConfigDataSource.saveProviders(providers.value, selectedProviderId.value)
   }
 
   return {
@@ -212,7 +340,6 @@ export const useUserModelConfigStore = defineStore('user-model-config', () => {
     isManageModelsModalOpen,
     isLoadingModels,
     remoteModelGroups,
-    selectedRemoteModels,
     newProviderForm,
     newModelForm,
 
@@ -221,14 +348,18 @@ export const useUserModelConfigStore = defineStore('user-model-config', () => {
 
     // Actions
     openManageModels,
-    toggleRemoteModelSelection,
-    handleBatchAddModels,
+    addSingleRemoteModel,
+    addGroupModels,
     handleManualAddModel,
     handleAddProvider,
     handleDeleteProvider,
-    toggleModelStatus,
+    removeModel,
+    removeSingleRemoteModel,
+    removeGroupModels,
     fetchProviders,
     selectProvider,
+    updateProviderApiKey,
+    updateProviderBaseUrl,
     saveProvidersConfig
   }
 })

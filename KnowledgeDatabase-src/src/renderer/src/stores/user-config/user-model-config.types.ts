@@ -21,7 +21,6 @@ export interface Model {
   id: string
   name: string
   group?: string // 分组名称，如 "deepseek", "gemini 2.5" 等
-  enabled: boolean
 }
 
 export interface RemoteModel {

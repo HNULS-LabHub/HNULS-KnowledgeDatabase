@@ -19,7 +19,7 @@ export const MOCK_INITIAL_PROVIDERS: ModelProvider[] = [
     baseUrl: 'https://api.openai.com/v1',
     icon: 'openai',
     enabled: true,
-    models: [{ id: 'gpt-4o', name: 'GPT-4o', enabled: true }] as Model[]
+    models: [{ id: 'gpt-4o', name: 'GPT-4o' }] as Model[]
   },
   {
     id: 'custom-1',
@@ -29,7 +29,7 @@ export const MOCK_INITIAL_PROVIDERS: ModelProvider[] = [
     baseUrl: 'https://api.deepseek.com',
     icon: 'server',
     enabled: true,
-    models: [{ id: 'deepseek-chat', name: 'DeepSeek V3', enabled: true }]
+    models: [{ id: 'deepseek-chat', name: 'DeepSeek V3' }]
   }
 ]
 
