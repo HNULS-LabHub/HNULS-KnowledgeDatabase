@@ -536,12 +536,21 @@
                   添加整组
                 </button>
               </div>
-              <div class="divide-y divide-gray-50">
+              <div class="space-y-2">
                 <div
                   v-for="model in models"
                   :key="model.id"
-                  class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors group"
+                  class="relative flex items-center justify-between px-4 py-3 transition-colors group border rounded-lg"
+                  :class="
+                    isModelAdded(model.id)
+                      ? 'bg-blue-50/70 border-blue-200 shadow-sm'
+                      : 'border-transparent hover:bg-gray-50'
+                  "
                 >
+                  <span
+                    v-if="isModelAdded(model.id)"
+                    class="absolute left-0 top-0 h-full w-1 bg-blue-400/80 rounded-r-full"
+                  ></span>
                   <div class="flex flex-col flex-1 min-w-0">
                     <span class="text-sm font-medium text-gray-900 truncate">
                       {{ model.id }}
