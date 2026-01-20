@@ -145,6 +145,18 @@ const handleBackToMain = (): void => {
   currentView.value = 'main'
   emit('leave-detail')
 }
+
+// 暴露给父组件调用的方法（用于面包屑返回）
+const handleBack = (): void => {
+  if (currentView.value === 'model-config') {
+    handleBackToMain()
+  }
+}
+
+// 使用 defineExpose 暴露方法
+defineExpose({
+  handleBack
+})
 </script>
 
 <style scoped>

@@ -1,28 +1,43 @@
 <template>
   <header class="top-bar">
-    <div class="breadcrumb">
-      <span class="breadcrumb-item">Nexus</span>
+    <!-- 面包屑导航 -->
+    <div class="flex items-center gap-1.5 flex-nowrap min-w-0 overflow-hidden">
+      <!-- Nexus 根节点 -->
+      <span class="flex-shrink-0 text-sm font-medium text-slate-600 select-none">Nexus</span>
+
+      <!-- 分隔符 -->
       <svg
-        class="chevron-icon"
+        class="flex-shrink-0 w-3.5 h-3.5 text-slate-300"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
         stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
       >
         <polyline points="9 18 15 12 9 6"></polyline>
       </svg>
-      <span
-        class="breadcrumb-item"
-        :class="{ 'breadcrumb-current': !extraBreadcrumb }"
-        @click="$emit('navigate-back')"
+
+      <!-- 主页面（可点击返回） -->
+      <button
+        class="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-medium transition-all duration-200"
+        :class="
+          !extraBreadcrumb
+            ? 'bg-slate-100 text-slate-900 cursor-default'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 cursor-pointer'
+        "
+        @click="extraBreadcrumb && $emit('navigate-back')"
       >
+        <!-- 页面图标 -->
         <svg
           v-if="currentPage === 'dashboard' || currentPage === 'index'"
-          class="context-icon"
+          class="w-3.5 h-3.5 flex-shrink-0"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
         >
           <path
             d="M10.586 10.586L16.95 7.05l-3.536 6.364m-2.828-2.828L7.05 16.95l6.364-3.536m-2.828-2.828l2.828 2.828"
@@ -33,22 +48,26 @@
         </svg>
         <svg
           v-else-if="currentPage === 'rag'"
-          class="context-icon"
+          class="w-3.5 h-3.5 flex-shrink-0"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
         >
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
         <svg
           v-else-if="currentPage === 'graph'"
-          class="context-icon"
+          class="w-3.5 h-3.5 flex-shrink-0"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
         >
           <circle cx="18" cy="18" r="3"></circle>
           <circle cx="6" cy="6" r="3"></circle>
@@ -58,32 +77,41 @@
         </svg>
         <svg
           v-else-if="currentPage === 'user-setting'"
-          class="context-icon"
+          class="w-3.5 h-3.5 flex-shrink-0"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
         >
           <circle cx="12" cy="12" r="3"></circle>
           <path
             d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"
           ></path>
         </svg>
-        {{ pageTitle }}
-      </span>
+        <!-- 页面标题 -->
+        <span class="whitespace-nowrap">{{ pageTitle }}</span>
+      </button>
 
-      <!-- Extra Breadcrumb (Dynamic) -->
+      <!-- 动态子页面（如果有） -->
       <template v-if="extraBreadcrumb">
+        <!-- 分隔符 -->
         <svg
-          class="chevron-icon"
+          class="flex-shrink-0 w-3.5 h-3.5 text-slate-300"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
         >
           <polyline points="9 18 15 12 9 6"></polyline>
         </svg>
-        <span class="breadcrumb-current">
+        <!-- 当前页面标签 -->
+        <span
+          class="flex-shrink-0 px-2.5 py-1 rounded-lg text-sm font-semibold text-slate-900 bg-blue-50 border border-blue-100 whitespace-nowrap"
+        >
           {{ extraBreadcrumb }}
         </span>
       </template>

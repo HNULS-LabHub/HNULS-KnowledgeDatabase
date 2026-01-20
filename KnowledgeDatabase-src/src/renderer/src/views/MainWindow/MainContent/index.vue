@@ -69,6 +69,12 @@ const handleBreadcrumbBack = () => {
     }
     // Also reset the breadcrumb string
     extraBreadcrumb.value = ''
+  } else {
+    // If no extra breadcrumb but we're in a detail view, try to go back anyway
+    // This handles the case where user clicks on the main breadcrumb item
+    if (viewRef.value && typeof viewRef.value.handleBack === 'function') {
+      viewRef.value.handleBack()
+    }
   }
 }
 </script>
