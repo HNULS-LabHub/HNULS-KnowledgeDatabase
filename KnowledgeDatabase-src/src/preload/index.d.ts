@@ -4,8 +4,17 @@
  */
 
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { TestAPI, KnowledgeLibraryAPI, FileAPI, FileImportAPI, UserConfigAPI, MinerUAPI, ChunkingAPI, ModelConfigAPI, // Electron 文件路径工具
-  utilsAPI } from './types'
+import type {
+  TestAPI,
+  KnowledgeLibraryAPI,
+  FileAPI,
+  FileImportAPI,
+  UserConfigAPI,
+  MinerUAPI,
+  ChunkingAPI,
+  ModelConfigAPI, // Electron 文件路径工具
+  utilsAPI
+} from './types'
 
 declare global {
   interface Window {
@@ -20,8 +29,7 @@ declare global {
       chunking: ChunkingAPI
       modelConfig: ModelConfigAPI
       // Electron 文件路径工具
-  utils: // Electron 文件路径工具
-  utilsAPI
+      utils: utilsAPI // Electron 文件路径工具
     }
   }
 }

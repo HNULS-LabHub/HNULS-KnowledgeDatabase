@@ -356,20 +356,17 @@
             >
               <!-- 按分组显示模型列表 -->
               <div v-if="groupedModels.length > 0" class="divide-y divide-gray-100">
-                <div
-                  v-for="[groupName, models] in groupedModels"
-                  :key="groupName"
-                  class="p-4"
-                >
+                <div v-for="[groupName, models] in groupedModels" :key="groupName" class="p-4">
                   <!-- 分组标题 -->
                   <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
                       <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">{{
                         groupName || '未分组'
                       }}</span>
-                      <span class="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-md">{{
-                        models.length
-                      }}</span>
+                      <span
+                        class="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-md"
+                        >{{ models.length }}</span
+                      >
                     </div>
                   </div>
                   <!-- 模型列表 -->
