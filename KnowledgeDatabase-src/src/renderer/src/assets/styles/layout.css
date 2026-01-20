@@ -6,31 +6,6 @@
     background: rgba(255, 255, 255, 0.8);
   }
 
-  /* Breadcrumb */
-  .breadcrumb {
-    @apply flex items-center gap-2 text-sm text-slate-500;
-  }
-
-  .breadcrumb-item {
-    @apply cursor-pointer transition-colors duration-300 font-medium;
-  }
-
-  .breadcrumb-item:hover {
-    @apply text-slate-900;
-  }
-
-  .chevron-icon {
-    @apply w-4 h-4 text-slate-300;
-  }
-
-  .breadcrumb-current {
-    @apply text-slate-900 font-semibold bg-slate-100 px-2 py-0.5 rounded-md capitalize flex items-center gap-2;
-  }
-
-  .context-icon {
-    @apply w-3 h-3;
-  }
-
   /* Right Actions */
   .right-actions {
     @apply flex items-center gap-4;
