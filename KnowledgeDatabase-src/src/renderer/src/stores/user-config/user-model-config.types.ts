@@ -20,7 +20,7 @@ export interface ModelProvider {
 export interface Model {
   id: string
   name: string
-  context: string
+  group?: string // 分组名称，如 "deepseek", "gemini 2.5" 等
   enabled: boolean
 }
 
@@ -50,5 +50,5 @@ export interface NewProviderForm {
 export interface NewModelForm {
   id: string
   name: string
-  context: string
+  group?: string // 分组名称
 }

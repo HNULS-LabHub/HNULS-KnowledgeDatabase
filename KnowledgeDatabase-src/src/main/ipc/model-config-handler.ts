@@ -57,4 +57,3 @@ export class ModelConfigIPCHandler extends BaseIPCHandler {
     return { success: true, data: true }
   }
 }
-

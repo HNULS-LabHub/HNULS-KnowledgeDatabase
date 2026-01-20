@@ -28,7 +28,10 @@ export class ModelRemoteFetcher {
     }
   }
 
-  private async fetchOpenAIModels(provider: ProviderConfig, apiKey: string): Promise<ModelConfig[]> {
+  private async fetchOpenAIModels(
+    provider: ProviderConfig,
+    apiKey: string
+  ): Promise<ModelConfig[]> {
     const url = `${provider.baseUrl}${provider.modelsEndpoint}`
 
     const response = await fetch(url, {
@@ -56,7 +59,10 @@ export class ModelRemoteFetcher {
     }))
   }
 
-  private async fetchGoogleModels(provider: ProviderConfig, apiKey: string): Promise<ModelConfig[]> {
+  private async fetchGoogleModels(
+    provider: ProviderConfig,
+    apiKey: string
+  ): Promise<ModelConfig[]> {
     const url = `${provider.baseUrl}${provider.modelsEndpoint}?key=${encodeURIComponent(apiKey)}`
 
     const response = await fetch(url)
@@ -101,4 +107,3 @@ export class ModelRemoteFetcher {
     return 'chat'
   }
 }
-

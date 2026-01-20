@@ -6,4 +6,3 @@ export const utilsAPI: UtilsAPI = {
     return webUtils.getPathForFile(file)
   }
 }
-

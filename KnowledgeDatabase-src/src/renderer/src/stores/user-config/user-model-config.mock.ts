@@ -5,7 +5,8 @@
 import type {
   ModelProvider,
   RemoteModelGroups,
-  ProviderTypeOption
+  ProviderTypeOption,
+  Model
 } from './user-model-config.types'
 
 // 本地已保存的初始提供商数据
@@ -18,9 +19,7 @@ export const MOCK_INITIAL_PROVIDERS: ModelProvider[] = [
     baseUrl: 'https://api.openai.com/v1',
     icon: 'openai',
     enabled: true,
-    models: [
-      { id: 'gpt-4o', name: 'GPT-4o', context: '128k', enabled: true }
-    ]
+    models: [{ id: 'gpt-4o', name: 'GPT-4o', enabled: true }] as Model[]
   },
   {
     id: 'custom-1',
@@ -30,9 +29,7 @@ export const MOCK_INITIAL_PROVIDERS: ModelProvider[] = [
     baseUrl: 'https://api.deepseek.com',
     icon: 'server',
     enabled: true,
-    models: [
-      { id: 'deepseek-chat', name: 'DeepSeek V3', context: '64k', enabled: true }
-    ]
+    models: [{ id: 'deepseek-chat', name: 'DeepSeek V3', enabled: true }]
   }
 ]
 
@@ -49,10 +46,15 @@ export const MOCK_REMOTE_MODELS: RemoteModelGroups = {
     { id: 'gpt-3.5-turbo-0125', object: 'model', created: 1706048358, owned_by: 'system' },
     { id: 'gpt-3.5-turbo-16k', object: 'model', created: 1683758102, owned_by: 'openai-internal' }
   ],
-  'Embeddings': [
+  Embeddings: [
     { id: 'text-embedding-3-large', object: 'model', created: 1705953180, owned_by: 'system' },
     { id: 'text-embedding-3-small', object: 'model', created: 1705953180, owned_by: 'system' },
-    { id: 'text-embedding-ada-002', object: 'model', created: 1671217299, owned_by: 'openai-internal' }
+    {
+      id: 'text-embedding-ada-002',
+      object: 'model',
+      created: 1671217299,
+      owned_by: 'openai-internal'
+    }
   ]
 }
 

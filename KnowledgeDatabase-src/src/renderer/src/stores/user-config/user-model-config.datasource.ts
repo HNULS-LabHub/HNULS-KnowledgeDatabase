@@ -2,10 +2,7 @@
  * 模型配置数据源适配器
  * 目前使用 mock，后续可切换为真实 IPC
  */
-import {
-  MOCK_INITIAL_PROVIDERS,
-  MOCK_REMOTE_MODELS
-} from './user-model-config.mock'
+import { MOCK_INITIAL_PROVIDERS, MOCK_REMOTE_MODELS } from './user-model-config.mock'
 import type { ModelProvider, RemoteModelGroups } from './user-model-config.types'
 
 const USE_MOCK = true // 目前使用 mock

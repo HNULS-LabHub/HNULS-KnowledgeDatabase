@@ -1,11 +1,23 @@
 <template>
-  <div class="kb-model-config-a3f9 flex h-full w-full bg-[#f9f9f9] text-gray-800 font-sans overflow-hidden">
+  <div
+    class="kb-model-config-a3f9 flex h-full w-full bg-[#f9f9f9] text-gray-800 font-sans overflow-hidden"
+  >
     <!-- 左侧边栏 -->
-    <div class="w-72 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col z-20 shadow-[2px_0_15px_rgba(0,0,0,0.03)]">
+    <div
+      class="w-72 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col z-20 shadow-[2px_0_15px_rgba(0,0,0,0.03)]"
+    >
       <div class="h-16 flex items-center px-5 border-b border-gray-100">
-        <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white mr-3 shadow-md shadow-gray-200">
+        <div
+          class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white mr-3 shadow-md shadow-gray-200"
+        >
           <!-- Cpu Icon -->
-          <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="w-[18px] h-[18px]"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
             <rect x="9" y="9" width="6" height="6"></rect>
             <line x1="9" y1="1" x2="9" y2="4"></line>
@@ -71,8 +83,17 @@
                 <line x1="6" y1="18" x2="6.01" y2="18"></line>
               </svg>
               <!-- Box Icon for default -->
-              <svg v-else class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <svg
+                v-else
+                class="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                ></path>
                 <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
                 <line x1="12" y1="22.08" x2="12" y2="12"></line>
               </svg>
@@ -80,7 +101,9 @@
             <div class="flex flex-col min-w-0">
               <span
                 class="font-semibold text-sm truncate"
-                :class="store.selectedProviderId === provider.id ? 'text-blue-900' : 'text-gray-700'"
+                :class="
+                  store.selectedProviderId === provider.id ? 'text-blue-900' : 'text-gray-700'
+                "
               >
                 {{ provider.name }}
               </span>
@@ -110,9 +133,17 @@
               @click.stop="handleDeleteProvider(provider.id)"
             >
               <!-- Trash2 Icon -->
-              <svg class="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                class="w-[14px] h-[14px]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <path
+                  d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                ></path>
               </svg>
             </button>
           </div>
@@ -125,7 +156,13 @@
           @click="store.isAddProviderModalOpen = true"
         >
           <!-- Plus Icon -->
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
@@ -137,7 +174,9 @@
     <!-- 右侧主区域 -->
     <div class="flex-1 flex flex-col h-full overflow-hidden bg-[#fafafa]">
       <!-- Header -->
-      <div class="h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 px-8 flex items-center justify-between sticky top-0 z-10">
+      <div
+        class="h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 px-8 flex items-center justify-between sticky top-0 z-10"
+      >
         <div class="flex items-center gap-4">
           <div class="flex flex-col">
             <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -156,7 +195,13 @@
             @click="handleSaveConfig"
           >
             <!-- Check Icon -->
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              class="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
             保存配置
@@ -172,7 +217,13 @@
             <div class="flex items-center gap-2 mb-2">
               <div class="p-1.5 bg-blue-100 text-blue-600 rounded-lg">
                 <!-- Settings Icon -->
-                <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg
+                  class="w-[18px] h-[18px]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
                   <circle cx="12" cy="12" r="3"></circle>
                   <path
                     d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"
@@ -181,9 +232,13 @@
               </div>
               <h2 class="text-lg font-bold text-gray-900">服务配置</h2>
             </div>
-            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden p-6 grid grid-cols-1 gap-6">
+            <div
+              class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden p-6 grid grid-cols-1 gap-6"
+            >
               <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">API Key</label>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2"
+                  >API Key</label
+                >
                 <input
                   v-model="apiKeyDraft"
                   type="password"
@@ -193,7 +248,9 @@
                 />
               </div>
               <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">API Host URL</label>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2"
+                  >API Host URL</label
+                >
                 <input
                   v-model="baseUrlDraft"
                   type="text"
@@ -211,8 +268,16 @@
               <div class="flex items-center gap-2">
                 <div class="p-1.5 bg-purple-100 text-purple-600 rounded-lg">
                   <!-- Box Icon -->
-                  <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <svg
+                    class="w-[18px] h-[18px]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                    ></path>
                     <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
                     <line x1="12" y1="22.08" x2="12" y2="12"></line>
                   </svg>
@@ -230,7 +295,13 @@
                   @click="handleOpenManageModels"
                 >
                   <!-- ListFilter Icon -->
-                  <svg class="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg
+                    class="w-[14px] h-[14px]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <path d="M3 6h18M7 12h10M11 18h2"></path>
                   </svg>
                   管理模型
@@ -240,7 +311,13 @@
                   @click="store.isAddModelModalOpen = true"
                 >
                   <!-- Plus Icon -->
-                  <svg class="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg
+                    class="w-[14px] h-[14px]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                   </svg>
@@ -249,10 +326,17 @@
               </div>
             </div>
 
-            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden min-h-[120px]">
-              <table v-if="store.selectedProvider?.models.length" class="w-full text-left border-collapse">
+            <div
+              class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden min-h-[120px]"
+            >
+              <table
+                v-if="store.selectedProvider?.models.length"
+                class="w-full text-left border-collapse"
+              >
                 <thead>
-                  <tr class="border-b border-gray-100 text-xs font-semibold text-gray-500 bg-gray-50/50">
+                  <tr
+                    class="border-b border-gray-100 text-xs font-semibold text-gray-500 bg-gray-50/50"
+                  >
                     <th class="px-6 py-4 w-16 text-center">#</th>
                     <th class="px-6 py-4">模型 ID</th>
                     <th class="px-6 py-4">名称</th>
@@ -268,7 +352,9 @@
                   >
                     <td class="px-6 py-4 text-center text-gray-400 text-xs">{{ idx + 1 }}</td>
                     <td class="px-6 py-4">
-                      <span class="font-mono text-xs text-gray-600 px-2 py-1 bg-gray-100 rounded border border-gray-200">
+                      <span
+                        class="font-mono text-xs text-gray-600 px-2 py-1 bg-gray-100 rounded border border-gray-200"
+                      >
                         {{ model.id }}
                       </span>
                     </td>
@@ -291,17 +377,36 @@
                           <rect x="1" y="5" width="22" height="14" rx="7" ry="7"></rect>
                           <circle cx="16" cy="12" r="3"></circle>
                         </svg>
-                        <svg v-else class="w-8 h-8 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg
+                          v-else
+                          class="w-8 h-8 text-gray-300"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
                           <rect x="1" y="5" width="22" height="14" rx="7" ry="7"></rect>
                           <circle cx="8" cy="12" r="3"></circle>
                         </svg>
                       </button>
                     </td>
-                    <td class="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button class="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-700">
+                    <td
+                      class="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <button
+                        class="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-700"
+                      >
                         <!-- Edit2 Icon -->
-                        <svg class="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <svg
+                          class="w-[14px] h-[14px]"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                          ></path>
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
                       </button>
@@ -334,7 +439,13 @@
           <div class="flex flex-col">
             <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
               <!-- ListFilter Icon -->
-              <svg class="w-[18px] h-[18px] text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                class="w-[18px] h-[18px] text-blue-600"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path d="M3 6h18M7 12h10M11 18h2"></path>
               </svg>
               管理模型列表
@@ -346,7 +457,13 @@
             @click="store.isManageModelsModalOpen = false"
           >
             <!-- X Icon -->
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              class="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
@@ -355,9 +472,18 @@
 
         <!-- Body -->
         <div class="flex-1 overflow-y-auto bg-gray-50/50 p-6">
-          <div v-if="store.isLoadingModels" class="flex flex-col items-center justify-center h-64 space-y-4">
+          <div
+            v-if="store.isLoadingModels"
+            class="flex flex-col items-center justify-center h-64 space-y-4"
+          >
             <!-- RefreshCw Icon (spinning) -->
-            <svg class="w-8 h-8 animate-spin text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              class="w-8 h-8 animate-spin text-blue-500"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <polyline points="23 4 23 10 17 10"></polyline>
               <polyline points="1 20 1 14 7 14"></polyline>
               <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
@@ -370,20 +496,32 @@
               :key="groupName"
               class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
             >
-              <div class="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">{{ groupName }}</span>
-                <span class="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-md">{{ models.length }}</span>
+              <div
+                class="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between"
+              >
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">{{
+                  groupName
+                }}</span>
+                <span class="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-md">{{
+                  models.length
+                }}</span>
               </div>
               <div class="divide-y divide-gray-50">
                 <div
                   v-for="model in models"
                   :key="model.id"
                   class="flex items-center justify-between px-4 py-3 cursor-pointer transition-colors"
-                  :class="store.selectedRemoteModels.has(model.id) ? 'bg-blue-50/50' : 'hover:bg-gray-50'"
+                  :class="
+                    store.selectedRemoteModels.has(model.id) ? 'bg-blue-50/50' : 'hover:bg-gray-50'
+                  "
                   @click="store.toggleRemoteModelSelection(model.id)"
                 >
                   <div class="flex items-center gap-3">
-                    <div :class="store.selectedRemoteModels.has(model.id) ? 'text-blue-600' : 'text-gray-300'">
+                    <div
+                      :class="
+                        store.selectedRemoteModels.has(model.id) ? 'text-blue-600' : 'text-gray-300'
+                      "
+                    >
                       <!-- CheckSquare/Square Icon -->
                       <svg
                         v-if="store.selectedRemoteModels.has(model.id)"
@@ -396,14 +534,25 @@
                         <polyline points="9 11 12 14 22 4"></polyline>
                         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
                       </svg>
-                      <svg v-else class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <svg
+                        v-else
+                        class="w-[18px] h-[18px]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                       </svg>
                     </div>
                     <div class="flex flex-col">
                       <span
                         class="text-sm font-medium"
-                        :class="store.selectedRemoteModels.has(model.id) ? 'text-gray-900' : 'text-gray-600'"
+                        :class="
+                          store.selectedRemoteModels.has(model.id)
+                            ? 'text-gray-900'
+                            : 'text-gray-600'
+                        "
                       >
                         {{ model.id }}
                       </span>
@@ -422,16 +571,23 @@
               </div>
             </div>
 
-            <div v-if="Object.keys(store.remoteModelGroups).length === 0" class="text-center py-10 text-gray-400">
+            <div
+              v-if="Object.keys(store.remoteModelGroups).length === 0"
+              class="text-center py-10 text-gray-400"
+            >
               未能获取到模型数据
             </div>
           </div>
         </div>
 
         <!-- Footer -->
-        <div class="px-6 py-4 bg-white border-t border-gray-100 flex justify-between items-center z-10">
+        <div
+          class="px-6 py-4 bg-white border-t border-gray-100 flex justify-between items-center z-10"
+        >
           <div class="text-xs text-gray-500">
-            已选择 <span class="font-bold text-gray-900">{{ store.selectedRemoteModels.size }}</span> 个模型
+            已选择
+            <span class="font-bold text-gray-900">{{ store.selectedRemoteModels.size }}</span>
+            个模型
           </div>
           <div class="flex gap-3">
             <button
@@ -458,7 +614,10 @@
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-[1px]"
       @click="store.isAddModelModalOpen = false"
     >
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm border border-gray-100 p-6" @click.stop>
+      <div
+        class="bg-white rounded-2xl shadow-xl w-full max-w-sm border border-gray-100 p-6"
+        @click.stop
+      >
         <h3 class="text-lg font-bold text-gray-900 mb-4">手动添加模型</h3>
         <div class="space-y-4">
           <div>
@@ -479,6 +638,16 @@
               placeholder="e.g. GPT-4 32K"
             />
           </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">分组</label>
+            <input
+              v-model="store.newModelForm.group"
+              type="text"
+              class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              placeholder="e.g. deepseek, gemini 2.5, gpt-4 系列"
+            />
+            <p class="mt-1 text-xs text-gray-400">用于聚合 API 提供商的模型分组管理，可为空</p>
+          </div>
         </div>
         <div class="flex justify-end gap-2 mt-6">
           <button
@@ -487,7 +656,10 @@
           >
             取消
           </button>
-          <button class="px-4 py-2 text-sm text-white bg-black hover:bg-gray-800 rounded-lg" @click="store.handleManualAddModel()">
+          <button
+            class="px-4 py-2 text-sm text-white bg-black hover:bg-gray-800 rounded-lg"
+            @click="store.handleManualAddModel()"
+          >
             添加
           </button>
         </div>
@@ -500,7 +672,10 @@
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]"
       @click="store.isAddProviderModalOpen = false"
     >
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100" @click.stop>
+      <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100"
+        @click.stop
+      >
         <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
           <h2 class="text-lg font-bold text-gray-800">添加模型服务</h2>
           <button
@@ -508,7 +683,13 @@
             @click="store.isAddProviderModalOpen = false"
           >
             <!-- X Icon -->
-            <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              class="w-[18px] h-[18px]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
@@ -540,7 +721,10 @@
                     class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                     @change="store.newProviderForm.type = type.id"
                   />
-                  <span :class="!type.available ? 'text-gray-400' : 'text-gray-700'" class="text-sm font-medium">
+                  <span
+                    :class="!type.available ? 'text-gray-400' : 'text-gray-700'"
+                    class="text-sm font-medium"
+                  >
                     {{ type.name }}
                   </span>
                 </div>
@@ -564,7 +748,10 @@
           >
             取消
           </button>
-          <button class="px-6 py-2 text-sm font-medium text-white bg-black hover:bg-gray-800 rounded-lg shadow-sm transition-all" @click="store.handleAddProvider()">
+          <button
+            class="px-6 py-2 text-sm font-medium text-white bg-black hover:bg-gray-800 rounded-lg shadow-sm transition-all"
+            @click="store.handleAddProvider()"
+          >
             添加
           </button>
         </div>
@@ -605,7 +792,6 @@ watch(selectedProvider, (provider) => {
     baseUrlDraft.value = provider.baseUrl
   }
 })
-
 
 // 处理删除提供商
 function handleDeleteProvider(id: string): void {

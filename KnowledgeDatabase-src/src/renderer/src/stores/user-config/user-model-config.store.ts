@@ -30,14 +30,11 @@ export const useUserModelConfigStore = defineStore('user-model-config', () => {
 
   // 表单状态
   const newProviderForm = ref<NewProviderForm>({ type: 'openai', name: '' })
-  const newModelForm = ref<NewModelForm>({ id: '', name: '', context: '4k' })
+  const newModelForm = ref<NewModelForm>({ id: '', name: '', group: '' })
 
   // === Computed ===
   const selectedProvider = computed(() => {
-    return (
-      providers.value.find((p) => p.id === selectedProviderId.value) ||
-      providers.value[0]
-    )
+    return providers.value.find((p) => p.id === selectedProviderId.value) || providers.value[0]
   })
 
   // === Actions ===
@@ -56,9 +53,7 @@ export const useUserModelConfigStore = defineStore('user-model-config', () => {
       remoteModelGroups.value = { ...MOCK_REMOTE_MODELS }
 
       // 默认选中当前列表中已存在的模型
-      const currentModelIds = new Set(
-        selectedProvider.value?.models.map((m) => m.id) || []
-      )
+      const currentModelIds = new Set(selectedProvider.value?.models.map((m) => m.id) || [])
       selectedRemoteModels.value = currentModelIds
     } finally {
       isLoadingModels.value = false
@@ -91,16 +86,13 @@ export const useUserModelConfigStore = defineStore('user-model-config', () => {
       .forEach((remoteModel) => {
         if (selectedRemoteModels.value.has(remoteModel.id)) {
           // 检查是否已存在，如果存在保留旧配置(如 enabled 状态)，如果不存在则新建
-          const existing = selectedProvider.value?.models.find(
-            (m) => m.id === remoteModel.id
-          )
+          const existing = selectedProvider.value?.models.find((m) => m.id === remoteModel.id)
           if (existing) {
             modelsToAdd.push(existing)
           } else {
             modelsToAdd.push({
               id: remoteModel.id,
               name: remoteModel.id, // 默认用 ID 作名称
-              context: 'Unknown', // API 通常不返回 context，这里置默认
               enabled: true
             })
           }
@@ -124,7 +116,11 @@ export const useUserModelConfigStore = defineStore('user-model-config', () => {
   function handleManualAddModel(): void {
     if (!newModelForm.value.id || !selectedProviderId.value) return
 
-    const newModel = { ...newModelForm.value, enabled: true }
+    const newModel = {
+      ...newModelForm.value,
+      enabled: true,
+      group: newModelForm.value.group || undefined // 空字符串转为 undefined
+    }
     providers.value = providers.value.map((p) => {
       if (p.id === selectedProviderId.value) {
         return { ...p, models: [...p.models, newModel] }
@@ -132,7 +128,7 @@ export const useUserModelConfigStore = defineStore('user-model-config', () => {
       return p
     })
     isAddModelModalOpen.value = false
-    newModelForm.value = { id: '', name: '', context: '4k' }
+    newModelForm.value = { id: '', name: '', group: '' }
   }
 
   /**
@@ -176,9 +172,7 @@ export const useUserModelConfigStore = defineStore('user-model-config', () => {
       if (p.id === selectedProviderId.value) {
         return {
           ...p,
-          models: p.models.map((m) =>
-            m.id === modelId ? { ...m, enabled: !m.enabled } : m
-          )
+          models: p.models.map((m) => (m.id === modelId ? { ...m, enabled: !m.enabled } : m))
         }
       }
       return p

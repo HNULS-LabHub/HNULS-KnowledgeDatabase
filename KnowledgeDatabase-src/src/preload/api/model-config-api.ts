@@ -40,4 +40,3 @@ export const modelConfigAPI: ModelConfigAPI = {
     return ipcRenderer.invoke('modelConfig:refreshallremotemodels')
   }
 }
-
