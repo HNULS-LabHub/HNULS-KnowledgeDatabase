@@ -29,6 +29,7 @@ import GraphView from './views/GraphView.vue'
 import DocsView from './views/DocsView.vue'
 
 import KnowledgeView from './views/KnowledgeView/index.vue'
+import TaskMonitorView from './views/TaskMonitorView/index.vue'
 import UserSettingView from './views/UserSettingView/index.vue'
 
 const currentPage = ref('dashboard')
@@ -38,6 +39,7 @@ const viewRef = ref<any>(null)
 const pageConfig = {
   dashboard: DashboardView,
   knowledge: KnowledgeView,
+  'task-monitor': TaskMonitorView,
   rag: RAGView,
   graph: GraphView,
   docs: DocsView,

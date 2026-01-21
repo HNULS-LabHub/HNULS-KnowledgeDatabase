@@ -31,3 +31,4 @@ DEFINE FIELD source ON operation_log TYPE string DEFAULT 'electron_backend';
 DEFINE INDEX idx_action ON operation_log COLUMNS action;
 DEFINE INDEX idx_table ON operation_log COLUMNS table_name;
 DEFINE INDEX idx_timestamp ON operation_log COLUMNS timestamp;
+INFO FOR DB;
