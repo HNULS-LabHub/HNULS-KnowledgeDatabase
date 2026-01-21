@@ -21,6 +21,7 @@ export type TaskType =
   | 'Marketing'
   | 'Security'
   | 'File Import' // 文件导入任务
+  | 'Document Parsing' // 文档解析任务
 
 /**
  * 文件导入进度详情
@@ -32,6 +33,19 @@ export interface FileImportProgress {
   imported: number
   failed: number
   currentFile: string
+}
+
+/**
+ * 文档解析进度详情
+ */
+export interface DocumentParsingProgress {
+  percentage: number
+  state: string // MinerU 任务状态
+  extractedPages?: number
+  totalPages?: number
+  currentDetail?: string // 当前处理详情（如 "5/10 页"）
+  versionId: string
+  batchId: string
 }
 
 /**
@@ -50,6 +64,11 @@ export interface Task {
   knowledgeBaseName?: string // 知识库名称（运行时获取，不持久化）
   knowledgeBaseId?: number // 知识库 ID
   importDetail?: FileImportProgress // 导入详情
+
+  // 文档解析专用字段（可选）
+  parsingDetail?: DocumentParsingProgress // 解析详情
+  fileKey?: string // 文件标识（用于匹配进度事件）
+  fileName?: string // 文件名
 }
 
 /**

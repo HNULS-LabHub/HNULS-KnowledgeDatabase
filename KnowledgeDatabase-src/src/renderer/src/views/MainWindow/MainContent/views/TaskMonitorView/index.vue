@@ -157,6 +157,7 @@
                       {{ task.name }}
                     </span>
                     <span class="text-xs text-slate-500 font-mono mt-0.5">{{ task.id }}</span>
+                    
                     <!-- 文件导入任务额外信息 -->
                     <div v-if="task.type === 'File Import' && task.importDetail" class="mt-1 text-xs text-slate-600">
                       <span>{{ task.importDetail.processed }}/{{ task.importDetail.totalFiles }} 文件</span>
@@ -167,6 +168,12 @@
                     </div>
                     <div v-if="task.type === 'File Import' && task.importDetail && task.importDetail.currentFile" class="mt-1 text-xs text-slate-500 truncate" style="max-width: 400px;">
                       当前: {{ task.importDetail.currentFile }}
+                    </div>
+
+                    <!-- 文档解析任务额外信息 -->
+                    <div v-if="task.type === 'Document Parsing' && task.parsingDetail" class="mt-1 text-xs text-slate-600">
+                      <span v-if="task.parsingDetail.currentDetail">{{ task.parsingDetail.currentDetail }}</span>
+                      <span v-else>{{ task.parsingDetail.state }}</span>
                     </div>
                   </div>
                 </td>

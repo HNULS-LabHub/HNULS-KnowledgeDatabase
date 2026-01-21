@@ -305,6 +305,185 @@ export const useTaskMonitorStore = defineStore('taskMonitor', () => {
     }
   }
 
+  // ========== 文档解析任务管理 ==========
+
+  /**
+   * 添加文档解析任务
+   * 任务名称格式：知识库名-文档名-文档解析
+   */
+  function addDocumentParsingTask(
+    fileKey: string,
+    fileName: string,
+    knowledgeBaseId: number,
+    knowledgeBaseName: string,
+    versionId: string,
+    batchId: string
+  ) {
+    // 检查是否已存在相同的任务
+    const existingTask = tasks.value.find(
+      (t) => t.type === 'Document Parsing' && t.fileKey === fileKey && t.parsingDetail?.versionId === versionId
+    )
+    if (existingTask) {
+      console.log('[TaskMonitor] Document parsing task already exists', { fileKey, versionId })
+      return existingTask.id
+    }
+
+    const taskId = `parsing-${fileKey}-${versionId}-${Date.now()}`
+    const task: Task = {
+      id: taskId,
+      name: `${knowledgeBaseName}-${fileName}-文档解析`,
+      type: 'Document Parsing',
+      status: 'running',
+      progress: 0,
+      owner: 'System',
+      started: '刚刚',
+      knowledgeBaseId,
+      knowledgeBaseName,
+      fileKey,
+      fileName,
+      parsingDetail: {
+        percentage: 0,
+        state: 'pending',
+        versionId,
+        batchId
+      }
+    }
+    tasks.value.push(task)
+    console.log('[TaskMonitor] Added document parsing task', { taskId, fileKey, fileName, knowledgeBaseName })
+    return taskId
+  }
+
+  /**
+   * 更新文档解析进度（由 MinerU 进度事件触发）
+   */
+  function updateDocumentParsingProgress(progressData: {
+    fileKey: string
+    versionId: string
+    batchId: string
+    state: string
+    progress?: number
+    extractedPages?: number
+    totalPages?: number
+  }) {
+    const task = tasks.value.find(
+      (t) => 
+        t.type === 'Document Parsing' && 
+        t.fileKey === progressData.fileKey && 
+        t.parsingDetail?.versionId === progressData.versionId
+    )
+    
+    if (task && task.parsingDetail) {
+      // 更新状态
+      task.status = progressData.state === 'done' ? 'completed' 
+                  : progressData.state === 'failed' ? 'failed' 
+                  : 'running'
+      
+      // 更新进度
+      task.progress = progressData.progress ?? 0
+      
+      // 更新详情
+      task.parsingDetail.percentage = progressData.progress ?? 0
+      task.parsingDetail.state = progressData.state
+      task.parsingDetail.extractedPages = progressData.extractedPages
+      task.parsingDetail.totalPages = progressData.totalPages
+      
+      // 更新当前详情文本
+      if (progressData.extractedPages !== undefined && progressData.totalPages !== undefined) {
+        task.parsingDetail.currentDetail = `${progressData.extractedPages}/${progressData.totalPages} 页`
+      } else {
+        task.parsingDetail.currentDetail = progressData.state
+      }
+      
+      console.log('[TaskMonitor] Updated document parsing progress', { 
+        fileKey: progressData.fileKey, 
+        progress: progressData.progress,
+        state: progressData.state
+      })
+    } else {
+      console.warn('[TaskMonitor] Document parsing task not found for progress update', { 
+        fileKey: progressData.fileKey,
+        versionId: progressData.versionId
+      })
+    }
+  }
+
+  /**
+   * 完成文档解析任务
+   */
+  function completeDocumentParsingTask(fileKey: string, versionId: string) {
+    const task = tasks.value.find(
+      (t) => 
+        t.type === 'Document Parsing' && 
+        t.fileKey === fileKey && 
+        t.parsingDetail?.versionId === versionId
+    )
+    
+    if (task) {
+      task.status = 'completed'
+      task.progress = 100
+      if (task.parsingDetail) {
+        task.parsingDetail.percentage = 100
+        task.parsingDetail.state = 'done'
+      }
+      console.log('[TaskMonitor] Document parsing task completed', { fileKey, versionId })
+    }
+  }
+
+  /**
+   * 文档解析任务失败
+   */
+  function failDocumentParsingTask(fileKey: string, versionId: string, errorMessage?: string) {
+    const task = tasks.value.find(
+      (t) => 
+        t.type === 'Document Parsing' && 
+        t.fileKey === fileKey && 
+        t.parsingDetail?.versionId === versionId
+    )
+    
+    if (task) {
+      task.status = 'failed'
+      if (errorMessage) {
+        task.name = `${task.name} (失败: ${errorMessage})`
+      }
+      if (task.parsingDetail) {
+        task.parsingDetail.state = 'failed'
+      }
+      console.log('[TaskMonitor] Document parsing task failed', { fileKey, versionId, error: errorMessage })
+    }
+  }
+
+  // ========== MinerU 进度监听器初始化 ==========
+
+  const minerUListenerInitialized = ref(false)
+
+  /**
+   * 初始化 MinerU 进度监听器
+   * 订阅主进程推送的文档解析进度事件
+   */
+  function initMinerUProgressListener() {
+    if (minerUListenerInitialized.value) return
+    minerUListenerInitialized.value = true
+
+    window.api.minerU.onProgress((evt) => {
+      console.log('[TaskMonitor] Received MinerU progress event', evt)
+      
+      updateDocumentParsingProgress({
+        fileKey: evt.fileKey,
+        versionId: evt.versionId,
+        batchId: evt.batchId,
+        state: evt.state,
+        progress: evt.progress,
+        extractedPages: evt.extractedPages,
+        totalPages: evt.totalPages
+      })
+    })
+
+    console.log('[TaskMonitor] MinerU progress listener initialized')
+  }
+
+  // 自动初始化监听器
+  initMinerUProgressListener()
+
   /**
    * 移除任务
    */
@@ -360,6 +539,14 @@ export const useTaskMonitorStore = defineStore('taskMonitor', () => {
     updateFileImportProgress,
     completeFileImportTask,
     failFileImportTask,
+
+    // 文档解析任务管理
+    addDocumentParsingTask,
+    updateDocumentParsingProgress,
+    completeDocumentParsingTask,
+    failDocumentParsingTask,
+
+    // 通用任务管理
     removeTask,
     clearCompletedTasks
   }

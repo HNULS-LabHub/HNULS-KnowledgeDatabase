@@ -519,6 +519,8 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useParsingStore } from '@renderer/stores/parsing/parsing.store'
 import { useChunkingStore } from '@renderer/stores/chunking/chunking.store'
+import { useTaskMonitorStore } from '@renderer/stores/global-monitor-panel/task-monitor.store'
+import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
 import { canChunkFile, isPlainTextFile } from '@renderer/stores/chunking/chunking.util'
 import ChunkingPreviewDialog from '../SettingsView/ChunkingPreviewDialog.vue'
 import type { ChunkingConfig } from '@renderer/stores/chunking/chunking.types'
@@ -532,6 +534,8 @@ const props = defineProps<{
 
 const parsingStore = useParsingStore()
 const chunkingStore = useChunkingStore()
+const taskMonitorStore = useTaskMonitorStore()
+const knowledgeLibraryStore = useKnowledgeLibraryStore()
 
 // 分块配置（固定为段落分块模式）
 const chunkingConfig = ref<ChunkingConfig>({
@@ -726,10 +730,40 @@ const handleStartParsing = async (): Promise<void> => {
   if (!props.knowledgeBaseId) return
   if (isParsing.value) return
 
-  await parsingStore.startParsing(props.fileKey, {
-    parserName: 'MinerU Parser',
-    knowledgeBaseId: props.knowledgeBaseId
-  })
+  try {
+    // 启动解析
+    await parsingStore.startParsing(props.fileKey, {
+      parserName: 'MinerU Parser',
+      knowledgeBaseId: props.knowledgeBaseId
+    })
+
+    // 获取解析结果以获取 versionId 和 batchId
+    const parsingState = parsingStore.getState(props.fileKey)
+    if (parsingState && parsingState.activeVersionId) {
+      // 获取知识库名称
+      const kb = knowledgeLibraryStore.getById(props.knowledgeBaseId)
+      const knowledgeBaseName = kb?.name || `知识库 ${props.knowledgeBaseId}`
+      
+      // 获取文件名
+      const fileName = props.fileData?.name || props.fileKey.split('/').pop() || '未知文件'
+      
+      // 从 MinerU 进度事件中获取 batchId（通过 getStatus）
+      const statusRes = await window.api.minerU.getStatus(props.fileKey)
+      if (statusRes.success && statusRes.data) {
+        // 添加到任务监控面板
+        taskMonitorStore.addDocumentParsingTask(
+          props.fileKey,
+          fileName,
+          props.knowledgeBaseId,
+          knowledgeBaseName,
+          parsingState.activeVersionId,
+          statusRes.data.batchId
+        )
+      }
+    }
+  } catch (error) {
+    console.error('[ParseTab] Failed to start parsing:', error)
+  }
 }
 
 // 分块操作处理
