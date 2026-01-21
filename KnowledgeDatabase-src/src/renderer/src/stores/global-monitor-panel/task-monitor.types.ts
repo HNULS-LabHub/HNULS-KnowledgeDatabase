@@ -20,6 +20,19 @@ export type TaskType =
   | 'Archiving'
   | 'Marketing'
   | 'Security'
+  | 'File Import' // 文件导入任务
+
+/**
+ * 文件导入进度详情
+ */
+export interface FileImportProgress {
+  percentage: number
+  processed: number
+  totalFiles: number
+  imported: number
+  failed: number
+  currentFile: string
+}
 
 /**
  * 任务数据结构
@@ -32,6 +45,11 @@ export interface Task {
   progress: number
   owner: string
   started: string
+
+  // 文件导入专用字段（可选）
+  knowledgeBaseName?: string // 知识库名称（运行时获取，不持久化）
+  knowledgeBaseId?: number // 知识库 ID
+  importDetail?: FileImportProgress // 导入详情
 }
 
 /**

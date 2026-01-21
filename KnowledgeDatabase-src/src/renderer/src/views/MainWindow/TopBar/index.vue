@@ -145,7 +145,7 @@
         </svg>
         <span class="notification-badge"></span>
       </button>
-      <button class="notification-btn" @click="showTaskDialog = true">
+      <button class="notification-btn" @click="handleTaskButtonClick">
         <svg
           class="bell-icon"
           viewBox="0 0 24 24"
@@ -159,32 +159,34 @@
         <span v-if="hasActiveTasks" class="notification-badge bg-blue-500"></span>
       </button>
     </div>
-
-    <!-- 任务进度对话框 -->
-    <TaskProgressDialog v-model:visible="showTaskDialog" />
   </header>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useTaskManagerStore } from '@renderer/stores/task-manager/task-manager.store'
-import TaskProgressDialog from './TaskProgressDialog.vue'
+import { computed } from 'vue'
+import { useTaskMonitorStore } from '@renderer/stores/global-monitor-panel/task-monitor.store'
 
 const props = defineProps<{
   currentPage: string
   extraBreadcrumb?: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'navigate-back'): void
+  (e: 'navigate-to-task-monitor'): void
 }>()
 
-const taskManager = useTaskManagerStore()
-const showTaskDialog = ref(false)
+const taskMonitorStore = useTaskMonitorStore()
 
 const hasActiveTasks = computed(() => {
-  return taskManager.hasActiveTasks
+  return taskMonitorStore.tasks.some(
+    (task) => task.status === 'running' || task.status === 'pending'
+  )
 })
+
+const handleTaskButtonClick = () => {
+  emit('navigate-to-task-monitor')
+}
 
 const pageTitle = computed(() => {
   const titles = {

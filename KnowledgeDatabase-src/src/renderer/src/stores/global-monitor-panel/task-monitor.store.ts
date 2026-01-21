@@ -11,7 +11,7 @@ import { TASK_TYPES, TASK_STATUSES } from './task-monitor.mock'
 
 export const useTaskMonitorStore = defineStore('taskMonitor', () => {
   // ========== State ==========
-  const tasks = ref<Task[]>([])
+  const tasks = ref<Task[]>([]) // 不使用 Mock 数据，仅存储真实任务
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -74,23 +74,18 @@ export const useTaskMonitorStore = defineStore('taskMonitor', () => {
    * 加载任务列表
    */
   async function loadTasks() {
-    loading.value = true
-    error.value = null
-    try {
-      tasks.value = await TaskMonitorDataSource.getTasks()
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : '加载任务失败'
-      console.error('[TaskMonitor] Failed to load tasks:', err)
-    } finally {
-      loading.value = false
-    }
+    // 文件导入任务仅存在于内存中，不需要从后端加载
+    // 任务通过 addFileImportTask 动态添加
+    loading.value = false
   }
 
   /**
    * 刷新任务列表
    */
   async function refreshTasks() {
-    await loadTasks()
+    // 文件导入任务仅存在于内存中，无需刷新
+    // 如果将来需要从后端加载其他类型的任务，可以在这里实现
+    console.log('[TaskMonitor] Refresh called, current tasks:', tasks.value.length)
   }
 
   /**
@@ -213,6 +208,124 @@ export const useTaskMonitorStore = defineStore('taskMonitor', () => {
     }
   }
 
+  // ========== 文件导入任务管理 ==========
+
+  /**
+   * 添加文件导入任务
+   */
+  function addFileImportTask(
+    taskId: string,
+    knowledgeBaseId: number,
+    knowledgeBaseName: string,
+    fileCount: number
+  ) {
+    const task: Task = {
+      id: taskId,
+      name: `文件导入: ${knowledgeBaseName}`,
+      type: 'File Import',
+      status: 'pending',
+      progress: 0,
+      owner: 'System',
+      started: '刚刚',
+      knowledgeBaseId,
+      knowledgeBaseName,
+      importDetail: {
+        percentage: 0,
+        processed: 0,
+        totalFiles: fileCount,
+        imported: 0,
+        failed: 0,
+        currentFile: ''
+      }
+    }
+    tasks.value.push(task)
+    console.log('[TaskMonitor] Added file import task', { taskId, knowledgeBaseId, knowledgeBaseName })
+  }
+
+  /**
+   * 更新文件导入进度
+   */
+  function updateFileImportProgress(progressData: {
+    taskId: string
+    percentage: number
+    processed: number
+    totalFiles: number
+    imported: number
+    failed: number
+    currentFile: string
+  }) {
+    const task = tasks.value.find((t) => t.id === progressData.taskId)
+    if (task) {
+      task.status = 'running'
+      task.progress = progressData.percentage
+      task.importDetail = {
+        percentage: progressData.percentage,
+        processed: progressData.processed,
+        totalFiles: progressData.totalFiles,
+        imported: progressData.imported,
+        failed: progressData.failed,
+        currentFile: progressData.currentFile
+      }
+      console.log('[TaskMonitor] Updated file import progress', { taskId: progressData.taskId, progress: progressData.percentage })
+    } else {
+      console.warn('[TaskMonitor] Task not found for progress update', { taskId: progressData.taskId })
+    }
+  }
+
+  /**
+   * 完成文件导入任务
+   */
+  function completeFileImportTask(taskId: string, result: { imported: number; failed: number }) {
+    const task = tasks.value.find((t) => t.id === taskId)
+    if (task) {
+      task.status = 'completed'
+      task.progress = 100
+      if (task.importDetail) {
+        task.importDetail.imported = result.imported
+        task.importDetail.failed = result.failed
+        task.importDetail.percentage = 100
+      }
+      console.log('[TaskMonitor] File import task completed', { taskId, result })
+    } else {
+      console.warn('[TaskMonitor] Task not found for completion', { taskId })
+    }
+  }
+
+  /**
+   * 文件导入任务失败
+   */
+  function failFileImportTask(taskId: string, errorMessage: string) {
+    const task = tasks.value.find((t) => t.id === taskId)
+    if (task) {
+      task.status = 'failed'
+      task.name = `${task.name} (失败: ${errorMessage})`
+      console.log('[TaskMonitor] File import task failed', { taskId, error: errorMessage })
+    } else {
+      console.warn('[TaskMonitor] Task not found for failure', { taskId })
+    }
+  }
+
+  /**
+   * 移除任务
+   */
+  function removeTask(taskId: string) {
+    const index = tasks.value.findIndex((t) => t.id === taskId)
+    if (index !== -1) {
+      tasks.value.splice(index, 1)
+      console.log('[TaskMonitor] Removed task', { taskId })
+    }
+  }
+
+  /**
+   * 清除已完成的任务
+   */
+  function clearCompletedTasks() {
+    const beforeCount = tasks.value.length
+    tasks.value = tasks.value.filter((t) => t.status !== 'completed' && t.status !== 'failed')
+    const removedCount = beforeCount - tasks.value.length
+    console.log('[TaskMonitor] Cleared completed tasks', { count: removedCount })
+  }
+
   return {
     // State
     tasks,
@@ -240,6 +353,14 @@ export const useTaskMonitorStore = defineStore('taskMonitor', () => {
     clearSelection,
     batchStopTasks,
     batchRestartTasks,
-    exportReport
+    exportReport,
+
+    // 文件导入任务管理
+    addFileImportTask,
+    updateFileImportProgress,
+    completeFileImportTask,
+    failFileImportTask,
+    removeTask,
+    clearCompletedTasks
   }
 })

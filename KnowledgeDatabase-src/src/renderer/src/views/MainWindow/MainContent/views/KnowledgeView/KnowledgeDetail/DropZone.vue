@@ -23,8 +23,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
-import { useTaskManagerStore } from '@renderer/stores/task-manager/task-manager.store'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { useTaskMonitorStore } from '@renderer/stores/global-monitor-panel/task-monitor.store'
+import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
 import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
 import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
 import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
@@ -42,10 +43,20 @@ const isDragging = ref(false)
 let dragCounter = 0
 let externalDropTargetPath: string | null = null
 
-const taskManager = useTaskManagerStore()
+const taskMonitorStore = useTaskMonitorStore()
+const knowledgeLibraryStore = useKnowledgeLibraryStore()
 const fileListStore = useFileListStore()
 const fileCardStore = useFileCardStore()
 const fileTreeStore = useFileTreeStore()
+
+// 获取当前知识库名称
+const currentKnowledgeBase = computed(() => {
+  return knowledgeLibraryStore.knowledgeBases.find((kb) => kb.id === props.knowledgeBaseId)
+})
+
+const knowledgeBaseName = computed(() => {
+  return currentKnowledgeBase.value?.name || `知识库 #${props.knowledgeBaseId}`
+})
 
 // 全局进度监听器（只设置一次）
 let globalListenersSetup = false
@@ -56,7 +67,15 @@ function setupGlobalListeners(): void {
 
   // 监听所有导入进度
   window.api.fileImport.onProgress((progress) => {
-    taskManager.updateImportProgress(progress)
+    taskMonitorStore.updateFileImportProgress({
+      taskId: progress.taskId,
+      percentage: progress.percentage,
+      processed: progress.processed,
+      totalFiles: progress.totalFiles,
+      imported: progress.imported,
+      failed: progress.failed,
+      currentFile: progress.currentFile
+    })
   })
 
   // 监听所有导入完成
@@ -64,11 +83,11 @@ function setupGlobalListeners(): void {
     // data 格式: { taskId: string, result: ImportResult }
     const taskId = data.taskId
     const result = data.result
-    taskManager.completeImportTask(taskId, result)
+    taskMonitorStore.completeFileImportTask(taskId, result)
 
     // 查找任务对应的知识库ID并刷新文件列表
-    const task = taskManager.importTasks.get(taskId)
-    if (task) {
+    const task = taskMonitorStore.tasks.find((t) => t.id === taskId)
+    if (task && task.knowledgeBaseId) {
       refreshFilesForKnowledgeBase(task.knowledgeBaseId)
     }
   })
@@ -76,7 +95,7 @@ function setupGlobalListeners(): void {
   // 监听所有导入错误
   window.api.fileImport.onError((data) => {
     // data 格式: { taskId: string, error: string }
-    taskManager.failImportTask(data.taskId, data.error)
+    taskMonitorStore.failFileImportTask(data.taskId, data.error)
   })
 
   console.log('[DropZone] Global import listeners setup')
@@ -222,8 +241,13 @@ const handleDrop = async (event: DragEvent): Promise<void> => {
 
     console.log('[DropZone] Async import started', { taskId, importOptions })
 
-    // 将任务添加到任务管理器
-    taskManager.addImportTask(taskId, props.knowledgeBaseId)
+    // 将任务添加到任务监控器
+    taskMonitorStore.addFileImportTask(
+      taskId,
+      props.knowledgeBaseId,
+      knowledgeBaseName.value,
+      paths.length
+    )
 
     // 清除目标目录（避免下次拖拽时使用旧的目标）
     externalDropTargetPath = null

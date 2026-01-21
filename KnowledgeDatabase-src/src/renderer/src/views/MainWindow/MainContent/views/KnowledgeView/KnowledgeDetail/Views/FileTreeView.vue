@@ -28,7 +28,6 @@
 <script setup lang="ts">
 import { computed, onMounted, watch, ref } from 'vue'
 import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
-import { useTaskManagerStore } from '@renderer/stores/task-manager/task-manager.store'
 import TreeNode from './TreeNode.vue'
 import type {
   FileNode,

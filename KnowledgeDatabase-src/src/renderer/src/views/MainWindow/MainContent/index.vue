@@ -4,6 +4,7 @@
       :current-page="currentPage"
       :extra-breadcrumb="extraBreadcrumb"
       @navigate-back="handleBreadcrumbBack"
+      @navigate-to-task-monitor="handleNavigateToTaskMonitor"
     />
     <div class="content-area">
       <NavBar @navigate="handleNavigate" />
@@ -78,6 +79,11 @@ const handleBreadcrumbBack = () => {
       viewRef.value.handleBack()
     }
   }
+}
+
+const handleNavigateToTaskMonitor = () => {
+  currentPage.value = 'task-monitor'
+  extraBreadcrumb.value = ''
 }
 </script>
 

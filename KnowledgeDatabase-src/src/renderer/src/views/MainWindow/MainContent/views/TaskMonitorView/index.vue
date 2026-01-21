@@ -157,6 +157,17 @@
                       {{ task.name }}
                     </span>
                     <span class="text-xs text-slate-500 font-mono mt-0.5">{{ task.id }}</span>
+                    <!-- 文件导入任务额外信息 -->
+                    <div v-if="task.type === 'File Import' && task.importDetail" class="mt-1 text-xs text-slate-600">
+                      <span>{{ task.importDetail.processed }}/{{ task.importDetail.totalFiles }} 文件</span>
+                      <span class="mx-1">·</span>
+                      <span class="text-green-600">{{ task.importDetail.imported }} 成功</span>
+                      <span v-if="task.importDetail.failed > 0" class="mx-1">·</span>
+                      <span v-if="task.importDetail.failed > 0" class="text-red-600">{{ task.importDetail.failed }} 失败</span>
+                    </div>
+                    <div v-if="task.type === 'File Import' && task.importDetail && task.importDetail.currentFile" class="mt-1 text-xs text-slate-500 truncate" style="max-width: 400px;">
+                      当前: {{ task.importDetail.currentFile }}
+                    </div>
                   </div>
                 </td>
                 <td class="px-6 py-4">
