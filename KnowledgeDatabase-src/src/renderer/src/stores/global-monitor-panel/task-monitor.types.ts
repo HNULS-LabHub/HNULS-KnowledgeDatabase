@@ -22,6 +22,7 @@ export type TaskType =
   | 'Security'
   | 'File Import' // 文件导入任务
   | 'Document Parsing' // 文档解析任务
+  | 'Chunking' // 分块任务
 
 /**
  * 文件导入进度详情
@@ -49,6 +50,15 @@ export interface DocumentParsingProgress {
 }
 
 /**
+ * 分块进度详情
+ */
+export interface ChunkingProgress {
+  percentage: number
+  totalChunks: number
+  currentDetail?: string // 当前处理详情（如 "生成了 50 个分块"）
+}
+
+/**
  * 任务数据结构
  */
 export interface Task {
@@ -69,6 +79,9 @@ export interface Task {
   parsingDetail?: DocumentParsingProgress // 解析详情
   fileKey?: string // 文件标识（用于匹配进度事件）
   fileName?: string // 文件名
+
+  // 分块专用字段（可选）
+  chunkingDetail?: ChunkingProgress // 分块详情
 }
 
 /**

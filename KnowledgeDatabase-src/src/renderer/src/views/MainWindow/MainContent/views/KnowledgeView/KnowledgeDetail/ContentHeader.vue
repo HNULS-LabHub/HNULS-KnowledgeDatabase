@@ -121,7 +121,11 @@
           <!-- 操作组 -->
           <div class="kb-content-header-group">
             <div class="kb-content-header-group-content">
-              <button class="kb-content-header-action-btn">
+              <button 
+                class="kb-content-header-action-btn"
+                :disabled="!isSelectionModeEnabled || isBatchParsing"
+                @click="handleBatchParsing"
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                   <polyline points="14 2 14 8 20 8"></polyline>
@@ -129,18 +133,22 @@
                   <line x1="16" y1="17" x2="8" y2="17"></line>
                   <polyline points="10 9 9 9 8 9"></polyline>
                 </svg>
-                解析文档
+                {{ isBatchParsing ? '解析中...' : '解析文档' }}
               </button>
-              <button class="kb-content-header-action-btn">
+              <button 
+                class="kb-content-header-action-btn"
+                :disabled="!isSelectionModeEnabled || isBatchChunking"
+                @click="handleBatchChunking"
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="3" width="7" height="7"></rect>
                   <rect x="14" y="3" width="7" height="7"></rect>
                   <rect x="14" y="14" width="7" height="7"></rect>
                   <rect x="3" y="14" width="7" height="7"></rect>
                 </svg>
-                分块
+                {{ isBatchChunking ? '分块中...' : '分块' }}
               </button>
-              <button class="kb-content-header-action-btn">
+              <button class="kb-content-header-action-btn" disabled>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path
                     d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
@@ -150,7 +158,7 @@
                 </svg>
                 嵌入
               </button>
-              <button class="kb-content-header-action-btn">
+              <button class="kb-content-header-action-btn" disabled>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="18" cy="18" r="3"></circle>
                   <circle cx="6" cy="6" r="3"></circle>
@@ -174,7 +182,9 @@ import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.s
 import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
 import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
 import { useFileSelectionStore } from '@renderer/stores/knowledge-library/file-selection.store'
+import { useBatchOperations } from '@renderer/composables/useBatchOperations'
 import type { ViewType } from '../types'
+import type { FileNode } from '@renderer/stores/knowledge-library/file.types'
 import PageSizeSelector from './PageSizeSelector.vue'
 
 const props = defineProps<{
@@ -201,6 +211,10 @@ const fileListStore = useFileListStore()
 const fileCardStore = useFileCardStore()
 const fileTreeStore = useFileTreeStore()
 const selectionStore = useFileSelectionStore()
+
+// 使用批量操作 Composable
+const { isBatchParsing, isBatchChunking, batchParseDocuments, batchChunkDocuments } =
+  useBatchOperations()
 
 // 选择模式状态
 const isSelectionModeEnabled = computed(() => {
@@ -261,6 +275,71 @@ const viewOptions: { id: ViewType; label: string; icon: string }[] = [
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`
   }
 ]
+
+// ========== 批量操作辅助函数 ==========
+
+/**
+ * 获取所有选中的文件节点
+ */
+function getSelectedFiles(): FileNode[] {
+  const selectedIds = selectionStore.getSelectedFiles(props.knowledgeBaseId)
+  if (selectedIds.length === 0) return []
+
+  let allFiles: FileNode[] = []
+
+  // 根据当前视图获取文件列表
+  if (props.currentView === 'list') {
+    allFiles = fileListStore.files
+  } else if (props.currentView === 'card') {
+    allFiles = fileCardStore.filteredFiles
+  } else if (props.currentView === 'tree') {
+    // 从树形结构中提取所有文件节点
+    const extractFiles = (nodes: FileNode[]): FileNode[] => {
+      const files: FileNode[] = []
+      for (const node of nodes) {
+        if (node.type === 'file') {
+          files.push(node)
+        }
+        if ('children' in node && Array.isArray((node as any).children)) {
+          files.push(...extractFiles((node as any).children))
+        }
+      }
+      return files
+    }
+    allFiles = extractFiles(fileTreeStore.treeStructure)
+  }
+
+  // 过滤出选中的文件
+  return allFiles.filter((file) => selectedIds.includes(file.id))
+}
+
+/**
+ * 批量解析文档
+ */
+async function handleBatchParsing(): Promise<void> {
+  const selectedFiles = getSelectedFiles()
+  if (selectedFiles.length === 0) {
+    console.warn('[BatchParsing] 请先选择要解析的文件')
+    return
+  }
+
+  const result = await batchParseDocuments(selectedFiles, props.knowledgeBaseId)
+  console.log(`[ContentHeader] 批量解析完成：成功 ${result.success} 个，失败 ${result.failed} 个`)
+}
+
+/**
+ * 批量分块
+ */
+async function handleBatchChunking(): Promise<void> {
+  const selectedFiles = getSelectedFiles()
+  if (selectedFiles.length === 0) {
+    console.warn('[BatchChunking] 请先选择要分块的文件')
+    return
+  }
+
+  const result = await batchChunkDocuments(selectedFiles, props.knowledgeBaseId)
+  console.log(`[ContentHeader] 批量分块完成：成功 ${result.success} 个，失败 ${result.failed} 个`)
+}
 </script>
 
 <style scoped>
@@ -509,7 +588,7 @@ const viewOptions: { id: ViewType; label: string; icon: string }[] = [
   transition: all 200ms;
 }
 
-.kb-content-header-action-btn:hover {
+.kb-content-header-action-btn:hover:not(:disabled) {
   background: #f8fafc;
   border-color: #4f46e5;
   color: #4f46e5;
@@ -518,6 +597,17 @@ const viewOptions: { id: ViewType; label: string; icon: string }[] = [
 .kb-content-header-action-btn svg {
   width: 1rem;
   height: 1rem;
+}
+
+.kb-content-header-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kb-content-header-action-btn:disabled:hover {
+  background: white;
+  border-color: #e2e8f0;
+  color: #0f172a;
 }
 
 /* 单图标按钮 */

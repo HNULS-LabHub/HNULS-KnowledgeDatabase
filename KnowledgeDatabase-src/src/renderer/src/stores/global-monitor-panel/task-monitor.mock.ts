@@ -104,7 +104,8 @@ export const TASK_TYPES: Array<TaskType | 'All Types'> = [
   'Cache',
   'Security',
   'File Import',
-  'Document Parsing'
+  'Document Parsing',
+  'Chunking'
 ]
 
 /**

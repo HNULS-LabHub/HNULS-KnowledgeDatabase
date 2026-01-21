@@ -484,6 +484,119 @@ export const useTaskMonitorStore = defineStore('taskMonitor', () => {
   // 自动初始化监听器
   initMinerUProgressListener()
 
+  // ========== 分块任务管理 ==========
+
+  /**
+   * 添加分块任务
+   * 任务名称格式：知识库名-文档名-分块
+   */
+  function addChunkingTask(
+    fileKey: string,
+    fileName: string,
+    knowledgeBaseId: number,
+    knowledgeBaseName: string
+  ) {
+    // 检查是否已存在相同的任务
+    const existingTask = tasks.value.find(
+      (t) => t.type === 'Chunking' && t.fileKey === fileKey && t.status === 'running'
+    )
+    if (existingTask) {
+      console.log('[TaskMonitor] Chunking task already exists', { fileKey })
+      return existingTask.id
+    }
+
+    const taskId = `chunking-${fileKey}-${Date.now()}`
+    const task: Task = {
+      id: taskId,
+      name: `${knowledgeBaseName}-${fileName}-分块`,
+      type: 'Chunking',
+      status: 'pending',
+      progress: 0,
+      owner: 'System',
+      started: '刚刚',
+      knowledgeBaseId,
+      knowledgeBaseName,
+      fileKey,
+      fileName,
+      chunkingDetail: {
+        percentage: 0,
+        totalChunks: 0
+      }
+    }
+    tasks.value.push(task)
+    console.log('[TaskMonitor] Added chunking task', { taskId, fileKey, fileName, knowledgeBaseName })
+    return taskId
+  }
+
+  /**
+   * 更新分块进度
+   */
+  function updateChunkingProgress(progressData: {
+    fileKey: string
+    percentage: number
+    totalChunks: number
+    currentDetail?: string
+  }) {
+    const task = tasks.value.find(
+      (t) => t.type === 'Chunking' && t.fileKey === progressData.fileKey && t.status !== 'completed' && t.status !== 'failed'
+    )
+    
+    if (task && task.chunkingDetail) {
+      task.status = 'running'
+      task.progress = progressData.percentage
+      task.chunkingDetail.percentage = progressData.percentage
+      task.chunkingDetail.totalChunks = progressData.totalChunks
+      task.chunkingDetail.currentDetail = progressData.currentDetail
+      
+      console.log('[TaskMonitor] Updated chunking progress', { 
+        fileKey: progressData.fileKey, 
+        progress: progressData.percentage,
+        totalChunks: progressData.totalChunks
+      })
+    } else {
+      console.warn('[TaskMonitor] Chunking task not found for progress update', { 
+        fileKey: progressData.fileKey
+      })
+    }
+  }
+
+  /**
+   * 完成分块任务
+   */
+  function completeChunkingTask(fileKey: string, totalChunks: number) {
+    const task = tasks.value.find(
+      (t) => t.type === 'Chunking' && t.fileKey === fileKey && t.status !== 'completed'
+    )
+    
+    if (task) {
+      task.status = 'completed'
+      task.progress = 100
+      if (task.chunkingDetail) {
+        task.chunkingDetail.percentage = 100
+        task.chunkingDetail.totalChunks = totalChunks
+        task.chunkingDetail.currentDetail = `生成了 ${totalChunks} 个分块`
+      }
+      console.log('[TaskMonitor] Chunking task completed', { fileKey, totalChunks })
+    }
+  }
+
+  /**
+   * 分块任务失败
+   */
+  function failChunkingTask(fileKey: string, errorMessage?: string) {
+    const task = tasks.value.find(
+      (t) => t.type === 'Chunking' && t.fileKey === fileKey && t.status !== 'completed' && t.status !== 'failed'
+    )
+    
+    if (task) {
+      task.status = 'failed'
+      if (errorMessage) {
+        task.name = `${task.name} (失败: ${errorMessage})`
+      }
+      console.log('[TaskMonitor] Chunking task failed', { fileKey, error: errorMessage })
+    }
+  }
+
   /**
    * 移除任务
    */
@@ -545,6 +658,12 @@ export const useTaskMonitorStore = defineStore('taskMonitor', () => {
     updateDocumentParsingProgress,
     completeDocumentParsingTask,
     failDocumentParsingTask,
+
+    // 分块任务管理
+    addChunkingTask,
+    updateChunkingProgress,
+    completeChunkingTask,
+    failChunkingTask,
 
     // 通用任务管理
     removeTask,
