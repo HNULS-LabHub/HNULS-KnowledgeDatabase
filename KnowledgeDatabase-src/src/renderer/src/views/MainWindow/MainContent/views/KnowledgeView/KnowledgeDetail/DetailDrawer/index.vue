@@ -98,7 +98,7 @@ import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.s
 import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
 import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
 import InfoTab from './InfoTab.vue'
-import ParseTab from './ParseTab.vue'
+import ParseTab from './ParseTab/index.vue'
 import PreviewTab from './PreviewTab.vue'
 
 const props = defineProps<{

@@ -4,7 +4,7 @@
  */
 
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { TestAPI, KnowledgeLibraryAPI, KnowledgeConfigAPI, FileAPI, FileImportAPI, UserConfigAPI, MinerUAPI, ChunkingAPI, ModelConfigAPI, // Electron 文件路径工具
+import type { TestAPI, KnowledgeLibraryAPI, FileAPI, FileImportAPI, UserConfigAPI, MinerUAPI, ChunkingAPI, ModelConfigAPI, // Electron 文件路径工具
   utilsAPI } from './types'
 
 declare global {
@@ -13,7 +13,6 @@ declare global {
     api: {
       test: TestAPI
       knowledgeLibrary: KnowledgeLibraryAPI
-      knowledgeConfig: KnowledgeConfigAPI
       file: FileAPI
       fileImport: FileImportAPI
       userConfig: UserConfigAPI
