@@ -4,6 +4,7 @@ import { KnowledgeLibraryService } from '../services/knowledgeBase-library'
 import { DocumentService } from '../services/knowledgeBase-library/document-service'
 import { FileScannerService } from '../services/knowledgeBase-library/file-scanner-service'
 import { FileMoveService } from '../services/knowledgeBase-library/file-move-service'
+import { KnowledgeConfigService } from '../services/knowledgeBase-library/knowledge-config-service'
 
 /**
  * 文件操作 IPC 处理器
@@ -12,12 +13,18 @@ export class FileIPCHandler extends BaseIPCHandler {
   private documentService: DocumentService
   private fileScannerService: FileScannerService
   private fileMoveService: FileMoveService
+  private knowledgeConfigService: KnowledgeConfigService
 
   constructor(private knowledgeLibraryService: KnowledgeLibraryService) {
     super()
     this.documentService = new DocumentService()
     this.fileScannerService = new FileScannerService()
-    this.fileMoveService = new FileMoveService(knowledgeLibraryService, this.documentService)
+    this.knowledgeConfigService = new KnowledgeConfigService()
+    this.fileMoveService = new FileMoveService(
+      knowledgeLibraryService,
+      this.documentService,
+      this.knowledgeConfigService
+    )
     this.register()
   }
 

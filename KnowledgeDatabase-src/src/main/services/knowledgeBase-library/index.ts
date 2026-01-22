@@ -3,6 +3,7 @@ export { DocumentService } from './document-service'
 export { FileScannerService } from './file-scanner-service'
 export { FileImportService } from './file-import-service'
 export { FileMoveService } from './file-move-service'
+export { KnowledgeConfigService } from './knowledge-config-service'
 export type {
   KnowledgeBaseMeta,
   KnowledgeLibraryMeta,

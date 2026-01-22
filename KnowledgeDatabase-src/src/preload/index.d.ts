@@ -4,7 +4,7 @@
  */
 
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { TestAPI, KnowledgeLibraryAPI, FileAPI, FileImportAPI, UserConfigAPI, MinerUAPI, ChunkingAPI, ModelConfigAPI, // Electron 文件路径工具
+import type { TestAPI, KnowledgeLibraryAPI, FileAPI, FileImportAPI, UserConfigAPI, MinerUAPI, ChunkingAPI, ModelConfigAPI, KnowledgeConfigAPI, // Electron 文件路径工具
   utilsAPI } from './types'
 
 declare global {
@@ -19,6 +19,7 @@ declare global {
       minerU: MinerUAPI
       chunking: ChunkingAPI
       modelConfig: ModelConfigAPI
+      knowledgeConfig: KnowledgeConfigAPI
       // Electron 文件路径工具
   utils: // Electron 文件路径工具
   utilsAPI

@@ -43,12 +43,11 @@
           <!-- 分块配置面板 -->
           <ChunkingPanel
             :file-key="fileKey"
+            :knowledge-base-id="knowledgeBaseId"
             :can-chunk="canChunk"
             :chunking-disabled-reason="chunkingDisabledReason"
             :is-loading-chunking="isLoadingChunking"
             :has-chunks="hasChunks"
-            :max-chars="chunkingConfig.maxChars"
-            @update:max-chars="chunkingConfig.maxChars = $event"
             @start-chunking="handleStartChunking"
             @show-preview="handleShowPreview"
           />
@@ -85,6 +84,7 @@ import { useParsingStore } from '@renderer/stores/parsing/parsing.store'
 import { useChunkingStore } from '@renderer/stores/chunking/chunking.store'
 import { useTaskMonitorStore } from '@renderer/stores/global-monitor-panel/task-monitor.store'
 import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
+import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
 import { canChunkFile, isPlainTextFile } from '@renderer/stores/chunking/chunking.util'
 import ChunkingPreviewDialog from '../../SettingsView/ChunkingPreviewDialog.vue'
 import type { ChunkingConfig } from '@renderer/stores/chunking/chunking.types'
@@ -107,11 +107,15 @@ const parsingStore = useParsingStore()
 const chunkingStore = useChunkingStore()
 const taskMonitorStore = useTaskMonitorStore()
 const knowledgeLibraryStore = useKnowledgeLibraryStore()
+const configStore = useKnowledgeConfigStore()
 
-// 分块配置（固定为段落分块模式）
-const chunkingConfig = ref<ChunkingConfig>({
-  mode: 'recursive',
-  maxChars: 1000
+// 分块配置：从 config store 获取（文档配置或全局配置）
+const chunkingConfig = computed<ChunkingConfig>(() => {
+  if (!props.knowledgeBaseId || !props.fileKey) {
+    return { mode: 'recursive', maxChars: 1000 }
+  }
+  const docConfig = configStore.getDocumentConfig(props.knowledgeBaseId, props.fileKey)
+  return docConfig?.chunking ?? { mode: 'recursive', maxChars: 1000 }
 })
 
 const showChunkingPreview = ref(false)
@@ -230,6 +234,16 @@ const progress = computed(() => {
   const p = st?.progress
   return typeof p === 'number' ? p : 0
 })
+
+// 加载配置
+watch(
+  () => props.knowledgeBaseId,
+  async (kbId) => {
+    if (!kbId) return
+    await configStore.loadConfig(kbId)
+  },
+  { immediate: true }
+)
 
 watch(
   [() => props.fileKey, () => props.knowledgeBaseId],

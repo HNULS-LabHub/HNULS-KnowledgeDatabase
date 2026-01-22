@@ -14,17 +14,14 @@
           分块模式
         </label>
         <WhiteSelect
-          v-model="chunkingConfig.mode"
+          :model-value="chunkingModeOptions[0].value"
           :options="chunkingModeOptions"
           placeholder="请选择分块模式"
-          @change="handleModeChange"
+          disabled
         />
         <!-- 模式描述 -->
-        <p
-          v-if="selectedModeDescription"
-          class="kb-chunking-mode-desc mt-2 text-xs text-slate-500 leading-relaxed"
-        >
-          {{ selectedModeDescription }}
+        <p class="kb-chunking-mode-desc mt-2 text-xs text-slate-500 leading-relaxed">
+          {{ chunkingModeOptions[0].description }}
         </p>
       </div>
 
@@ -34,13 +31,14 @@
           单个分段最大字符数
         </label>
         <input
-          v-model.number="chunkingConfig.maxChars"
+          v-model.number="maxChars"
           type="number"
           min="100"
           max="10000"
           step="50"
           class="kb-chunking-input w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="例如：1000"
+          @blur="handleSaveConfig"
         />
         <p class="kb-chunking-hint mt-1 text-xs text-slate-400">
           建议范围：500-2000 字符，过小可能导致上下文丢失，过大可能影响检索效果
@@ -51,53 +49,65 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, watch, onMounted } from 'vue'
+import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
 import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 
 const props = defineProps<{
   knowledgeBaseId: number
 }>()
 
-// 分块模式选项
+const configStore = useKnowledgeConfigStore()
+
+// 分块模式选项（仅显示递归分块模式）
 const chunkingModeOptions = [
   {
-    label: '固定大小分块',
-    value: 'fixed-size',
-    description:
-      '按照固定字符数进行分块，简单直接。适合结构化文档，但可能在句子或段落中间截断，导致语义不完整。'
-  },
-  {
-    label: '语义分块',
-    value: 'semantic',
-    description:
-      '基于语义相似度进行分块，保持语义完整性。适合长文档和需要保持上下文连贯的场景，分块质量更高。'
-  },
-  {
-    label: '滑动窗口分块',
-    value: 'sliding-window',
-    description:
-      '使用滑动窗口机制，在固定大小的基础上增加重叠区域。适合需要保持上下文连续性的场景，但会产生更多分块。'
-  },
-  {
-    label: '递归分块',
+    label: '段落分块模式',
     value: 'recursive',
     description:
       '按照设置的单个分段最大字符数来尽量凑满，结束时优先结束在段尾，其次是句尾。适合层次化文档结构，分块更加精细。'
   }
 ]
 
-const chunkingConfig = ref({
-  mode: 'semantic',
-  maxChars: 1000
-})
+const maxChars = ref(1000)
 
-const selectedModeDescription = computed(() => {
-  const selected = chunkingModeOptions.find((opt) => opt.value === chunkingConfig.value.mode)
-  return selected?.description || ''
-})
-
-const handleModeChange = (value: string | number | null) => {
-  console.log('[ChunkingSection] Mode changed to:', value)
-  // TODO: 保存配置到 store 或 API
+// 加载全局配置
+const loadConfig = async () => {
+  try {
+    await configStore.loadConfig(props.knowledgeBaseId)
+    const globalConfig = configStore.getGlobalConfig(props.knowledgeBaseId)
+    if (globalConfig) {
+      maxChars.value = globalConfig.chunking.maxChars
+    }
+  } catch (error) {
+    console.error('[ChunkingSection] Failed to load config:', error)
+  }
 }
+
+// 保存配置
+const handleSaveConfig = async () => {
+  try {
+    await configStore.updateGlobalConfig(props.knowledgeBaseId, {
+      chunking: {
+        mode: 'recursive',
+        maxChars: maxChars.value
+      }
+    })
+  } catch (error) {
+    console.error('[ChunkingSection] Failed to save config:', error)
+  }
+}
+
+// 监听知识库ID变化
+watch(
+  () => props.knowledgeBaseId,
+  () => {
+    loadConfig()
+  },
+  { immediate: true }
+)
+
+onMounted(() => {
+  loadConfig()
+})
 </script>

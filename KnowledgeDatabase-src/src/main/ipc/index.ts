@@ -7,6 +7,7 @@ import { UserConfigIPCHandler } from './user-config-handler'
 import { MinerUIPCHandler } from './mineru-handler'
 import { ChunkingIPCHandler } from './chunking-handler'
 import { ModelConfigIPCHandler } from './model-config-handler'
+import { KnowledgeConfigIPCHandler } from './knowledge-config-handler'
 import { SurrealDBService } from '../services/surrealdb-service'
 import { KnowledgeLibraryService } from '../services/knowledgeBase-library'
 import { UserConfigService } from '../services/user-config-service'
@@ -54,6 +55,9 @@ export class IPCManager {
     // 注册分块处理器
     const chunkingService = new ChunkingService()
     this.handlers.push(new ChunkingIPCHandler(chunkingService))
+
+    // 注册知识库配置处理器
+    this.handlers.push(new KnowledgeConfigIPCHandler(knowledgeLibraryService))
 
     console.log(`Registered ${this.handlers.length} IPC handlers`)
   }

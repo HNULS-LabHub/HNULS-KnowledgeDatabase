@@ -3,6 +3,7 @@ import * as path from 'path'
 import { logger } from '../logger'
 import { DocumentService } from './document-service'
 import { KnowledgeLibraryService } from './knowledge-library-service'
+import { KnowledgeConfigService } from './knowledge-config-service'
 
 export interface FileMoveOptions {
   conflictPolicy?: 'rename' | 'skip' | 'overwrite'
@@ -19,7 +20,7 @@ export interface BatchMoveResult {
   success: number
   failed: number
   results: Array<{
-    source: string
+    source: string 
     target: string
     success: boolean
     error?: string
@@ -34,7 +35,8 @@ export interface BatchMoveResult {
 export class FileMoveService {
   constructor(
     private knowledgeLibraryService: KnowledgeLibraryService,
-    private documentService: DocumentService
+    private documentService: DocumentService,
+    private knowledgeConfigService: KnowledgeConfigService
   ) {}
 
   /**
@@ -276,6 +278,22 @@ export class FileMoveService {
             knowledgeBaseId,
             filePath,
             fullPath: fullFilePath
+          })
+        }
+
+        // 清理配置文件中的相关配置
+        try {
+          await this.knowledgeConfigService.cleanupDocumentConfig(baseDirectory, filePath)
+          logger.info('[FileMoveService] Cleaned up document config', {
+            knowledgeBaseId,
+            filePath
+          })
+        } catch (configError) {
+          // 配置清理失败不影响删除操作
+          logger.warn('[FileMoveService] Failed to cleanup document config', {
+            knowledgeBaseId,
+            filePath,
+            error: configError
           })
         }
 
