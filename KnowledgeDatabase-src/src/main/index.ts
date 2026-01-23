@@ -27,8 +27,11 @@ class Application {
       // 初始化应用服务
       await this.appService.initialize()
 
-      // 初始化 IPC 处理器（传入 SurrealDBService）
-      this.ipcManager.initialize(this.appService.getSurrealDBService())
+      // 初始化 IPC 处理器（传入 SurrealDBService 和 KnowledgeLibraryService）
+      this.ipcManager.initialize(
+        this.appService.getSurrealDBService(),
+        this.appService.getKnowledgeLibraryService()
+      )
 
       console.log('Application started successfully')
     } catch (error) {

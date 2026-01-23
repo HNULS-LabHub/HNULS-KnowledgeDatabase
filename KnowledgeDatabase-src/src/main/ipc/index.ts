@@ -18,7 +18,10 @@ import { ModelConfigService } from '../services/model-config'
 export class IPCManager {
   private handlers: any[] = []
 
-  initialize(surrealDBService?: SurrealDBService): void {
+  initialize(
+    surrealDBService?: SurrealDBService,
+    knowledgeLibraryService?: KnowledgeLibraryService
+  ): void {
     // 注册所有 IPC 处理器
     this.handlers.push(new TestIPCHandler())
 
@@ -27,15 +30,15 @@ export class IPCManager {
       this.handlers.push(new DatabaseIPCHandler(surrealDBService))
     }
 
-    // 注册知识库元数据处理器
-    const knowledgeLibraryService = new KnowledgeLibraryService()
-    this.handlers.push(new KnowledgeLibraryIPCHandler(knowledgeLibraryService))
+    // 使用传入的 KnowledgeLibraryService 或创建新实例
+    const kbService = knowledgeLibraryService || new KnowledgeLibraryService()
+    this.handlers.push(new KnowledgeLibraryIPCHandler(kbService))
 
     // 注册文件处理器
-    this.handlers.push(new FileIPCHandler(knowledgeLibraryService))
+    this.handlers.push(new FileIPCHandler(kbService))
 
     // 注册文件导入处理器
-    this.handlers.push(new FileImportIPCHandler(knowledgeLibraryService))
+    this.handlers.push(new FileImportIPCHandler(kbService))
 
     // 注册用户配置处理器
     const userConfigService = new UserConfigService()
@@ -57,7 +60,7 @@ export class IPCManager {
     this.handlers.push(new ChunkingIPCHandler(chunkingService))
 
     // 注册知识库配置处理器
-    this.handlers.push(new KnowledgeConfigIPCHandler(knowledgeLibraryService))
+    this.handlers.push(new KnowledgeConfigIPCHandler(kbService))
 
     console.log(`Registered ${this.handlers.length} IPC handlers`)
   }

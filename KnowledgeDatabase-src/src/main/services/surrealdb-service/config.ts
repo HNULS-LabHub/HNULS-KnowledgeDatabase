@@ -46,7 +46,7 @@ function getDefaultDbPath(): string {
 export const DEFAULT_CONFIG: SurrealDBConfig = {
   dbPath: getDefaultDbPath(),
   namespace: 'knowledge',
-  database: 'main',
+  database: 'system',
   username: 'root',
   password: 'root',
   port: 8000,

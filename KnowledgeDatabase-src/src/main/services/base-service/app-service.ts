@@ -3,17 +3,21 @@ import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { WindowService } from './window-service'
 import { SurrealDBService } from '../surrealdb-service'
 import { DocumentService } from '../knowledgeBase-library/document-service'
+import { KnowledgeLibraryService } from '../knowledgeBase-library/knowledge-library-service'
 import { logger } from '../logger'
 
 export class AppService {
   private windowService: WindowService
   private surrealDBService: SurrealDBService
   private documentService: DocumentService
+  private knowledgeLibraryService: KnowledgeLibraryService
 
   constructor() {
     this.windowService = new WindowService()
     this.surrealDBService = new SurrealDBService()
     this.documentService = new DocumentService()
+    // KnowledgeLibraryService 需要 QueryService，稍后注入
+    this.knowledgeLibraryService = new KnowledgeLibraryService()
   }
 
   async initialize(): Promise<void> {
@@ -43,9 +47,37 @@ export class AppService {
       await this.surrealDBService.initialize()
       await this.surrealDBService.start()
       logger.info('SurrealDB service started successfully')
+
+      // 🎯 注入 QueryService 到 KnowledgeLibraryService
+      const queryService = this.surrealDBService.getQueryService()
+      this.knowledgeLibraryService.setQueryService(queryService)
+      logger.info('QueryService injected into KnowledgeLibraryService')
     } catch (error) {
       logger.error('Failed to start SurrealDB service', error)
       // Continue app initialization even if DB fails
+    }
+
+    // Cleanup orphaned knowledge base directories
+    try {
+      logger.info('Cleaning up orphaned knowledge base directories...')
+      const cleanupResult = await this.knowledgeLibraryService.cleanupOrphanedDirectories()
+
+      if (cleanupResult.removed.length > 0) {
+        logger.warn(
+          `Cleaned up ${cleanupResult.removed.length} orphaned directories: ${cleanupResult.removed.join(', ')}`
+        )
+      }
+
+      if (cleanupResult.failed.length > 0) {
+        logger.error(`Failed to cleanup ${cleanupResult.failed.length} directories`)
+      }
+
+      logger.info(
+        `Directory cleanup completed: scanned ${cleanupResult.scanned} directories, removed ${cleanupResult.removed.length}`
+      )
+    } catch (error) {
+      logger.error('Orphaned directory cleanup failed:', error)
+      // Continue app initialization even if cleanup fails
     }
 
     // Create main window
@@ -91,5 +123,9 @@ export class AppService {
 
   getSurrealDBService(): SurrealDBService {
     return this.surrealDBService
+  }
+
+  getKnowledgeLibraryService(): KnowledgeLibraryService {
+    return this.knowledgeLibraryService
   }
 }

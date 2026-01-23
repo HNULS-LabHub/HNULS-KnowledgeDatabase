@@ -12,7 +12,7 @@ export class DocumentService {
 
   constructor() {
     const userDataPath = app.getPath('userData')
-    this.documentsBasePath = path.join(userDataPath, 'data', 'document')
+    this.documentsBasePath = path.join(userDataPath, 'data', 'documents')
   }
 
   /**
