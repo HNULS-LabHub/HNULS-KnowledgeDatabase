@@ -42,7 +42,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import DocumentParsingSection from './DocumentParsingSection.vue'
 import ChunkingSection from './ChunkingSection.vue'
-import EmbeddingSection from './EmbeddingSection.vue'
+import EmbeddingSection from './EmbeddingSection/index.vue'
 import KnowledgeGraphSection from './KnowledgeGraphSection.vue'
 
 const props = defineProps<{

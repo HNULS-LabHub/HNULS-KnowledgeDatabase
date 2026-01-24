@@ -14,6 +14,15 @@ export interface ChunkingConfig {
 }
 
 /**
+ * 嵌入配置
+ */
+export interface EmbeddingConfig {
+  providerId?: string // 模型提供商 ID
+  modelId?: string // 模型 ID
+  dimensions?: number // 嵌入维度（可选，留空则不传递）
+}
+
+/**
  * 文档配置（可覆盖全局）
  */
 export interface DocumentConfig {
@@ -26,6 +35,7 @@ export interface DocumentConfig {
  */
 export interface KnowledgeGlobalConfig {
   chunking: Required<ChunkingConfig> // 全局必须有完整配置
+  embedding?: EmbeddingConfig // 嵌入配置（可选）
   // 预留其他配置
 }
 
