@@ -3,7 +3,16 @@ import { defineConfig } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
-  main: {},
+  main: {
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'src/main/index.ts'),
+          'utility/embedding': resolve(__dirname, 'src/utility/embedding-engine/entry.ts')
+        }
+      }
+    }
+  },
   preload: {},
   renderer: {
     resolve: {
