@@ -30,25 +30,12 @@
       <div
         v-for="config in configs"
         :key="config.id"
-        class="group relative flex items-center justify-between p-5 rounded-2xl border transition-all"
-        :class="activeId === config.id ? 'bg-blue-50/50 border-blue-200 ring-1 ring-blue-100' : 'bg-white border-slate-200 hover:border-blue-200 hover:shadow-md'"
+        class="group relative flex items-center justify-between p-5 rounded-2xl border bg-white border-slate-200 hover:border-blue-200 hover:shadow-md transition-all"
       >
         <div class="flex items-center gap-4 flex-1 min-w-0">
-          <!-- Selection Icon -->
-          <button 
-            class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all"
-            :class="activeId === config.id ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-200 hover:border-blue-300'"
-            @click="handleSetActive(config.id)"
-          >
-            <svg v-if="activeId === config.id" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          </button>
-
           <div class="flex flex-col min-w-0">
             <div class="flex items-center gap-2">
               <h4 class="text-base font-bold text-slate-900 truncate">{{ config.name }}</h4>
-              <span v-if="activeId === config.id" class="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold uppercase rounded">当前活动</span>
             </div>
             <div class="flex items-center gap-3 text-xs text-slate-400 mt-1">
               <span class="flex items-center gap-1">
@@ -96,9 +83,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
-import type { EmbeddingConfig, EmbeddingModelConfig } from '@preload/types'
+import type { EmbeddingModelConfig } from '@preload/types'
 import CreateConfigDialog from './CreateConfigDialog.vue'
 
 const props = defineProps<{
@@ -110,64 +97,21 @@ const emit = defineEmits<{
 }>()
 
 const knowledgeConfigStore = useKnowledgeConfigStore()
-
-// State
-const configs = ref<EmbeddingModelConfig[]>([])
-const activeId = ref<string | undefined>(undefined)
 const showCreateDialog = ref(false)
+
+// 直接从 Store 获取（响应式）
+const configs = computed(() => knowledgeConfigStore.getEmbeddingConfigs(props.knowledgeBaseId))
 
 onMounted(async () => {
   await knowledgeConfigStore.loadConfig(props.knowledgeBaseId)
-  syncFromStore()
 })
 
-watch(
-  () => knowledgeConfigStore.getGlobalConfig(props.knowledgeBaseId),
-  () => syncFromStore()
-)
-
-function syncFromStore() {
-  const embedding = knowledgeConfigStore.getGlobalConfig(props.knowledgeBaseId)?.embedding
-  if (embedding) {
-    configs.value = embedding.configs || []
-    activeId.value = embedding.activeId
-  }
-}
-
+// 通过 Store Actions 操作
 async function handleCreate(data: { name: string; presetId?: string; dimensions?: number }) {
-  const newConfig: EmbeddingModelConfig = {
-    id: 'cfg_' + Date.now(),
-    name: data.name,
-    presetName: data.presetId,
-    dimensions: data.dimensions,
-    candidates: []
-  }
-  
-  configs.value.push(newConfig)
-  if (!activeId.value) activeId.value = newConfig.id
-  
-  await saveToStore()
-}
-
-async function handleSetActive(id: string) {
-  activeId.value = id
-  await saveToStore()
+  await knowledgeConfigStore.createEmbeddingConfig(props.knowledgeBaseId, data)
 }
 
 async function handleRemove(id: string) {
-  configs.value = configs.value.filter(c => c.id !== id)
-  if (activeId.value === id) activeId.value = configs.value[0]?.id
-  await saveToStore()
-}
-
-async function saveToStore() {
-  const newEmbedding: EmbeddingConfig = {
-    activeId: activeId.value,
-    configs: configs.value
-  }
-  
-  await knowledgeConfigStore.updateGlobalConfig(props.knowledgeBaseId, {
-    embedding: newEmbedding
-  })
+  await knowledgeConfigStore.deleteEmbeddingConfig(props.knowledgeBaseId, id)
 }
 </script>

@@ -193,7 +193,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useUserModelConfigStore } from '@renderer/stores/user-config/user-model-config.store'
 import type { FilterTag } from './types'
 
@@ -218,14 +218,29 @@ const selectedTags = ref<string[]>([])
 const selectedModelId = ref<string | undefined>(props.currentModelId)
 const selectedModelIds = ref<Set<string>>(new Set())
 
-// 监听多选状态初始化
+// 确保模型数据已加载
+onMounted(async () => {
+  if (modelConfigStore.providers.length === 0) {
+    await modelConfigStore.fetchProviders()
+  }
+})
+
+// 监听对话框打开，确保数据已加载
 watch(
   () => props.modelValue,
-  (val) => {
-    if (val && props.multiple) {
-      selectedModelIds.value.clear()
-      if (props.currentModelId) {
-        selectedModelIds.value.add(props.currentModelId)
+  async (val) => {
+    if (val) {
+      // 对话框打开时，确保数据已加载
+      if (modelConfigStore.providers.length === 0) {
+        await modelConfigStore.fetchProviders()
+      }
+      
+      // 初始化选中状态
+      if (props.multiple) {
+        selectedModelIds.value.clear()
+        if (props.currentModelId) {
+          selectedModelIds.value.add(props.currentModelId)
+        }
       }
     }
   }

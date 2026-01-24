@@ -14,17 +14,11 @@
         </div>
         
         <div class="flex items-center gap-3">
-           <button
-            class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-all"
-            @click="$emit('cancel')"
-          >
-            取消
-          </button>
           <button
-            class="px-6 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all"
-            @click="handleSave"
+            class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-all"
+            @click="handleBack"
           >
-            保存配置
+            返回
           </button>
         </div>
       </div>
@@ -140,21 +134,23 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
 import type { EmbeddingModelCandidate } from '@preload/types'
 import { useUserModelConfigStore } from '@renderer/stores/user-config/user-model-config.store'
 import ModelSelectDialog from './ModelSelectDialog.vue'
 
 const props = defineProps<{
+  knowledgeBaseId: number
   configId: string
   configName: string
   initialCandidates: EmbeddingModelCandidate[]
 }>()
 
 const emit = defineEmits<{
-  (e: 'cancel'): void
-  (e: 'save', candidates: EmbeddingModelCandidate[]): void
+  (e: 'back'): void
 }>()
 
+const knowledgeConfigStore = useKnowledgeConfigStore()
 const modelConfigStore = useUserModelConfigStore()
 const showModelDialog = ref(false)
 const localCandidates = ref<EmbeddingModelCandidate[]>([])
@@ -174,28 +170,46 @@ function getModelName(candidate: EmbeddingModelCandidate) {
   return m ? m.name : candidate.modelId
 }
 
-function moveCandidate(index: number, direction: number) {
+// 自动保存到 Store
+async function autoSave() {
+  await knowledgeConfigStore.updateEmbeddingCandidates(
+    props.knowledgeBaseId,
+    props.configId,
+    localCandidates.value
+  )
+}
+
+async function moveCandidate(index: number, direction: number) {
   const newIndex = index + direction
   if (newIndex < 0 || newIndex >= localCandidates.value.length) return
   const temp = localCandidates.value[index]
   localCandidates.value[index] = localCandidates.value[newIndex]
   localCandidates.value[newIndex] = temp
+  
+  // 自动保存
+  await autoSave()
 }
 
-function removeCandidate(index: number) {
+async function removeCandidate(index: number) {
   localCandidates.value.splice(index, 1)
+  
+  // 自动保存
+  await autoSave()
 }
 
-function handleCandidatesSelected(selections: Array<{ providerId: string; modelId: string }>) {
+async function handleCandidatesSelected(selections: Array<{ providerId: string; modelId: string }>) {
   const existingKeys = new Set(localCandidates.value.map(c => `${c.providerId}:${c.modelId}`))
   selections.forEach(sel => {
     if (!existingKeys.has(`${sel.providerId}:${sel.modelId}`)) {
       localCandidates.value.push({ ...sel })
     }
   })
+  
+  // 自动保存
+  await autoSave()
 }
 
-function handleSave() {
-  emit('save', [...localCandidates.value])
+function handleBack() {
+  emit('back')
 }
 </script>

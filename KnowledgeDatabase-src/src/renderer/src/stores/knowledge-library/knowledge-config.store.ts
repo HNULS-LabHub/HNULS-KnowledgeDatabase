@@ -4,7 +4,10 @@ import { KnowledgeConfigDataSource } from './knowledge-config.datasource'
 import type {
   KnowledgeConfig,
   KnowledgeGlobalConfig,
-  DocumentConfig
+  DocumentConfig,
+  EmbeddingConfig,
+  EmbeddingModelConfig,
+  EmbeddingModelCandidate
 } from '@preload/types'
 
 export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
@@ -107,6 +110,72 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
     configByKbId.value.set(kbId, config)
   }
 
+  /**
+   * 获取嵌入配置列表
+   */
+  const getEmbeddingConfigs = computed(
+    () =>
+      (kbId: number): EmbeddingModelConfig[] => {
+        return configByKbId.value.get(kbId)?.global.embedding?.configs ?? []
+      }
+  )
+
+  /**
+   * 创建嵌入配置项
+   */
+  async function createEmbeddingConfig(
+    kbId: number,
+    configData: { name: string; presetName?: string; dimensions?: number }
+  ): Promise<EmbeddingModelConfig> {
+    const newConfig: EmbeddingModelConfig = {
+      id: `cfg_${Date.now()}`,
+      name: configData.name,
+      presetName: configData.presetName,
+      dimensions: configData.dimensions,
+      candidates: []
+    }
+
+    const currentConfigs = getEmbeddingConfigs.value(kbId)
+    const updatedEmbedding: EmbeddingConfig = {
+      configs: JSON.parse(JSON.stringify([...currentConfigs, newConfig]))
+    }
+
+    await updateGlobalConfig(kbId, { embedding: updatedEmbedding })
+    return newConfig
+  }
+
+  /**
+   * 更新嵌入配置项的候选节点
+   */
+  async function updateEmbeddingCandidates(
+    kbId: number,
+    configId: string,
+    candidates: EmbeddingModelCandidate[]
+  ): Promise<void> {
+    const currentConfigs = getEmbeddingConfigs.value(kbId)
+
+    const updatedConfigs = currentConfigs.map((c) =>
+      c.id === configId ? { ...c, candidates: JSON.parse(JSON.stringify(candidates)) } : c
+    )
+
+    await updateGlobalConfig(kbId, {
+      embedding: { configs: JSON.parse(JSON.stringify(updatedConfigs)) }
+    })
+  }
+
+  /**
+   * 删除嵌入配置项
+   */
+  async function deleteEmbeddingConfig(kbId: number, configId: string): Promise<void> {
+    const currentConfigs = getEmbeddingConfigs.value(kbId)
+
+    const updatedConfigs = currentConfigs.filter((c) => c.id !== configId)
+
+    await updateGlobalConfig(kbId, {
+      embedding: { configs: JSON.parse(JSON.stringify(updatedConfigs)) }
+    })
+  }
+
   return {
     configByKbId,
     loading,
@@ -117,6 +186,10 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
     loadConfig,
     updateGlobalConfig,
     updateDocumentConfig,
-    clearDocumentConfig
+    clearDocumentConfig,
+    getEmbeddingConfigs,
+    createEmbeddingConfig,
+    updateEmbeddingCandidates,
+    deleteEmbeddingConfig
   }
 })

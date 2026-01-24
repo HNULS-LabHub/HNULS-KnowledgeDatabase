@@ -30,7 +30,6 @@ export interface EmbeddingModelConfig {
  * 嵌入配置
  */
 export interface EmbeddingConfig {
-  activeId?: string
   configs: EmbeddingModelConfig[]
 }
 
