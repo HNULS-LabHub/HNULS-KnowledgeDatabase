@@ -12,7 +12,7 @@ export interface KnowledgeBase {
 
 export type ViewType = 'list' | 'card' | 'tree'
 
-export type NavItem = 'files' | 'search' | 'logs' | 'settings'
+export type NavItem = 'files' | 'search' | 'logs' | 'settings' | 'embedding-detail'
 
 export interface FileNode {
   id: string | number

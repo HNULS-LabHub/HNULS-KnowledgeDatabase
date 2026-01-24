@@ -30,7 +30,11 @@
       <ChunkingSection ref="chunkingRef" :knowledge-base-id="knowledgeBaseId" />
 
       <!-- 嵌入配置区 -->
-      <EmbeddingSection ref="embeddingRef" :knowledge-base-id="knowledgeBaseId" />
+      <EmbeddingSection 
+        ref="embeddingRef" 
+        :knowledge-base-id="knowledgeBaseId" 
+        @open-embedding-detail="$emit('open-embedding-detail', $event)"
+      />
 
       <!-- 知识图谱配置区 -->
       <KnowledgeGraphSection ref="knowledgeGraphRef" :knowledge-base-id="knowledgeBaseId" />
@@ -47,6 +51,10 @@ import KnowledgeGraphSection from './KnowledgeGraphSection.vue'
 
 const props = defineProps<{
   knowledgeBaseId: number
+}>()
+
+const emit = defineEmits<{
+  (e: 'open-embedding-detail', config: any): void
 }>()
 
 const sections = [

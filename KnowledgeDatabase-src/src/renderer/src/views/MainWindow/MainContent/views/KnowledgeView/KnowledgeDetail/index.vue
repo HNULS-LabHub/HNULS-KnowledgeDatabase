@@ -38,7 +38,21 @@
       </template>
 
       <!-- 配置页面 -->
-      <SettingsView v-else-if="currentNav === 'settings'" :knowledge-base-id="kb.id" />
+      <SettingsView 
+        v-else-if="currentNav === 'settings'" 
+        :knowledge-base-id="kb.id" 
+        @open-embedding-detail="handleOpenEmbeddingDetail"
+      />
+
+      <!-- 嵌入配置详情页 (在 content-area 层级切换) -->
+      <EmbeddingDetailView
+        v-else-if="currentNav === 'embedding-detail' && selectedEmbeddingConfig"
+        :config-id="selectedEmbeddingConfig.id"
+        :config-name="selectedEmbeddingConfig.name"
+        :initial-candidates="selectedEmbeddingConfig.candidates || []"
+        @cancel="currentNav = 'settings'"
+        @save="handleSaveEmbeddingDetail"
+      />
 
       <!-- 其他导航项占位 -->
       <div
@@ -69,11 +83,19 @@ import ContentHeader from './ContentHeader.vue'
 import DetailDrawer from './DetailDrawer/index.vue'
 import DropZone from './DropZone.vue'
 import SettingsView from './SettingsView/index.vue'
+import EmbeddingDetailView from './SettingsView/EmbeddingSection/EmbeddingDetailView.vue'
 import { FileListView, FileCardView, FileTreeView } from './Views'
 import type { KnowledgeBase, ViewType, NavItem, FileNode } from '../types'
 
+import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
+
 const props = defineProps<{
   kb: KnowledgeBase
+}>()
+
+const emit = defineEmits<{
+  (e: 'enter-embedding-detail', name: string): void
+  (e: 'leave-embedding-detail'): void
 }>()
 
 const currentNav = ref<NavItem>('files')
@@ -81,6 +103,54 @@ const currentViewType = ref<ViewType>('list')
 const pageSize = ref(20)
 const drawerVisible = ref(false)
 const selectedFile = ref<FileNode | null>(null)
+
+// 嵌入配置相关
+const knowledgeConfigStore = useKnowledgeConfigStore()
+const selectedEmbeddingConfig = ref<{ id: string; name: string; candidates: any[] } | null>(null)
+
+function handleOpenEmbeddingDetail(config: any) {
+  selectedEmbeddingConfig.value = config
+  currentNav.value = 'embedding-detail'
+  emit('enter-embedding-detail', `嵌入配置 > ${config.name}`)
+}
+
+async function handleSaveEmbeddingDetail(candidates: any[]) {
+  if (!selectedEmbeddingConfig.value) return
+  
+  const configId = selectedEmbeddingConfig.value.id
+  
+  // 更新本地引用
+  selectedEmbeddingConfig.value.candidates = candidates
+  
+  // 获取当前全局配置中的 embedding
+  const currentEmbedding = JSON.parse(JSON.stringify(knowledgeConfigStore.getGlobalConfig(props.kb.id)?.embedding || { configs: [] }))
+  
+  // 找到并更新对应的 config
+  const index = currentEmbedding.configs.findIndex((c: any) => c.id === configId)
+  if (index !== -1) {
+    currentEmbedding.configs[index].candidates = candidates
+  }
+  
+  // 保存到 store
+  await knowledgeConfigStore.updateGlobalConfig(props.kb.id, {
+    embedding: currentEmbedding
+  })
+  
+  currentNav.value = 'settings'
+  emit('leave-embedding-detail')
+}
+
+// 暴露 handleBack 供面包屑点击返回
+function handleBack() {
+  if (currentNav.value === 'embedding-detail') {
+    currentNav.value = 'settings'
+    emit('leave-embedding-detail')
+    return true // 表示已经处理了返回
+  }
+  return false
+}
+
+defineExpose({ handleBack })
 
 // 获取各个 Store 实例
 const fileListStore = useFileListStore()

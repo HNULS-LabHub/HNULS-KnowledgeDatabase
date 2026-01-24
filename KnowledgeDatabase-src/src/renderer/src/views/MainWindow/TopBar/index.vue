@@ -180,7 +180,7 @@ const taskMonitorStore = useTaskMonitorStore()
 
 const hasActiveTasks = computed(() => {
   return taskMonitorStore.tasks.some(
-    (task) => task.status === 'running' || task.status === 'pending'
+    (task) => task.status === 'running' || task.status === 'queued'
   )
 })
 
@@ -192,6 +192,7 @@ const pageTitle = computed(() => {
   const titles = {
     index: '首页',
     dashboard: '首页',
+    knowledge: '知识库',
     rag: 'Retrieval',
     graph: 'Graph',
     docs: 'Docs',

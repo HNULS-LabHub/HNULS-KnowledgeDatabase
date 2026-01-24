@@ -151,7 +151,13 @@
     </template>
 
     <!-- Detail View Mode -->
-    <KnowledgeDetail v-else-if="selectedKb" :kb="selectedKb" />
+    <KnowledgeDetail 
+      v-else-if="selectedKb" 
+      ref="detailRef"
+      :kb="selectedKb" 
+      @enter-embedding-detail="handleEnterEmbeddingDetail"
+      @leave-embedding-detail="handleLeaveEmbeddingDetail"
+    />
   </div>
 </template>
 
@@ -174,6 +180,8 @@ const emit = defineEmits<{
 const showCreateDialog = ref(false)
 const currentView = ref<'list' | 'detail'>('list')
 const selectedKb = ref<KnowledgeBase | null>(null)
+const detailRef = ref<any>(null)
+const kbNameBreadcrumb = ref('')
 
 // 使用知识库 Store
 const knowledgeLibraryStore = useKnowledgeLibraryStore()
@@ -218,11 +226,28 @@ const handleCreateKnowledgeBase = async (data: KnowledgeBaseFormData) => {
 
 const handleEnterKb = (kb: KnowledgeBase) => {
   selectedKb.value = kb
+  kbNameBreadcrumb.value = kb.name
   currentView.value = 'detail'
   emit('enter-detail', kb.name)
 }
 
+function handleEnterEmbeddingDetail(breadcrumbText: string) {
+  // 组合知识库名称和嵌入配置路径
+  emit('enter-detail', `${kbNameBreadcrumb.value} > ${breadcrumbText}`)
+}
+
+function handleLeaveEmbeddingDetail() {
+  // 返回到知识库详情页，只显示知识库名称
+  emit('enter-detail', kbNameBreadcrumb.value)
+}
+
+
 const handleBack = () => {
+  // 检查子组件是否能处理返回 (二级详情返回)
+  if (detailRef.value?.handleBack?.()) {
+    return
+  }
+
   currentView.value = 'list'
   selectedKb.value = null
   emit('leave-detail')

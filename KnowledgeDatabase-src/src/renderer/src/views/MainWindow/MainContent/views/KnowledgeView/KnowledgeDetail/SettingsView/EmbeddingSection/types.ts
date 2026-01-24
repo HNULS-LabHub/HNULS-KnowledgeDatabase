@@ -1,6 +1,4 @@
-/**
- * EmbeddingSection 局部类型定义
- */
+import type { EmbeddingModelCandidate } from '@preload/types'
 
 /**
  * 模型能力标签
@@ -26,4 +24,16 @@ export interface FilterTag {
   id: string
   label: string
   icon?: string
+}
+
+/**
+ * 嵌入模型配置（本地 UI 扩展）
+ */
+export interface EmbeddingModelConfig {
+  id: string
+  name: string
+  presetId?: string
+  candidates: EmbeddingModelCandidate[]
+  dimensions?: number
+  isActive?: boolean
 }

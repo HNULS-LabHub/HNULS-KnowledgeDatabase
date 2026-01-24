@@ -13,13 +13,25 @@ export interface ChunkingConfig {
   maxChars?: number // undefined = 跟随全局
 }
 
+export interface EmbeddingModelCandidate {
+  providerId: string
+  modelId: string
+}
+
+export interface EmbeddingModelConfig {
+  id: string
+  name: string
+  presetName?: string
+  candidates: EmbeddingModelCandidate[]
+  dimensions?: number
+}
+
 /**
  * 嵌入配置
  */
 export interface EmbeddingConfig {
-  providerId?: string // 模型提供商 ID
-  modelId?: string // 模型 ID
-  dimensions?: number // 嵌入维度（可选，留空则不传递）
+  activeId?: string
+  configs: EmbeddingModelConfig[]
 }
 
 /**

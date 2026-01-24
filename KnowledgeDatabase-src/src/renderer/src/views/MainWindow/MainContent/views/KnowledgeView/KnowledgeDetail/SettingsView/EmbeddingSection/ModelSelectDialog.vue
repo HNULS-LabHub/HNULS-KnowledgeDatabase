@@ -9,20 +9,20 @@
   >
     <div
       v-if="modelValue"
-      class="kb-embedding-model-dialog fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm p-4"
+      class="kb-embedding-model-dialog fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
       @click="handleClose"
     >
       <Transition
         enter-active-class="transition-all duration-300 ease-out"
-        enter-from-class="translate-y-full opacity-0"
-        enter-to-class="translate-y-0 opacity-100"
+        enter-from-class="scale-95 opacity-0"
+        enter-to-class="scale-100 opacity-100"
         leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="translate-y-0 opacity-100"
-        leave-to-class="translate-y-full opacity-0"
+        leave-from-class="scale-100 opacity-100"
+        leave-to-class="scale-95 opacity-0"
       >
         <div
           v-if="modelValue"
-          class="bg-white rounded-t-3xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col border-t border-gray-200"
+          class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col border border-gray-200"
           @click.stop
         >
           <!-- Header -->
@@ -132,29 +132,29 @@
                     :key="model.id"
                     class="group relative flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
                     :class="
-                      selectedModelId === model.id
+                      (multiple ? selectedModelIds.has(model.id) : selectedModelId === model.id)
                         ? 'bg-blue-50 border-blue-300 shadow-sm'
                         : 'bg-white border-gray-200 hover:border-blue-200 hover:shadow-sm'
                     "
                     @click="handleSelectModel(provider.id, model.id)"
                   >
                     <!-- Selection Indicator -->
-                    <div
-                      class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
-                      :class="
-                        selectedModelId === model.id
-                          ? 'border-blue-500 bg-blue-500'
-                          : 'border-gray-300 group-hover:border-blue-300'
-                      "
-                    >
-                      <svg
-                        v-if="selectedModelId === model.id"
-                        class="w-3 h-3 text-white"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="3"
+                      <div
+                        class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
+                        :class="
+                          (multiple ? selectedModelIds.has(model.id) : selectedModelId === model.id)
+                            ? 'border-blue-500 bg-blue-500'
+                            : 'border-gray-300 group-hover:border-blue-300'
+                        "
                       >
+                        <svg
+                          v-if="(multiple ? selectedModelIds.has(model.id) : selectedModelId === model.id)"
+                          class="w-3 h-3 text-white"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                        >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
@@ -171,7 +171,7 @@
           </div>
 
           <!-- Footer -->
-          <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+          <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center rounded-b-2xl">
             <button
               class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
               @click="handleClose"
@@ -180,7 +180,7 @@
             </button>
             <button
               class="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="!selectedModelId"
+              :disabled="multiple ? selectedModelIds.size === 0 : !selectedModelId"
               @click="handleConfirm"
             >
               确认选择
@@ -201,11 +201,13 @@ const props = defineProps<{
   modelValue: boolean
   currentProviderId?: string
   currentModelId?: string
+  multiple?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
   (e: 'select', providerId: string, modelId: string): void
+  (e: 'select-multiple', selections: Array<{ providerId: string; modelId: string }>): void
 }>()
 
 const modelConfigStore = useUserModelConfigStore()
@@ -214,6 +216,20 @@ const modelConfigStore = useUserModelConfigStore()
 const searchQuery = ref('')
 const selectedTags = ref<string[]>([])
 const selectedModelId = ref<string | undefined>(props.currentModelId)
+const selectedModelIds = ref<Set<string>>(new Set())
+
+// 监听多选状态初始化
+watch(
+  () => props.modelValue,
+  (val) => {
+    if (val && props.multiple) {
+      selectedModelIds.value.clear()
+      if (props.currentModelId) {
+        selectedModelIds.value.add(props.currentModelId)
+      }
+    }
+  }
+)
 
 // 筛选标签
 const filterTags: FilterTag[] = [
@@ -277,22 +293,50 @@ const filteredProviders = computed(() => {
 })
 
 // 选择模型
-function handleSelectModel(providerId: string, modelId: string): void {
-  selectedModelId.value = modelId
+function handleSelectModel(_providerId: string, modelId: string): void {
+  // providerId is available if needed for validaton, but currently unused
+  if (props.multiple) {
+    if (selectedModelIds.value.has(modelId)) {
+      selectedModelIds.value.delete(modelId)
+    } else {
+      selectedModelIds.value.add(modelId)
+    }
+  } else {
+    selectedModelId.value = modelId
+  }
 }
 
 // 确认选择
 function handleConfirm(): void {
-  if (!selectedModelId.value) return
-
-  // 找到对应的 provider
-  const provider = modelConfigStore.providers.find((p) =>
-    p.models.some((m) => m.id === selectedModelId.value)
-  )
-
-  if (provider) {
-    emit('select', provider.id, selectedModelId.value)
+  if (props.multiple) {
+    if (selectedModelIds.value.size === 0) return
+    
+    const selections: Array<{ providerId: string; modelId: string }> = []
+    
+    // 遍历所有 provider 找到选中的 model
+    modelConfigStore.providers.forEach(p => {
+      p.models.forEach(m => {
+        if (selectedModelIds.value.has(m.id)) {
+          selections.push({ providerId: p.id, modelId: m.id })
+        }
+      })
+    })
+    
+    emit('select-multiple', selections)
     handleClose()
+    
+  } else {
+    if (!selectedModelId.value) return
+
+    // 找到对应的 provider
+    const provider = modelConfigStore.providers.find((p) =>
+      p.models.some((m) => m.id === selectedModelId.value)
+    )
+
+    if (provider) {
+      emit('select', provider.id, selectedModelId.value)
+      handleClose()
+    }
   }
 }
 
