@@ -6,11 +6,14 @@
 import { ref } from 'vue'
 import { useParsingStore } from '@renderer/stores/parsing/parsing.store'
 import { useChunkingStore } from '@renderer/stores/chunking/chunking.store'
+import { useEmbeddingStore } from '@renderer/stores/embedding/embedding.store'
 import { useTaskMonitorStore } from '@renderer/stores/global-monitor-panel/task-monitor.store'
 import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
+import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
 import { canChunkFile, isPlainTextFile } from '@renderer/stores/chunking/chunking.util'
 import type { FileNode } from '@renderer/stores/knowledge-library/file.types'
 import type { ChunkingConfig } from '@renderer/stores/chunking/chunking.types'
+import type { EmbeddingConfig } from '@renderer/stores/embedding/embedding.types'
 
 // ========== 批量操作并发控制配置 ==========
 export const BATCH_CONFIG = {
@@ -18,6 +21,8 @@ export const BATCH_CONFIG = {
   PARSING_CONCURRENCY: 3,
   // 分块并发数（本地 CPU 密集型，避免卡顿）
   CHUNKING_CONCURRENCY: 5,
+  // 嵌入并发数（云端 API，避免限流）
+  EMBEDDING_CONCURRENCY: 3,
   // 默认分块配置
   DEFAULT_CHUNKING_CONFIG: {
     mode: 'recursive' as const,
@@ -39,12 +44,15 @@ export interface BatchOperationResult {
 export function useBatchOperations() {
   const parsingStore = useParsingStore()
   const chunkingStore = useChunkingStore()
+  const embeddingStore = useEmbeddingStore()
   const taskMonitorStore = useTaskMonitorStore()
   const knowledgeLibraryStore = useKnowledgeLibraryStore()
+  const configStore = useKnowledgeConfigStore()
 
   // 批量操作状态
   const isBatchParsing = ref(false)
   const isBatchChunking = ref(false)
+  const isBatchEmbedding = ref(false)
 
   /**
    * 并发控制队列处理器
@@ -312,13 +320,162 @@ export function useBatchOperations() {
     }
   }
 
+  /**
+   * 批量嵌入
+   * @param files 要嵌入的文件列表
+   * @param knowledgeBaseId 知识库 ID
+   * @param configId 嵌入配置 ID
+   * @returns 批量操作结果
+   */
+  async function batchEmbedDocuments(
+    files: FileNode[],
+    knowledgeBaseId: number,
+    configId: string
+  ): Promise<BatchOperationResult> {
+    if (isBatchEmbedding.value) {
+      console.warn('[BatchEmbedding] Already embedding')
+      return { success: 0, failed: 0 }
+    }
+
+    // 过滤出已分块的文件（需要先完成分块才能嵌入）
+    const embeddableFiles = files.filter((file) => {
+      if (file.type !== 'file') return false
+      const fileKey = file.path || file.name
+      const chunkingState = chunkingStore.getState(fileKey)
+      return chunkingState && chunkingState.chunks.length > 0
+    })
+
+    if (embeddableFiles.length === 0) {
+      console.warn('[BatchEmbedding] No embeddable files found (need chunking first)')
+      return { success: 0, failed: 0 }
+    }
+
+    // 提示不可嵌入的文件数量
+    const nonEmbeddableCount = files.length - embeddableFiles.length
+    if (nonEmbeddableCount > 0) {
+      console.log(
+        `[BatchEmbedding] Filtered out ${nonEmbeddableCount} non-embeddable files (need chunking first)`
+      )
+    }
+
+    isBatchEmbedding.value = true
+
+    try {
+      // 获取知识库名称
+      const kb = knowledgeLibraryStore.getById(knowledgeBaseId)
+      const knowledgeBaseName = kb?.name || `知识库 ${knowledgeBaseId}`
+
+      // 获取嵌入配置
+      const configs = configStore.getEmbeddingConfigs(knowledgeBaseId)
+      const selectedConfig = configs.find((c) => c.id === configId)
+      if (!selectedConfig) {
+        console.error('[BatchEmbedding] Config not found:', configId)
+        return { success: 0, failed: 0 }
+      }
+
+      const firstCandidate = selectedConfig.candidates[0]
+      if (!firstCandidate) {
+        console.error('[BatchEmbedding] No candidates in config')
+        return { success: 0, failed: 0 }
+      }
+
+      const embeddingConfig: EmbeddingConfig = {
+        configId: selectedConfig.id,
+        providerId: firstCandidate.providerId,
+        modelId: firstCandidate.modelId,
+        dimensions: selectedConfig.dimensions
+      }
+
+      console.log(`[BatchEmbedding] Starting batch embedding for ${embeddableFiles.length} files...`)
+
+      // 并发处理嵌入
+      const result = await processConcurrentQueue(
+        embeddableFiles,
+        BATCH_CONFIG.EMBEDDING_CONCURRENCY,
+        async (file) => {
+          const fileKey = file.path || file.name
+          const fileName = file.name
+
+          try {
+            // 获取分块数量
+            const chunkingState = chunkingStore.getState(fileKey)
+            if (!chunkingState || chunkingState.chunks.length === 0) {
+              throw new Error('No chunks found')
+            }
+
+            const totalChunks = chunkingState.chunks.length
+
+            // 添加到任务监控面板
+            taskMonitorStore.addEmbeddingTask(
+              fileKey,
+              fileName,
+              knowledgeBaseId,
+              knowledgeBaseName,
+              embeddingConfig.configId
+            )
+
+            // 更新任务状态为 running
+            taskMonitorStore.updateEmbeddingProgress({
+              fileKey,
+              percentage: 0,
+              totalVectors: totalChunks,
+              processedVectors: 0,
+              currentDetail: '开始嵌入...'
+            })
+
+            // 执行嵌入
+            await embeddingStore.startEmbedding(
+              fileKey,
+              embeddingConfig,
+              {
+                knowledgeBaseId,
+                fileRelativePath: fileKey,
+                totalChunks
+              },
+              (progress, processed) => {
+                // 更新任务进度
+                taskMonitorStore.updateEmbeddingProgress({
+                  fileKey,
+                  percentage: progress,
+                  totalVectors: totalChunks,
+                  processedVectors: processed,
+                  currentDetail: `${processed}/${totalChunks} 向量`
+                })
+              }
+            )
+
+            // 完成任务
+            taskMonitorStore.completeEmbeddingTask(fileKey, totalChunks)
+          } catch (error) {
+            console.error(`[BatchEmbedding] Failed to embed ${fileName}:`, error)
+            taskMonitorStore.failEmbeddingTask(
+              fileKey,
+              error instanceof Error ? error.message : '嵌入失败'
+            )
+            throw error
+          }
+        }
+      )
+
+      console.log(
+        `[BatchEmbedding] Batch embedding completed: ${result.success} succeeded, ${result.failed} failed`
+      )
+
+      return result
+    } finally {
+      isBatchEmbedding.value = false
+    }
+  }
+
   return {
     // 状态
     isBatchParsing,
     isBatchChunking,
+    isBatchEmbedding,
 
     // 方法
     batchParseDocuments,
-    batchChunkDocuments
+    batchChunkDocuments,
+    batchEmbedDocuments
   }
 }

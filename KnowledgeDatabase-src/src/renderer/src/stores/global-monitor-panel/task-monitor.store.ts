@@ -618,6 +618,126 @@ export const useTaskMonitorStore = defineStore('taskMonitor', () => {
     console.log('[TaskMonitor] Cleared completed tasks', { count: removedCount })
   }
 
+  // ========== 嵌入任务管理 ==========
+
+  /**
+   * 添加嵌入任务
+   * 任务名称格式：知识库名-文档名-嵌入
+   */
+  function addEmbeddingTask(
+    fileKey: string,
+    fileName: string,
+    knowledgeBaseId: number,
+    knowledgeBaseName: string,
+    configId: string
+  ) {
+    // 检查是否已存在相同的任务
+    const existingTask = tasks.value.find(
+      (t) => t.type === 'Embedding' && t.fileKey === fileKey && t.status === 'running'
+    )
+    if (existingTask) {
+      console.log('[TaskMonitor] Embedding task already exists', { fileKey })
+      return existingTask.id
+    }
+
+    const taskId = `embedding-${fileKey}-${Date.now()}`
+    const task: Task = {
+      id: taskId,
+      name: `${knowledgeBaseName}-${fileName}-嵌入`,
+      type: 'Embedding',
+      status: 'pending',
+      progress: 0,
+      owner: 'System',
+      started: '刚刚',
+      knowledgeBaseId,
+      knowledgeBaseName,
+      fileKey,
+      fileName,
+      embeddingDetail: {
+        percentage: 0,
+        totalVectors: 0,
+        processedVectors: 0,
+        configId
+      }
+    }
+    tasks.value.push(task)
+    console.log('[TaskMonitor] Added embedding task', { taskId, fileKey, fileName, knowledgeBaseName })
+    return taskId
+  }
+
+  /**
+   * 更新嵌入进度
+   */
+  function updateEmbeddingProgress(progressData: {
+    fileKey: string
+    percentage: number
+    totalVectors: number
+    processedVectors: number
+    currentDetail?: string
+  }) {
+    const task = tasks.value.find(
+      (t) => t.type === 'Embedding' && t.fileKey === progressData.fileKey && t.status !== 'completed' && t.status !== 'failed'
+    )
+    
+    if (task && task.embeddingDetail) {
+      task.status = 'running'
+      task.progress = progressData.percentage
+      task.embeddingDetail.percentage = progressData.percentage
+      task.embeddingDetail.totalVectors = progressData.totalVectors
+      task.embeddingDetail.processedVectors = progressData.processedVectors
+      task.embeddingDetail.currentDetail = progressData.currentDetail
+      
+      console.log('[TaskMonitor] Updated embedding progress', { 
+        fileKey: progressData.fileKey, 
+        progress: progressData.percentage,
+        processedVectors: progressData.processedVectors,
+        totalVectors: progressData.totalVectors
+      })
+    } else {
+      console.warn('[TaskMonitor] Embedding task not found for progress update', { 
+        fileKey: progressData.fileKey
+      })
+    }
+  }
+
+  /**
+   * 完成嵌入任务
+   */
+  function completeEmbeddingTask(fileKey: string, totalVectors: number) {
+    const task = tasks.value.find(
+      (t) => t.type === 'Embedding' && t.fileKey === fileKey && t.status !== 'completed'
+    )
+    
+    if (task) {
+      task.status = 'completed'
+      task.progress = 100
+      if (task.embeddingDetail) {
+        task.embeddingDetail.percentage = 100
+        task.embeddingDetail.totalVectors = totalVectors
+        task.embeddingDetail.processedVectors = totalVectors
+        task.embeddingDetail.currentDetail = `生成了 ${totalVectors} 个向量`
+      }
+      console.log('[TaskMonitor] Embedding task completed', { fileKey, totalVectors })
+    }
+  }
+
+  /**
+   * 嵌入任务失败
+   */
+  function failEmbeddingTask(fileKey: string, errorMessage?: string) {
+    const task = tasks.value.find(
+      (t) => t.type === 'Embedding' && t.fileKey === fileKey && t.status !== 'completed' && t.status !== 'failed'
+    )
+    
+    if (task) {
+      task.status = 'failed'
+      if (errorMessage) {
+        task.name = `${task.name} (失败: ${errorMessage})`
+      }
+      console.log('[TaskMonitor] Embedding task failed', { fileKey, error: errorMessage })
+    }
+  }
+
   return {
     // State
     tasks,
@@ -664,6 +784,12 @@ export const useTaskMonitorStore = defineStore('taskMonitor', () => {
     updateChunkingProgress,
     completeChunkingTask,
     failChunkingTask,
+
+    // 嵌入任务管理
+    addEmbeddingTask,
+    updateEmbeddingProgress,
+    completeEmbeddingTask,
+    failEmbeddingTask,
 
     // 通用任务管理
     removeTask,

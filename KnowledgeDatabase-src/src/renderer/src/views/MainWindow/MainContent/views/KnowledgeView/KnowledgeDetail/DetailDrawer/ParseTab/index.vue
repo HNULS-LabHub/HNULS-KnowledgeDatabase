@@ -52,11 +52,14 @@
             @show-preview="handleShowPreview"
           />
 
-          <!-- 嵌入占位 -->
-          <PendingFeatureCard
+          <!-- 嵌入面板 -->
+          <EmbeddingPanel
             ref="embeddingRef"
-            title="Vector Embedding / 嵌入"
-            icon="embedding"
+            :file-key="fileKey"
+            :knowledge-base-id="knowledgeBaseId"
+            :file-data="fileData"
+            :can-embed="canEmbed"
+            :embedding-disabled-reason="embeddingDisabledReason"
           />
 
           <!-- 知识图谱占位 -->
@@ -94,6 +97,7 @@ import ParseHeader from './ParseHeader.vue'
 import MinerUPanel from './MinerUPanel.vue'
 import VersionManager from './VersionManager.vue'
 import ChunkingPanel from './ChunkingPanel.vue'
+import EmbeddingPanel from './EmbeddingPanel.vue'
 import PendingFeatureCard from './PendingFeatureCard.vue'
 import type { Section } from './types'
 
@@ -183,6 +187,19 @@ const chunkingDisabledReason = computed(() => {
   return ''
 })
 
+// 是否可以进行嵌入操作（需要先完成分块）
+const canEmbed = computed(() => {
+  return hasChunks.value
+})
+
+// 嵌入功能不可用的原因提示
+const embeddingDisabledReason = computed(() => {
+  if (!hasChunks.value) {
+    return '需要先完成分块才能进行嵌入'
+  }
+  return ''
+})
+
 const sections: Section[] = [
   { id: 'document-parsing', label: '文档解析' },
   { id: 'chunking', label: '分块' },
@@ -194,13 +211,13 @@ const activeSection = ref<string>(sections[0].id)
 const contentRef = ref<HTMLElement | null>(null)
 const documentParsingRef = ref<InstanceType<typeof MinerUPanel> | null>(null)
 const chunkingRef = ref<HTMLElement | null>(null)
-const embeddingRef = ref<InstanceType<typeof PendingFeatureCard> | null>(null)
+const embeddingRef = ref<InstanceType<typeof EmbeddingPanel> | null>(null)
 const knowledgeGraphRef = ref<InstanceType<typeof PendingFeatureCard> | null>(null)
 
 const sectionRefs = computed(() => ({
   'document-parsing': documentParsingRef.value?.$el,
   chunking: chunkingRef.value,
-  embedding: embeddingRef.value?.$el,
+  embedding: embeddingRef.value?.embeddingPanelRef,
   'knowledge-graph': knowledgeGraphRef.value?.$el
 }))
 

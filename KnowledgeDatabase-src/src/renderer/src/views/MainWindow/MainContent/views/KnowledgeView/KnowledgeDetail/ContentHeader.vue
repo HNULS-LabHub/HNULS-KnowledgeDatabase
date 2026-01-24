@@ -148,7 +148,11 @@
                 </svg>
                 {{ isBatchChunking ? '分块中...' : '分块' }}
               </button>
-              <button class="kb-content-header-action-btn" disabled>
+              <button 
+                class="kb-content-header-action-btn"
+                :disabled="!isSelectionModeEnabled"
+                @click="showBatchEmbeddingDialog = true"
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path
                     d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
@@ -174,6 +178,14 @@
       </template>
     </div>
   </div>
+
+  <!-- 批量嵌入对话框 -->
+  <BatchEmbeddingDialog
+    v-model="showBatchEmbeddingDialog"
+    :selected-count="selectedCount"
+    :knowledge-base-id="knowledgeBaseId"
+    @confirm="handleBatchEmbedding"
+  />
 </template>
 
 <script setup lang="ts">
@@ -186,6 +198,7 @@ import { useBatchOperations } from '@renderer/composables/useBatchOperations'
 import type { ViewType } from '../types'
 import type { FileNode } from '@renderer/stores/knowledge-library/file.types'
 import PageSizeSelector from './PageSizeSelector.vue'
+import { BatchEmbeddingDialog } from './ContentHeaderComponents'
 
 const props = defineProps<{
   title: string
@@ -216,9 +229,17 @@ const selectionStore = useFileSelectionStore()
 const { isBatchParsing, isBatchChunking, batchParseDocuments, batchChunkDocuments } =
   useBatchOperations()
 
+// 批量嵌入对话框状态
+const showBatchEmbeddingDialog = ref(false)
+
 // 选择模式状态
 const isSelectionModeEnabled = computed(() => {
   return selectionStore.isSelectionModeEnabled(props.knowledgeBaseId)
+})
+
+// 选中文件数量
+const selectedCount = computed(() => {
+  return selectionStore.getSelectedFiles(props.knowledgeBaseId).length
 })
 
 // 切换选择模式
@@ -339,6 +360,22 @@ async function handleBatchChunking(): Promise<void> {
 
   const result = await batchChunkDocuments(selectedFiles, props.knowledgeBaseId)
   console.log(`[ContentHeader] 批量分块完成：成功 ${result.success} 个，失败 ${result.failed} 个`)
+}
+
+/**
+ * 批量嵌入
+ */
+async function handleBatchEmbedding(configId: string): Promise<void> {
+  const selectedFiles = getSelectedFiles()
+  if (selectedFiles.length === 0) {
+    console.warn('[BatchEmbedding] 请先选择要嵌入的文件')
+    return
+  }
+
+  // 导入批量嵌入方法
+  const { batchEmbedDocuments } = useBatchOperations()
+  const result = await batchEmbedDocuments(selectedFiles, props.knowledgeBaseId, configId)
+  console.log(`[ContentHeader] 批量嵌入完成：成功 ${result.success} 个，失败 ${result.failed} 个`)
 }
 </script>
 

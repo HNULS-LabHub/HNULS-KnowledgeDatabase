@@ -23,6 +23,7 @@ export type TaskType =
   | 'File Import' // 文件导入任务
   | 'Document Parsing' // 文档解析任务
   | 'Chunking' // 分块任务
+  | 'Embedding' // 嵌入任务
 
 /**
  * 文件导入进度详情
@@ -59,6 +60,17 @@ export interface ChunkingProgress {
 }
 
 /**
+ * 嵌入进度详情
+ */
+export interface EmbeddingProgress {
+  percentage: number
+  totalVectors: number
+  processedVectors: number
+  currentDetail?: string // 当前处理详情（如 "50/100 向量"）
+  configId: string // 使用的配置 ID
+}
+
+/**
  * 任务数据结构
  */
 export interface Task {
@@ -82,6 +94,9 @@ export interface Task {
 
   // 分块专用字段（可选）
   chunkingDetail?: ChunkingProgress // 分块详情
+
+  // 嵌入专用字段（可选）
+  embeddingDetail?: EmbeddingProgress // 嵌入详情
 }
 
 /**
