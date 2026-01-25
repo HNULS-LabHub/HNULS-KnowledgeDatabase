@@ -78,7 +78,8 @@ export const ParsingDataSource = {
     const res = await window.api.minerU.startParsing({
       knowledgeBaseId: options.knowledgeBaseId,
       fileRelativePath: fileKey,
-      modelVersion: 'vlm'
+      modelVersion: 'vlm',
+      monitorTaskId: options.monitorTaskId
     })
 
     if (!res.success || !res.data) {

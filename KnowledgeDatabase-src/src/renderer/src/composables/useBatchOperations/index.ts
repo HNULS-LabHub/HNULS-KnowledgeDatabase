@@ -119,10 +119,6 @@ export function useBatchOperations() {
     isBatchParsing.value = true
 
     try {
-      // 获取知识库名称
-      const kb = knowledgeLibraryStore.getById(knowledgeBaseId)
-      const knowledgeBaseName = kb?.name || `知识库 ${knowledgeBaseId}`
-
       console.log(`[BatchParsing] Starting batch parsing for ${validFiles.length} files...`)
 
       // 并发处理文档解析
@@ -132,43 +128,34 @@ export function useBatchOperations() {
         async (file) => {
           const fileKey = file.path || file.name
           const fileName = file.name
-          let taskHandle: TaskHandle | null = null
 
-          try {
-            // 创建任务
-            taskHandle = await window.api.taskMonitor.createTask({
+          // 1. 生成任务 ID（前端预生成）
+          const monitorTaskId = `parsing-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+
+          // 2. 立即创建占位任务
+          window.api.taskMonitor
+            .createTask({
+              id: monitorTaskId,
               type: 'parsing',
               title: `文档解析 - ${fileName}`,
               meta: {
                 fileKey,
                 fileName,
                 knowledgeBaseId,
-                knowledgeBaseName
+                status: '等待后端响应'
               }
             })
+            .catch((err) => console.warn('[BatchParsing] Failed to create monitor task:', err))
 
-            // 启动解析
+          try {
+            // 3. 启动解析（传递 monitorTaskId）
             await parsingStore.startParsing(fileKey, {
               parserName: 'MinerU Parser',
-              knowledgeBaseId
+              knowledgeBaseId,
+              monitorTaskId
             })
-
-            // 获取解析状态以获取 versionId 和 batchId
-            const parsingState = parsingStore.getState(fileKey)
-            if (parsingState && parsingState.activeVersionId) {
-              const statusRes = await window.api.minerU.getStatus(fileKey)
-              if (statusRes.success && statusRes.data) {
-                taskHandle.updateProgress(50, {
-                  versionId: parsingState.activeVersionId,
-                  batchId: statusRes.data.batchId
-                })
-              }
-            }
-
-            taskHandle.complete()
           } catch (error) {
-            console.error(`[BatchParsing] Failed to parse ${fileName}:`, error)
-            taskHandle?.fail(error instanceof Error ? error.message : '解析失败')
+            console.error(`[BatchParsing] Failed to parse ${file.name}:`, error)
             throw error
           }
         }

@@ -20,4 +20,6 @@ export interface FileParsingState {
 export interface StartParsingOptions {
   parserName: string
   knowledgeBaseId: number
+  /** 前端预生成的监控任务 ID，用于前后端跟踪同一任务 */
+  monitorTaskId?: string
 }

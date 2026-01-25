@@ -9,6 +9,7 @@ import { MinerUApiClient } from './mineru-api-client'
 import { getDocDir, dirExists } from './util'
 import { MinerUMetaStore } from './meta-store'
 import { toFileParsingState, type MinerUFileParsingState } from './file-parsing-state'
+import { globalMonitorBridge } from '../global-monitor-bridge'
 import type {
   MinerUParsingProgressEvent,
   MinerUStartParsingRequest,
@@ -306,6 +307,11 @@ export class MinerUParserService {
       updatedAt: nowIso()
     }
 
+    // 使用前端传入的 monitorTaskId（如果有）
+    if (req.monitorTaskId) {
+      task.monitorTaskId = req.monitorTaskId
+    }
+
     this.tasksByFileKey.set(fileKey, task)
     await this.persist()
 
@@ -316,6 +322,9 @@ export class MinerUParserService {
   }
 
   private emitProgress(task: MinerUTaskRecord): void {
+    const progress =
+      computeProgress(task.extractedPages, task.totalPages) ?? stateFallbackProgress(task.state)
+
     const evt: MinerUParsingProgressEvent = {
       fileKey: task.fileKey,
       versionId: task.versionId,
@@ -323,18 +332,40 @@ export class MinerUParserService {
       state: task.state,
       extractedPages: task.extractedPages,
       totalPages: task.totalPages,
-      progress:
-        computeProgress(task.extractedPages, task.totalPages) ?? stateFallbackProgress(task.state),
+      progress,
       errMsg: task.errMsg,
       fullZipUrl: task.fullZipUrl,
       updatedAt: task.updatedAt
     }
 
+    // 广播到所有渲染进程
     for (const wc of webContents.getAllWebContents()) {
       try {
         if (!wc.isDestroyed()) wc.send('mineru:progress', evt)
       } catch {
         // ignore
+      }
+    }
+
+    // 更新全局监控任务
+    if (task.monitorTaskId) {
+      try {
+        if (task.state === 'done') {
+          globalMonitorBridge.complete(task.monitorTaskId, {
+            extractedPages: task.extractedPages,
+            totalPages: task.totalPages
+          })
+        } else if (task.state === 'failed') {
+          globalMonitorBridge.fail(task.monitorTaskId, task.errMsg || '解析失败')
+        } else {
+          globalMonitorBridge.updateProgress(task.monitorTaskId, progress, {
+            state: task.state,
+            extractedPages: task.extractedPages,
+            totalPages: task.totalPages
+          })
+        }
+      } catch (err) {
+        logger.warn('[MinerUParserService] Failed to update monitor task', err)
       }
     }
   }

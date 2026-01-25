@@ -33,6 +33,8 @@ export interface MinerUStartParsingRequest {
   isOcr?: boolean
   language?: string
   pageRanges?: string
+  /** 前端预生成的监控任务 ID，用于前后端跟踪同一任务 */
+  monitorTaskId?: string
 }
 
 export interface MinerUStartParsingResponse {
@@ -68,4 +70,6 @@ export interface MinerUTaskRecord {
   errMsg?: string
   updatedAt: string
   createdAt: string
+  /** 全局监控任务 ID */
+  monitorTaskId?: string
 }

@@ -18,8 +18,14 @@ export class TaskRegistry {
   // ============================================================================
 
   create(params: CreateTaskParams): string {
-    const id = this.generateId()
+    // 使用传入的 ID 或自动生成
+    const id = params.id || this.generateId()
     const now = Date.now()
+
+    // 如果任务已存在，直接返回（幂等性）
+    if (this.tasks.has(id)) {
+      return id
+    }
 
     const task: TaskRecord = {
       id,

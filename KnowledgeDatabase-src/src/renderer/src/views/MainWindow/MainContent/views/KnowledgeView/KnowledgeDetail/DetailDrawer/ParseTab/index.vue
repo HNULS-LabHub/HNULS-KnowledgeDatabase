@@ -85,9 +85,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useParsingStore } from '@renderer/stores/parsing/parsing.store'
 import { useChunkingStore } from '@renderer/stores/chunking/chunking.store'
-import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
 import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
-import type { TaskHandle } from '@preload/types'
 import { canChunkFile, isPlainTextFile } from '@renderer/stores/chunking/chunking.util'
 import ChunkingPreviewDialog from '../../SettingsView/ChunkingPreviewDialog.vue'
 import type { ChunkingConfig } from '@renderer/stores/chunking/chunking.types'
@@ -109,7 +107,6 @@ const props = defineProps<{
 
 const parsingStore = useParsingStore()
 const chunkingStore = useChunkingStore()
-const knowledgeLibraryStore = useKnowledgeLibraryStore()
 const configStore = useKnowledgeConfigStore()
 
 // 分块配置：从 config store 获取（文档配置或全局配置）
@@ -331,48 +328,35 @@ const handleStartParsing = async (): Promise<void> => {
   if (!props.knowledgeBaseId) return
   if (isParsing.value) return
 
-  let taskHandle: TaskHandle | null = null
+  const fileName = props.fileData?.name || props.fileKey.split('/').pop() || '未知文件'
 
-  try {
-    // 获取知识库名称和文件名
-    const kb = knowledgeLibraryStore.getById(props.knowledgeBaseId)
-    const knowledgeBaseName = kb?.name || `知识库 ${props.knowledgeBaseId}`
-    const fileName = props.fileData?.name || props.fileKey.split('/').pop() || '未知文件'
+  // 1. 生成任务 ID（前端预生成）
+  const monitorTaskId = `parsing-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 
-    // 创建任务
-    taskHandle = await window.api.taskMonitor.createTask({
+  // 2. 立即创建占位任务（不等待后端）
+  window.api.taskMonitor
+    .createTask({
+      id: monitorTaskId,
       type: 'parsing',
       title: `文档解析 - ${fileName}`,
       meta: {
         fileKey: props.fileKey,
         fileName,
         knowledgeBaseId: props.knowledgeBaseId,
-        knowledgeBaseName
+        status: '等待后端响应'
       }
     })
+    .catch((err) => console.warn('[ParseTab] Failed to create monitor task:', err))
 
-    // 启动解析
+  // 3. 发起解析请求（传递 monitorTaskId 给后端）
+  try {
     await parsingStore.startParsing(props.fileKey, {
       parserName: 'MinerU Parser',
-      knowledgeBaseId: props.knowledgeBaseId
+      knowledgeBaseId: props.knowledgeBaseId,
+      monitorTaskId
     })
-
-    // 获取解析结果以获取 versionId 和 batchId
-    const parsingStateResult = parsingStore.getState(props.fileKey)
-    if (parsingStateResult && parsingStateResult.activeVersionId) {
-      const statusRes = await window.api.minerU.getStatus(props.fileKey)
-      if (statusRes.success && statusRes.data) {
-        taskHandle.updateProgress(50, {
-          versionId: parsingStateResult.activeVersionId,
-          batchId: statusRes.data.batchId
-        })
-      }
-    }
-
-    taskHandle.complete()
   } catch (error) {
     console.error('[ParseTab] Failed to start parsing:', error)
-    taskHandle?.fail(error instanceof Error ? error.message : '解析失败')
   }
 }
 

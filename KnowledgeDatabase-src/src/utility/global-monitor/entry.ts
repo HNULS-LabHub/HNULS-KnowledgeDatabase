@@ -33,8 +33,10 @@ function sendMessage(msg: UtilityToMainMessage): void {
 }
 
 // 处理来自 Main 进程的消息
-parentPort.on('message', (msg: MainToUtilityMessage) => {
-  log(`Received: ${msg.type}`)
+// 注意：Electron UtilityProcess 的 message 事件传递的是 { data: actualMessage }
+parentPort.on('message', (event: { data: MainToUtilityMessage }) => {
+  const msg = event.data
+  log(`Received: ${msg?.type}`)
 
   try {
     switch (msg.type) {

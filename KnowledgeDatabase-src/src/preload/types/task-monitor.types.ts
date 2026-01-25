@@ -43,6 +43,8 @@ export interface TaskHandle {
 // ============================================================================
 
 export interface CreateTaskParams {
+  /** 可选：前端预生成的任务 ID，用于前后端跟踪同一任务 */
+  id?: string
   type: string
   title: string
   meta?: Record<string, unknown>
