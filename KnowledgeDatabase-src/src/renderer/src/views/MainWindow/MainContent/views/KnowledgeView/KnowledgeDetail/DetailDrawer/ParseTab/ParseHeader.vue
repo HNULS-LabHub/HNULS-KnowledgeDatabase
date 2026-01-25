@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="kb-parse-header flex items-center gap-2 pb-2 border-b border-slate-100 flex-shrink-0"
-  >
+  <div class="kb-parse-header flex items-center gap-2 pb-2 border-b border-slate-100 flex-shrink-0">
     <div class="bg-blue-50 p-1 rounded-md">
       <svg
         class="w-4 h-4 text-blue-600"

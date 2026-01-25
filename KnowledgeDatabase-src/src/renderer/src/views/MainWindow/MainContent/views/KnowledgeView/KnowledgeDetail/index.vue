@@ -38,9 +38,9 @@
       </template>
 
       <!-- 配置页面 -->
-      <SettingsView 
-        v-else-if="currentNav === 'settings'" 
-        :knowledge-base-id="kb.id" 
+      <SettingsView
+        v-else-if="currentNav === 'settings'"
+        :knowledge-base-id="kb.id"
         @open-embedding-detail="handleOpenEmbeddingDetail"
       />
 

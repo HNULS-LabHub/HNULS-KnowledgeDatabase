@@ -33,9 +33,7 @@
                   </div>
                   <div>
                     <h3 class="text-lg font-bold text-slate-900">批量嵌入</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">
-                      已选中 {{ selectedCount }} 个文件
-                    </p>
+                    <p class="text-xs text-slate-500 mt-0.5">已选中 {{ selectedCount }} 个文件</p>
                   </div>
                 </div>
                 <button
@@ -59,9 +57,7 @@
             <!-- Content -->
             <div class="px-6 py-5 space-y-4">
               <!-- 提示信息 -->
-              <div
-                class="flex items-start gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl"
-              >
+              <div class="flex items-start gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl">
                 <svg
                   class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
                   viewBox="0 0 24 24"
@@ -83,9 +79,7 @@
 
               <!-- 模型选择 -->
               <div class="space-y-2">
-                <label class="block text-sm font-medium text-slate-700">
-                  选择嵌入模型配置
-                </label>
+                <label class="block text-sm font-medium text-slate-700"> 选择嵌入模型配置 </label>
                 <WhiteSelect
                   v-model="selectedConfigId"
                   :options="configOptions"

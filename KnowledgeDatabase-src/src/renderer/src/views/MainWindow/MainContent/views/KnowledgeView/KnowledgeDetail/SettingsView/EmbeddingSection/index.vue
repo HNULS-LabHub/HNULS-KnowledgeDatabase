@@ -3,8 +3,12 @@
     <!-- Header -->
     <div class="kb-embedding-header flex items-center justify-between">
       <div>
-        <h3 class="kb-embedding-title text-lg font-semibold text-slate-900 mb-1">针对此库的嵌入方案</h3>
-        <p class="kb-embedding-desc text-sm text-slate-500">创建并管理适用于本知识库的向量化配置方案</p>
+        <h3 class="kb-embedding-title text-lg font-semibold text-slate-900 mb-1">
+          针对此库的嵌入方案
+        </h3>
+        <p class="kb-embedding-desc text-sm text-slate-500">
+          创建并管理适用于本知识库的向量化配置方案
+        </p>
       </div>
       <button
         class="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
@@ -20,9 +24,20 @@
 
     <!-- Config List -->
     <div class="space-y-4">
-      <div v-if="!configs || configs.length === 0" class="py-12 border-2 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center text-slate-400">
-         <svg class="w-12 h-12 mb-3 opacity-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+      <div
+        v-if="!configs || configs.length === 0"
+        class="py-12 border-2 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center text-slate-400"
+      >
+        <svg
+          class="w-12 h-12 mb-3 opacity-20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+        >
+          <path
+            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+          ></path>
         </svg>
         <p class="text-sm">尚未创建任何配置，点击右上角开始</p>
       </div>
@@ -39,12 +54,33 @@
             </div>
             <div class="flex items-center gap-3 text-xs text-slate-400 mt-1">
               <span class="flex items-center gap-1">
-                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                <svg
+                  class="w-3 h-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                  ></path>
+                </svg>
                 预设: {{ config.presetName || '自定义' }}
               </span>
               <span class="w-1 h-1 rounded-full bg-slate-200"></span>
               <span class="flex items-center gap-1">
-                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <svg
+                  class="w-3 h-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
                 节点: {{ config.candidates.length }}
               </span>
               <span class="w-1 h-1 rounded-full bg-slate-200"></span>
@@ -59,26 +95,38 @@
             @click="$emit('open-embedding-detail', config)"
           >
             <span class="text-xs font-semibold">详细配置</span>
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              class="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
           </button>
-          
+
           <button
             class="p-2 text-slate-300 hover:text-red-500 rounded-xl transition-colors"
             @click="handleRemove(config.id)"
           >
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <svg
+              class="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
         </div>
       </div>
     </div>
 
     <!-- Create Dialog -->
-    <CreateConfigDialog
-      v-model="showCreateDialog"
-      @submit="handleCreate"
-    />
+    <CreateConfigDialog v-model="showCreateDialog" @submit="handleCreate" />
   </div>
 </template>
 

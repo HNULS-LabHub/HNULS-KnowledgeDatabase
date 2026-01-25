@@ -18,22 +18,16 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
   /**
    * 获取知识库配置
    */
-  const getConfig = computed(
-    () =>
-      (kbId: number): KnowledgeConfig | null => {
-        return configByKbId.value.get(kbId) ?? null
-      }
-  )
+  const getConfig = computed(() => (kbId: number): KnowledgeConfig | null => {
+    return configByKbId.value.get(kbId) ?? null
+  })
 
   /**
    * 获取全局配置
    */
-  const getGlobalConfig = computed(
-    () =>
-      (kbId: number): KnowledgeGlobalConfig | null => {
-        return configByKbId.value.get(kbId)?.global ?? null
-      }
-  )
+  const getGlobalConfig = computed(() => (kbId: number): KnowledgeGlobalConfig | null => {
+    return configByKbId.value.get(kbId)?.global ?? null
+  })
 
   /**
    * 获取文档配置（已合并全局）
@@ -57,13 +51,10 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
   /**
    * 检查文档是否有独立配置
    */
-  const hasCustomConfig = computed(
-    () =>
-      (kbId: number, fileKey: string): boolean => {
-        const config = configByKbId.value.get(kbId)
-        return !!config?.documents[fileKey]
-      }
-  )
+  const hasCustomConfig = computed(() => (kbId: number, fileKey: string): boolean => {
+    const config = configByKbId.value.get(kbId)
+    return !!config?.documents[fileKey]
+  })
 
   /**
    * 加载配置
@@ -113,12 +104,9 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
   /**
    * 获取嵌入配置列表
    */
-  const getEmbeddingConfigs = computed(
-    () =>
-      (kbId: number): EmbeddingModelConfig[] => {
-        return configByKbId.value.get(kbId)?.global.embedding?.configs ?? []
-      }
-  )
+  const getEmbeddingConfigs = computed(() => (kbId: number): EmbeddingModelConfig[] => {
+    return configByKbId.value.get(kbId)?.global.embedding?.configs ?? []
+  })
 
   /**
    * 创建嵌入配置项

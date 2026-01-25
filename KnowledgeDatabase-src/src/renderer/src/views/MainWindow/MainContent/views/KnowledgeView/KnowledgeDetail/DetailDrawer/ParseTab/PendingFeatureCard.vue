@@ -2,9 +2,7 @@
   <div
     class="kb-pending-feature-card relative overflow-hidden rounded-lg border border-slate-200 bg-white p-3 group hover:border-slate-300 hover:shadow-sm transition-all"
   >
-    <div
-      class="flex items-center gap-3 opacity-60 group-hover:opacity-100 transition-opacity"
-    >
+    <div class="flex items-center gap-3 opacity-60 group-hover:opacity-100 transition-opacity">
       <div
         class="p-1.5 rounded bg-slate-100 group-hover:bg-slate-200/50 text-slate-500 group-hover:text-slate-700"
       >

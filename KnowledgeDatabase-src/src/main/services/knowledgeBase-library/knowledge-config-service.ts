@@ -158,10 +158,7 @@ export class KnowledgeConfigService {
    * @param knowledgeBaseDocumentPath 知识库文档路径
    * @param fileKey 文件标识（支持目录，会清理该目录下所有文件配置）
    */
-  async cleanupDocumentConfig(
-    knowledgeBaseDocumentPath: string,
-    fileKey: string
-  ): Promise<void> {
+  async cleanupDocumentConfig(knowledgeBaseDocumentPath: string, fileKey: string): Promise<void> {
     const config = await this.readConfig(knowledgeBaseDocumentPath)
     const configPath = this.getConfigPath(knowledgeBaseDocumentPath)
     let hasChanges = false

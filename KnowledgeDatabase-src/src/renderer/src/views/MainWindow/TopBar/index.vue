@@ -178,11 +178,7 @@ const emit = defineEmits<{
 
 const taskMonitorStore = useTaskMonitorStore()
 
-const hasActiveTasks = computed(() => {
-  return taskMonitorStore.tasks.some(
-    (task) => task.status === 'running' || task.status === 'queued'
-  )
-})
+const hasActiveTasks = computed(() => taskMonitorStore.hasActiveTasks)
 
 const handleTaskButtonClick = () => {
   emit('navigate-to-task-monitor')

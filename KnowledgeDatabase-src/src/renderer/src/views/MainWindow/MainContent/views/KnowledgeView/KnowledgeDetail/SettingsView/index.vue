@@ -30,9 +30,9 @@
       <ChunkingSection ref="chunkingRef" :knowledge-base-id="knowledgeBaseId" />
 
       <!-- 嵌入配置区 -->
-      <EmbeddingSection 
-        ref="embeddingRef" 
-        :knowledge-base-id="knowledgeBaseId" 
+      <EmbeddingSection
+        ref="embeddingRef"
+        :knowledge-base-id="knowledgeBaseId"
         @open-embedding-detail="$emit('open-embedding-detail', $event)"
       />
 

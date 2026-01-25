@@ -9,7 +9,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { TaskStatus } from '@renderer/stores/global-monitor-panel/task-monitor.types'
+import type { TaskStatus } from '@preload/types'
 
 const props = defineProps<{
   value: number
@@ -18,11 +18,11 @@ const props = defineProps<{
 
 const colorClass = computed(() => {
   const colors: Record<TaskStatus, string> = {
+    pending: 'bg-amber-500',
     running: 'bg-blue-600',
+    paused: 'bg-slate-400',
     completed: 'bg-emerald-500',
-    failed: 'bg-rose-500',
-    queued: 'bg-amber-500',
-    paused: 'bg-slate-400'
+    failed: 'bg-rose-500'
   }
   return colors[props.status] || 'bg-blue-600'
 })

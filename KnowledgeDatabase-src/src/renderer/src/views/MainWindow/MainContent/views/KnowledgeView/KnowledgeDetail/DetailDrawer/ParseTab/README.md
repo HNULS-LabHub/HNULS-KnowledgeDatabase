@@ -18,7 +18,9 @@ ParseTab/
 ## 🎯 拆分原则
 
 ### 主组件 (index.vue)
+
 **保留内容**：
+
 - ✅ 所有 Store 调用（parsingStore, chunkingStore, taskMonitorStore, knowledgeLibraryStore）
 - ✅ 所有响应式状态（ref, computed）
 - ✅ 所有 watch 监听
@@ -27,7 +29,9 @@ ParseTab/
 - ✅ IntersectionObserver 逻辑
 
 ### 子组件
+
 **职责**：
+
 - ✅ 只接收 Props（数据向下流）
 - ✅ 只发射 Events（事件向上冒泡）
 - ❌ 不调用 Store（避免状态分散）
@@ -36,21 +40,22 @@ ParseTab/
 
 ## 📊 组件对比
 
-| 组件 | 行数 | 职责 | Props | Emits |
-|------|------|------|-------|-------|
-| **index.vue** | ~350 | 状态管理、业务逻辑 | 3 | 0 |
-| ParseNavBar.vue | ~30 | 导航条展示 | 2 | 1 |
-| ParseHeader.vue | ~20 | 标题展示 | 0 | 0 |
-| MinerUPanel.vue | ~120 | 解析面板展示 | 3 | 1 |
-| VersionManager.vue | ~100 | 版本列表展示 | 2 | 1 |
-| ChunkingPanel.vue | ~180 | 分块配置展示 | 6 | 3 |
-| PendingFeatureCard.vue | ~50 | 占位卡片展示 | 2 | 0 |
+| 组件                   | 行数 | 职责               | Props | Emits |
+| ---------------------- | ---- | ------------------ | ----- | ----- |
+| **index.vue**          | ~350 | 状态管理、业务逻辑 | 3     | 0     |
+| ParseNavBar.vue        | ~30  | 导航条展示         | 2     | 1     |
+| ParseHeader.vue        | ~20  | 标题展示           | 0     | 0     |
+| MinerUPanel.vue        | ~120 | 解析面板展示       | 3     | 1     |
+| VersionManager.vue     | ~100 | 版本列表展示       | 2     | 1     |
+| ChunkingPanel.vue      | ~180 | 分块配置展示       | 6     | 3     |
+| PendingFeatureCard.vue | ~50  | 占位卡片展示       | 2     | 0     |
 
 **总计**：从 825 行拆分为 ~850 行（分散在 7 个文件中）
 
 ## 🔒 安全保证
 
 ### 1. 响应式链路完整
+
 ```
 props.fileKey (响应式源头)
   ↓
@@ -64,12 +69,15 @@ isParsing = computed(() => { ... parsingState.value ... })
 ```
 
 ### 2. Store 调用集中
+
 所有 store 调用都在 index.vue 中，状态来源唯一，避免多处调用导致不一致。
 
 ### 3. Watch 不重复触发
+
 watch 只在 index.vue 中，避免重复监听和多次调用后端。
 
 ### 4. 事件处理逻辑集中
+
 业务逻辑在 index.vue，子组件只负责 UI 交互和事件上报。
 
 ## 🔄 数据流
@@ -112,21 +120,19 @@ watch 只在 index.vue 中，避免重复监听和多次调用后端。
 ## 📝 使用示例
 
 ### 父组件引用
+
 ```vue
 <script setup>
 import ParseTab from './ParseTab/index.vue'
 </script>
 
 <template>
-  <ParseTab
-    :file-key="fileKey"
-    :knowledge-base-id="knowledgeBaseId"
-    :file-data="fileData"
-  />
+  <ParseTab :file-key="fileKey" :knowledge-base-id="knowledgeBaseId" :file-data="fileData" />
 </template>
 ```
 
 ### 子组件通信
+
 ```vue
 <!-- index.vue -->
 <MinerUPanel
@@ -153,6 +159,7 @@ import ParseTab from './ParseTab/index.vue'
 ## 🧪 测试验证
 
 ### 功能测试
+
 - [ ] 解析功能：点击"开始 MinerU 解析"按钮，能正常启动解析
 - [ ] 版本切换：点击版本列表中的版本，能正常切换
 - [ ] 分块功能：点击"分块"按钮，能正常执行分块
@@ -160,11 +167,13 @@ import ParseTab from './ParseTab/index.vue'
 - [ ] 导航功能：点击导航按钮，能正常滚动到对应区域
 
 ### 状态测试
+
 - [ ] watch 触发：fileKey 变化时，能正常触发 watch 并更新状态
 - [ ] store 更新：解析/分块操作能正常更新 store 状态
 - [ ] 响应式更新：store 状态变化能正常反映到 UI
 
 ### 交互测试
+
 - [ ] 按钮禁用：在不满足条件时，按钮能正常禁用
 - [ ] 加载状态：在执行操作时，能正常显示加载状态
 - [ ] 错误处理：在操作失败时，能正常显示错误信息

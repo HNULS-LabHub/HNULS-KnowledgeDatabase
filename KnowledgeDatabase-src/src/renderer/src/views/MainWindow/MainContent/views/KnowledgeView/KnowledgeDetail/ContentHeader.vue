@@ -121,7 +121,7 @@
           <!-- 操作组 -->
           <div class="kb-content-header-group">
             <div class="kb-content-header-group-content">
-              <button 
+              <button
                 class="kb-content-header-action-btn"
                 :disabled="!isSelectionModeEnabled || isBatchParsing"
                 @click="handleBatchParsing"
@@ -135,7 +135,7 @@
                 </svg>
                 {{ isBatchParsing ? '解析中...' : '解析文档' }}
               </button>
-              <button 
+              <button
                 class="kb-content-header-action-btn"
                 :disabled="!isSelectionModeEnabled || isBatchChunking"
                 @click="handleBatchChunking"
@@ -148,7 +148,7 @@
                 </svg>
                 {{ isBatchChunking ? '分块中...' : '分块' }}
               </button>
-              <button 
+              <button
                 class="kb-content-header-action-btn"
                 :disabled="!isSelectionModeEnabled"
                 @click="showBatchEmbeddingDialog = true"

@@ -10,6 +10,7 @@ import { chunkingAPI } from '../api/chunking-api'
 import { utilsAPI } from '../api/utils-api'
 import { modelConfigAPI } from '../api/model-config-api'
 import { knowledgeConfigAPI } from '../api/knowledge-config-api'
+import { taskMonitorAPI } from '../api/task-monitor-api'
 
 // 自定义 API 集合
 const customAPI = {
@@ -22,6 +23,7 @@ const customAPI = {
   chunking: chunkingAPI,
   modelConfig: modelConfigAPI,
   knowledgeConfig: knowledgeConfigAPI,
+  taskMonitor: taskMonitorAPI,
   // Electron 文件路径工具
   utils: utilsAPI
   // TODO: 添加其他业务域 API

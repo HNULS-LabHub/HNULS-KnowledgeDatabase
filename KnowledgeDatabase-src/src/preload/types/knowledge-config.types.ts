@@ -83,4 +83,3 @@ export interface KnowledgeConfigAPI {
   ): Promise<APIResponse<KnowledgeConfig>>
   validateAndCleanup(knowledgeBaseId: number): Promise<APIResponse<void>>
 }
-

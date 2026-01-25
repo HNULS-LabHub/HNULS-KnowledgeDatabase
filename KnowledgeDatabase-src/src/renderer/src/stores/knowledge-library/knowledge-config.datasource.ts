@@ -1,8 +1,4 @@
-import type {
-  KnowledgeConfig,
-  KnowledgeGlobalConfig,
-  DocumentConfig
-} from '@preload/types'
+import type { KnowledgeConfig, KnowledgeGlobalConfig, DocumentConfig } from '@preload/types'
 
 /**
  * 知识库配置数据源

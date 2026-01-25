@@ -20,7 +20,7 @@ export interface BatchMoveResult {
   success: number
   failed: number
   results: Array<{
-    source: string 
+    source: string
     target: string
     success: boolean
     error?: string

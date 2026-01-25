@@ -139,22 +139,24 @@
                     @click="handleSelectModel(provider.id, model.id)"
                   >
                     <!-- Selection Indicator -->
-                      <div
-                        class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
-                        :class="
-                          (multiple ? selectedModelIds.has(model.id) : selectedModelId === model.id)
-                            ? 'border-blue-500 bg-blue-500'
-                            : 'border-gray-300 group-hover:border-blue-300'
+                    <div
+                      class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
+                      :class="
+                        (multiple ? selectedModelIds.has(model.id) : selectedModelId === model.id)
+                          ? 'border-blue-500 bg-blue-500'
+                          : 'border-gray-300 group-hover:border-blue-300'
+                      "
+                    >
+                      <svg
+                        v-if="
+                          multiple ? selectedModelIds.has(model.id) : selectedModelId === model.id
                         "
+                        class="w-3 h-3 text-white"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
                       >
-                        <svg
-                          v-if="(multiple ? selectedModelIds.has(model.id) : selectedModelId === model.id)"
-                          class="w-3 h-3 text-white"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="3"
-                        >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
@@ -171,7 +173,9 @@
           </div>
 
           <!-- Footer -->
-          <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center rounded-b-2xl">
+          <div
+            class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center rounded-b-2xl"
+          >
             <button
               class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
               @click="handleClose"
@@ -234,7 +238,7 @@ watch(
       if (modelConfigStore.providers.length === 0) {
         await modelConfigStore.fetchProviders()
       }
-      
+
       // 初始化选中状态
       if (props.multiple) {
         selectedModelIds.value.clear()
@@ -325,21 +329,20 @@ function handleSelectModel(_providerId: string, modelId: string): void {
 function handleConfirm(): void {
   if (props.multiple) {
     if (selectedModelIds.value.size === 0) return
-    
+
     const selections: Array<{ providerId: string; modelId: string }> = []
-    
+
     // 遍历所有 provider 找到选中的 model
-    modelConfigStore.providers.forEach(p => {
-      p.models.forEach(m => {
+    modelConfigStore.providers.forEach((p) => {
+      p.models.forEach((m) => {
         if (selectedModelIds.value.has(m.id)) {
           selections.push({ providerId: p.id, modelId: m.id })
         }
       })
     })
-    
+
     emit('select-multiple', selections)
     handleClose()
-    
   } else {
     if (!selectedModelId.value) return
 

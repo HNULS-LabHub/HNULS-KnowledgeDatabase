@@ -56,9 +56,7 @@
         </span>
       </div>
 
-      <div
-        class="h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200 relative"
-      >
+      <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200 relative">
         <div
           class="absolute top-0 left-0 h-full bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.3)] transition-all duration-200"
           :style="{ width: `${progress}%` }"

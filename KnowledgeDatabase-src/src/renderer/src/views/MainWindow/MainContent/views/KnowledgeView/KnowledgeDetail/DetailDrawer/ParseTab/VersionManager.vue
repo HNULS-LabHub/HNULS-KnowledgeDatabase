@@ -36,9 +36,7 @@
         :key="v.id"
         class="group relative flex items-center gap-3 py-2.5 pl-2 pr-2 cursor-pointer select-none transition-all duration-200 ease-out rounded-lg border border-transparent"
         :class="
-          activeVersionId === v.id
-            ? 'bg-blue-50 border-blue-100 shadow-sm'
-            : 'hover:bg-slate-100'
+          activeVersionId === v.id ? 'bg-blue-50 border-blue-100 shadow-sm' : 'hover:bg-slate-100'
         "
         @click="$emit('switch-version', v.id)"
       >

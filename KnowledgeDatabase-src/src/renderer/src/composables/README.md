@@ -24,6 +24,7 @@
 **用途**：批量文档解析和分块操作的并发控制与任务管理
 
 **功能**：
+
 - 批量解析文档（带并发控制）
 - 批量分块（带并发控制）
 - 自动任务监控集成
@@ -35,12 +36,8 @@
 import { useBatchOperations } from '@renderer/composables/useBatchOperations'
 
 // 在组件中使用
-const { 
-  isBatchParsing, 
-  isBatchChunking, 
-  batchParseDocuments, 
-  batchChunkDocuments 
-} = useBatchOperations()
+const { isBatchParsing, isBatchChunking, batchParseDocuments, batchChunkDocuments } =
+  useBatchOperations()
 
 // 批量解析文档
 const result = await batchParseDocuments(selectedFiles, knowledgeBaseId)

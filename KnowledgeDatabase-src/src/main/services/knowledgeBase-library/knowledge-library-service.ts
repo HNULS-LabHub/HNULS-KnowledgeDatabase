@@ -159,10 +159,7 @@ export class KnowledgeLibraryService {
     const newId = await this.generateId()
 
     // 创建文档目录（使用知识库名称）
-    const documentPath = await this.documentService.createKnowledgeBaseDirectory(
-      newId,
-      trimmedName
-    )
+    const documentPath = await this.documentService.createKnowledgeBaseDirectory(newId, trimmedName)
 
     // 使用知识库名称作为 database 名称
     const databaseName = trimmedName
@@ -361,13 +358,13 @@ export class KnowledgeLibraryService {
           // 查询当前 namespace 下的所有 database
           const infoResult = await this.queryService.query<any[]>('INFO FOR NS;')
           logger.debug('INFO FOR NS result:', { infoResult, firstResult: infoResult?.[0] })
-          
+
           // 修复：直接访问 infoResult[0]，而不是 infoResult[0].result
           const nsInfo = infoResult?.[0]
 
           if (nsInfo && nsInfo.databases) {
             logger.debug('Found databases in namespace:', { databases: nsInfo.databases })
-            
+
             // 遍历所有数据库
             for (const dbName in nsInfo.databases) {
               // 跳过 system 数据库

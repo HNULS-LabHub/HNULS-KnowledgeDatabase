@@ -46,11 +46,7 @@ export const useEmbeddingStore = defineStore('embedding', () => {
   ): Promise<FileEmbeddingState> {
     // 如果已有状态且配置相同且有向量，直接返回
     const existing = fileStates.value.get(fileKey)
-    if (
-      existing &&
-      existing.config.configId === config.configId &&
-      existing.vectors.length > 0
-    ) {
+    if (existing && existing.config.configId === config.configId && existing.vectors.length > 0) {
       return existing
     }
 

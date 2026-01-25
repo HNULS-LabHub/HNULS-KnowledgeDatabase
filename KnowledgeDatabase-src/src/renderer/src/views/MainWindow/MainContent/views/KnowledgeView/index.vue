@@ -151,10 +151,10 @@
     </template>
 
     <!-- Detail View Mode -->
-    <KnowledgeDetail 
-      v-else-if="selectedKb" 
+    <KnowledgeDetail
+      v-else-if="selectedKb"
       ref="detailRef"
-      :kb="selectedKb" 
+      :kb="selectedKb"
       @enter-embedding-detail="handleEnterEmbeddingDetail"
       @leave-embedding-detail="handleLeaveEmbeddingDetail"
     />
@@ -240,7 +240,6 @@ function handleLeaveEmbeddingDetail() {
   // 返回到知识库详情页，只显示知识库名称
   emit('enter-detail', kbNameBreadcrumb.value)
 }
-
 
 const handleBack = () => {
   // 检查子组件是否能处理返回 (二级详情返回)

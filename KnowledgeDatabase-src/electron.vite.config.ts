@@ -8,7 +8,8 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'src/main/index.ts'),
-          'utility/embedding': resolve(__dirname, 'src/utility/embedding-engine/entry.ts')
+          'utility/embedding': resolve(__dirname, 'src/utility/embedding-engine/entry.ts'),
+          'utility/global-monitor': resolve(__dirname, 'src/utility/global-monitor/entry.ts')
         }
       }
     }

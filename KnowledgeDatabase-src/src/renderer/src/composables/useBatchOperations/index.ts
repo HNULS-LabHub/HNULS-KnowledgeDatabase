@@ -7,13 +7,13 @@ import { ref } from 'vue'
 import { useParsingStore } from '@renderer/stores/parsing/parsing.store'
 import { useChunkingStore } from '@renderer/stores/chunking/chunking.store'
 import { useEmbeddingStore } from '@renderer/stores/embedding/embedding.store'
-import { useTaskMonitorStore } from '@renderer/stores/global-monitor-panel/task-monitor.store'
 import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
 import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
 import { canChunkFile, isPlainTextFile } from '@renderer/stores/chunking/chunking.util'
 import type { FileNode } from '@renderer/stores/knowledge-library/file.types'
 import type { ChunkingConfig } from '@renderer/stores/chunking/chunking.types'
 import type { EmbeddingConfig } from '@renderer/stores/embedding/embedding.types'
+import type { TaskHandle } from '@preload/types'
 
 // ========== 批量操作并发控制配置 ==========
 export const BATCH_CONFIG = {
@@ -45,7 +45,6 @@ export function useBatchOperations() {
   const parsingStore = useParsingStore()
   const chunkingStore = useChunkingStore()
   const embeddingStore = useEmbeddingStore()
-  const taskMonitorStore = useTaskMonitorStore()
   const knowledgeLibraryStore = useKnowledgeLibraryStore()
   const configStore = useKnowledgeConfigStore()
 
@@ -133,8 +132,21 @@ export function useBatchOperations() {
         async (file) => {
           const fileKey = file.path || file.name
           const fileName = file.name
+          let taskHandle: TaskHandle | null = null
 
           try {
+            // 创建任务
+            taskHandle = await window.api.taskMonitor.createTask({
+              type: 'parsing',
+              title: `文档解析 - ${fileName}`,
+              meta: {
+                fileKey,
+                fileName,
+                knowledgeBaseId,
+                knowledgeBaseName
+              }
+            })
+
             // 启动解析
             await parsingStore.startParsing(fileKey, {
               parserName: 'MinerU Parser',
@@ -146,19 +158,17 @@ export function useBatchOperations() {
             if (parsingState && parsingState.activeVersionId) {
               const statusRes = await window.api.minerU.getStatus(fileKey)
               if (statusRes.success && statusRes.data) {
-                // 添加到任务监控面板
-                taskMonitorStore.addDocumentParsingTask(
-                  fileKey,
-                  fileName,
-                  knowledgeBaseId,
-                  knowledgeBaseName,
-                  parsingState.activeVersionId,
-                  statusRes.data.batchId
-                )
+                taskHandle.updateProgress(50, {
+                  versionId: parsingState.activeVersionId,
+                  batchId: statusRes.data.batchId
+                })
               }
             }
+
+            taskHandle.complete()
           } catch (error) {
             console.error(`[BatchParsing] Failed to parse ${fileName}:`, error)
+            taskHandle?.fail(error instanceof Error ? error.message : '解析失败')
             throw error
           }
         }
@@ -186,7 +196,7 @@ export function useBatchOperations() {
     // 非纯文本文件需要检查解析状态
     const state = parsingStore.getState(fileKey)
     if (!state || !state.activeVersionId) return false
-    
+
     const version = state.versions.find((v) => v.id === state.activeVersionId)
     return version?.name.includes('完成') || false
   }
@@ -243,15 +253,20 @@ export function useBatchOperations() {
         async (file) => {
           const fileKey = file.path || file.name
           const fileName = file.name
+          let taskHandle: TaskHandle | null = null
 
           try {
-            // 添加到任务监控面板
-            taskMonitorStore.addChunkingTask(
-              fileKey,
-              fileName,
-              knowledgeBaseId,
-              knowledgeBaseName
-            )
+            // 创建任务
+            taskHandle = await window.api.taskMonitor.createTask({
+              type: 'chunking',
+              title: `文档分块 - ${fileName}`,
+              meta: {
+                fileKey,
+                fileName,
+                knowledgeBaseId,
+                knowledgeBaseName
+              }
+            })
 
             // 获取解析版本 ID（对于非纯文本文件）
             let parsingVersionId: string | undefined
@@ -273,13 +288,8 @@ export function useBatchOperations() {
               console.log(`[BatchChunking] Using default config for ${fileName}:`, chunkingConfig)
             }
 
-            // 更新任务状态为 running
-            taskMonitorStore.updateChunkingProgress({
-              fileKey,
-              percentage: 0,
-              totalChunks: 0,
-              currentDetail: '开始分块...'
-            })
+            // 更新任务状态
+            taskHandle.updateProgress(0, { currentDetail: '开始分块...' })
 
             // 执行分块
             const chunkingState = await chunkingStore.startChunking(fileKey, chunkingConfig, {
@@ -288,23 +298,12 @@ export function useBatchOperations() {
               parsingVersionId
             })
 
-            // 更新任务进度
-            const totalChunks = chunkingState.chunks.length
-            taskMonitorStore.updateChunkingProgress({
-              fileKey,
-              percentage: 100,
-              totalChunks,
-              currentDetail: `生成了 ${totalChunks} 个分块`
-            })
-
             // 完成任务
-            taskMonitorStore.completeChunkingTask(fileKey, totalChunks)
+            const totalChunks = chunkingState.chunks.length
+            taskHandle.complete({ totalChunks, currentDetail: `生成了 ${totalChunks} 个分块` })
           } catch (error) {
             console.error(`[BatchChunking] Failed to chunk ${fileName}:`, error)
-            taskMonitorStore.failChunkingTask(
-              fileKey,
-              error instanceof Error ? error.message : '分块失败'
-            )
+            taskHandle?.fail(error instanceof Error ? error.message : '分块失败')
             throw error
           }
         }
@@ -386,7 +385,9 @@ export function useBatchOperations() {
         dimensions: selectedConfig.dimensions
       }
 
-      console.log(`[BatchEmbedding] Starting batch embedding for ${embeddableFiles.length} files...`)
+      console.log(
+        `[BatchEmbedding] Starting batch embedding for ${embeddableFiles.length} files...`
+      )
 
       // 并发处理嵌入
       const result = await processConcurrentQueue(
@@ -395,6 +396,7 @@ export function useBatchOperations() {
         async (file) => {
           const fileKey = file.path || file.name
           const fileName = file.name
+          let taskHandle: TaskHandle | null = null
 
           try {
             // 获取分块数量
@@ -405,22 +407,18 @@ export function useBatchOperations() {
 
             const totalChunks = chunkingState.chunks.length
 
-            // 添加到任务监控面板
-            taskMonitorStore.addEmbeddingTask(
-              fileKey,
-              fileName,
-              knowledgeBaseId,
-              knowledgeBaseName,
-              embeddingConfig.configId
-            )
-
-            // 更新任务状态为 running
-            taskMonitorStore.updateEmbeddingProgress({
-              fileKey,
-              percentage: 0,
-              totalVectors: totalChunks,
-              processedVectors: 0,
-              currentDetail: '开始嵌入...'
+            // 创建任务
+            taskHandle = await window.api.taskMonitor.createTask({
+              type: 'embedding',
+              title: `向量嵌入 - ${fileName}`,
+              meta: {
+                fileKey,
+                fileName,
+                knowledgeBaseId,
+                knowledgeBaseName,
+                configId: embeddingConfig.configId,
+                totalChunks
+              }
             })
 
             // 执行嵌入
@@ -434,10 +432,7 @@ export function useBatchOperations() {
               },
               (progress, processed) => {
                 // 更新任务进度
-                taskMonitorStore.updateEmbeddingProgress({
-                  fileKey,
-                  percentage: progress,
-                  totalVectors: totalChunks,
+                taskHandle?.updateProgress(progress, {
                   processedVectors: processed,
                   currentDetail: `${processed}/${totalChunks} 向量`
                 })
@@ -445,13 +440,10 @@ export function useBatchOperations() {
             )
 
             // 完成任务
-            taskMonitorStore.completeEmbeddingTask(fileKey, totalChunks)
+            taskHandle.complete({ totalVectors: totalChunks })
           } catch (error) {
             console.error(`[BatchEmbedding] Failed to embed ${fileName}:`, error)
-            taskMonitorStore.failEmbeddingTask(
-              fileKey,
-              error instanceof Error ? error.message : '嵌入失败'
-            )
+            taskHandle?.fail(error instanceof Error ? error.message : '嵌入失败')
             throw error
           }
         }

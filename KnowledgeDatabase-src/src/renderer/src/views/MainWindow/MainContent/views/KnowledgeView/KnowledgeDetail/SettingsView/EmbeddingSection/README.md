@@ -17,17 +17,20 @@ EmbeddingSection/
 ## 功能特性
 
 ### 1. 嵌入模型选择
+
 - 从已配置的模型提供商中选择嵌入模型
 - 按提供商分组展示模型列表
 - 支持搜索和筛选功能
 - 模型选择对话框从下到上浮出动画
 
 ### 2. 嵌入维度配置
+
 - 可选配置嵌入向量的维度大小
 - 留空则使用模型默认维度
 - 自动验证输入（必须为正整数）
 
 ### 3. 配置保存
+
 - 实时检测配置变化
 - 支持保存和重置操作
 - 配置保存到 `KnowledgeConfig.json`
@@ -89,10 +92,12 @@ const knowledgeBaseId = 1
 ## 依赖
 
 ### Stores
+
 - `useKnowledgeConfigStore`: 知识库配置管理
 - `useUserModelConfigStore`: 模型配置管理
 
 ### Types
+
 - `@preload/types/knowledge-config.types`: 跨进程类型定义
   - `EmbeddingConfig`: 嵌入配置类型
   - `KnowledgeGlobalConfig`: 全局配置类型

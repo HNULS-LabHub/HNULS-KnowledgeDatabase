@@ -16,12 +16,8 @@
 import { useBatchOperations } from '@renderer/composables/useBatchOperations'
 
 // 在组件中使用
-const { 
-  isBatchParsing, 
-  isBatchChunking, 
-  batchParseDocuments, 
-  batchChunkDocuments 
-} = useBatchOperations()
+const { isBatchParsing, isBatchChunking, batchParseDocuments, batchChunkDocuments } =
+  useBatchOperations()
 
 // 批量解析文档
 const result = await batchParseDocuments(selectedFiles, knowledgeBaseId)
@@ -52,13 +48,16 @@ async function batchParseDocuments(
 ```
 
 **参数**：
+
 - `files` - 要解析的文件列表
 - `knowledgeBaseId` - 知识库 ID
 
 **返回**：
+
 - `BatchOperationResult` - 包含 `success` 和 `failed` 数量
 
 **行为**：
+
 - 自动过滤文件夹，只处理文件
 - 为每个文件创建任务监控记录
 - 并发处理（默认并发数：3）
@@ -76,13 +75,16 @@ async function batchChunkDocuments(
 ```
 
 **参数**：
+
 - `files` - 要分块的文件列表
 - `knowledgeBaseId` - 知识库 ID
 
 **返回**：
+
 - `BatchOperationResult` - 包含 `success` 和 `failed` 数量
 
 **行为**：
+
 - 自动过滤不可分块的文件（非纯文本且未解析）
 - 通过 `parsingStore` 检查文件是否已解析（而不是依赖 `file.status`）
 - 读取每个文件当前选择的解析版本
@@ -97,10 +99,10 @@ async function batchChunkDocuments(
 export const BATCH_CONFIG = {
   // 文档解析并发数（云端 API，避免限流）
   PARSING_CONCURRENCY: 3,
-  
+
   // 分块并发数（本地 CPU 密集型，避免卡顿）
   CHUNKING_CONCURRENCY: 5,
-  
+
   // 默认分块配置
   DEFAULT_CHUNKING_CONFIG: {
     mode: 'recursive' as const,
@@ -110,6 +112,7 @@ export const BATCH_CONFIG = {
 ```
 
 **调整建议**：
+
 - `PARSING_CONCURRENCY`：根据 API 限流策略调整（建议 3-5）
 - `CHUNKING_CONCURRENCY`：根据 CPU 性能调整（建议 3-8）
 - `DEFAULT_CHUNKING_CONFIG`：根据业务需求调整分块大小
@@ -118,8 +121,8 @@ export const BATCH_CONFIG = {
 
 ```typescript
 interface BatchOperationResult {
-  success: number  // 成功处理的文件数
-  failed: number   // 失败的文件数
+  success: number // 成功处理的文件数
+  failed: number // 失败的文件数
 }
 ```
 
@@ -139,7 +142,7 @@ function isFileParsed(fileKey: string, fileExtension?: string): boolean {
   // 非纯文本文件需要检查解析状态
   const state = parsingStore.getState(fileKey)
   if (!state || !state.activeVersionId) return false
-  
+
   const version = state.versions.find((v) => v.id === state.activeVersionId)
   return version?.name.includes('完成') || false
 }
@@ -148,12 +151,14 @@ function isFileParsed(fileKey: string, fileExtension?: string): boolean {
 ### 分块配置读取
 
 批量分块时，会自动读取每个文件已设定的分块配置：
+
 1. 优先使用文件已有的分块配置（通过 `chunkingStore.getState(fileKey)` 获取）
 2. 如果文件没有设定配置，则使用默认配置 `BATCH_CONFIG.DEFAULT_CHUNKING_CONFIG`
 
 这样可以保持每个文件的个性化配置。
 
 使用队列机制控制并发：
+
 1. 维护一个待处理队列
 2. 同时运行 N 个任务（N = 并发数）
 3. 一个任务完成后，从队列中取下一个
@@ -205,17 +210,11 @@ async function handleBatchChunking() {
 </script>
 
 <template>
-  <button 
-    :disabled="isBatchParsing"
-    @click="handleBatchParsing"
-  >
+  <button :disabled="isBatchParsing" @click="handleBatchParsing">
     {{ isBatchParsing ? '解析中...' : '解析文档' }}
   </button>
-  
-  <button 
-    :disabled="isBatchChunking"
-    @click="handleBatchChunking"
-  >
+
+  <button :disabled="isBatchChunking" @click="handleBatchChunking">
     {{ isBatchChunking ? '分块中...' : '分块' }}
   </button>
 </template>

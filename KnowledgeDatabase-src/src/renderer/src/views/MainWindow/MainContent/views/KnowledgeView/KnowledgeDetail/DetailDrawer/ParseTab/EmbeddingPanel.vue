@@ -68,13 +68,23 @@
           ></div>
         </div>
         <p class="text-xs text-slate-500">
-          已处理: {{ embeddingState.processedVectors || 0 }} / {{ embeddingState.totalVectors || 0 }} 向量
+          已处理: {{ embeddingState.processedVectors || 0 }} /
+          {{ embeddingState.totalVectors || 0 }} 向量
         </p>
       </div>
 
       <!-- 已嵌入信息 -->
-      <div v-if="hasEmbeddings && !isEmbedding" class="flex items-center gap-2 text-sm text-slate-600">
-        <svg class="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div
+        v-if="hasEmbeddings && !isEmbedding"
+        class="flex items-center gap-2 text-sm text-slate-600"
+      >
+        <svg
+          class="w-4 h-4 text-green-500"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
         <span>已生成 {{ embeddingState?.vectors.length || 0 }} 个向量</span>
@@ -116,7 +126,13 @@
           class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-xl font-medium text-sm hover:bg-slate-50 hover:border-slate-300 transition-all"
           @click="handleViewVectors"
         >
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
             <circle cx="12" cy="12" r="3"></circle>
           </svg>
@@ -132,11 +148,11 @@ import { ref, computed, watch } from 'vue'
 import { useEmbeddingStore } from '@renderer/stores/embedding/embedding.store'
 import { useChunkingStore } from '@renderer/stores/chunking/chunking.store'
 import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
-import { useTaskMonitorStore } from '@renderer/stores/global-monitor-panel/task-monitor.store'
 import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
 import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 import type { EmbeddingConfig } from '@renderer/stores/embedding/embedding.types'
 import type { FileNode } from '../../../types'
+import type { TaskHandle } from '@preload/types'
 
 const props = defineProps<{
   fileKey: string
@@ -149,7 +165,6 @@ const props = defineProps<{
 const embeddingStore = useEmbeddingStore()
 const chunkingStore = useChunkingStore()
 const configStore = useKnowledgeConfigStore()
-const taskMonitorStore = useTaskMonitorStore()
 const knowledgeLibraryStore = useKnowledgeLibraryStore()
 
 const embeddingPanelRef = ref<HTMLElement | null>(null)
@@ -248,6 +263,8 @@ const handleStartEmbedding = async (): Promise<void> => {
   if (!props.fileKey || !props.knowledgeBaseId || !embeddingConfig.value) return
   if (isEmbedding.value || !props.canEmbed) return
 
+  let taskHandle: TaskHandle | null = null
+
   try {
     // 获取分块数量
     const chunkingState = chunkingStore.getState(props.fileKey)
@@ -263,14 +280,19 @@ const handleStartEmbedding = async (): Promise<void> => {
     const knowledgeBaseName = kb?.name || `知识库 ${props.knowledgeBaseId}`
     const fileName = props.fileData?.name || props.fileKey.split('/').pop() || '未知文件'
 
-    // 添加到任务监控面板
-    taskMonitorStore.addEmbeddingTask(
-      props.fileKey,
-      fileName,
-      props.knowledgeBaseId,
-      knowledgeBaseName,
-      embeddingConfig.value.configId
-    )
+    // 创建任务
+    taskHandle = await window.api.taskMonitor.createTask({
+      type: 'embedding',
+      title: `向量嵌入 - ${fileName}`,
+      meta: {
+        fileKey: props.fileKey,
+        fileName,
+        knowledgeBaseId: props.knowledgeBaseId,
+        knowledgeBaseName,
+        configId: embeddingConfig.value.configId,
+        totalChunks
+      }
+    })
 
     // 执行嵌入
     await embeddingStore.startEmbedding(
@@ -282,11 +304,8 @@ const handleStartEmbedding = async (): Promise<void> => {
         totalChunks
       },
       (progress, processed) => {
-        // 更新任务监控面板进度
-        taskMonitorStore.updateEmbeddingProgress({
-          fileKey: props.fileKey,
-          percentage: progress,
-          totalVectors: totalChunks,
+        // 更新任务进度
+        taskHandle?.updateProgress(progress, {
           processedVectors: processed,
           currentDetail: `${processed}/${totalChunks} 向量`
         })
@@ -294,13 +313,10 @@ const handleStartEmbedding = async (): Promise<void> => {
     )
 
     // 完成任务
-    taskMonitorStore.completeEmbeddingTask(props.fileKey, totalChunks)
+    taskHandle.complete({ totalVectors: totalChunks })
   } catch (error) {
     console.error('[EmbeddingPanel] Failed to start embedding:', error)
-    taskMonitorStore.failEmbeddingTask(
-      props.fileKey,
-      error instanceof Error ? error.message : '嵌入失败'
-    )
+    taskHandle?.fail(error instanceof Error ? error.message : '嵌入失败')
   }
 }
 
