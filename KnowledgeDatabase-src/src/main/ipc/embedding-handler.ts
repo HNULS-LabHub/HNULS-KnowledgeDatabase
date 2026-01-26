@@ -7,8 +7,10 @@ import { ipcMain } from 'electron'
 import { embeddingEngineBridge } from '../services/embedding-engine-bridge'
 import type {
   SubmitEmbeddingTaskParams,
-  EmbeddingVectorSearchParams
+  EmbeddingVectorSearchParams,
+  EmbeddingChannelConfig
 } from '../../preload/types/embedding.types'
+import type { ChannelConfig } from '../../utility/embedding-engine/types'
 
 // ============================================================================
 // IPC Channel 常量
@@ -22,6 +24,7 @@ const IPC_CHANNELS = {
   GET_TASK_INFO: 'embedding:get-task-info',
   SET_CONCURRENCY: 'embedding:set-concurrency',
   GET_CHANNELS: 'embedding:get-channels',
+  UPDATE_CHANNELS: 'embedding:update-channels',
   SEARCH: 'embedding:search'
 } as const
 
@@ -69,6 +72,28 @@ export class EmbeddingIPCHandler {
     ipcMain.handle(IPC_CHANNELS.GET_CHANNELS, async () => {
       return embeddingEngineBridge.getChannels()
     })
+
+    // 更新通道配置
+    ipcMain.handle(
+      IPC_CHANNELS.UPDATE_CHANNELS,
+      async (_event, channels: EmbeddingChannelConfig[]) => {
+        // 转换为内部 ChannelConfig 格式
+        const internalChannels: ChannelConfig[] = channels.map((ch) => ({
+          id: ch.id,
+          providerId: ch.providerId,
+          providerName: ch.providerName,
+          priority: ch.priority,
+          baseUrl: ch.baseUrl,
+          apiKey: ch.apiKey,
+          model: ch.model,
+          status: 'active',
+          failureCount: 0,
+          maxRetries: 0,
+          timeout: 30000
+        }))
+        embeddingEngineBridge.updateChannels(internalChannels)
+      }
+    )
 
     // 向量检索
     ipcMain.handle(IPC_CHANNELS.SEARCH, async (_event, params: EmbeddingVectorSearchParams) => {

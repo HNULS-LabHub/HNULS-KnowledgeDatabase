@@ -181,6 +181,26 @@ export interface EmbeddingChannelInfo {
   failureCount: number
 }
 
+/**
+ * 嵌入通道配置 (用于同步到后端)
+ */
+export interface EmbeddingChannelConfig {
+  /** 通道 ID */
+  id: string
+  /** Provider ID */
+  providerId: string
+  /** Provider 名称 */
+  providerName: string
+  /** 优先级 (0 最高) */
+  priority: number
+  /** API 基地址 */
+  baseUrl: string
+  /** API 密钥 */
+  apiKey: string
+  /** 模型名称 */
+  model: string
+}
+
 // ============================================================================
 // Preload API 契约
 // ============================================================================
@@ -230,6 +250,13 @@ export interface EmbeddingAPI {
    * 获取通道列表
    */
   getChannels(): Promise<EmbeddingChannelInfo[]>
+
+  /**
+   * 更新通道配置
+   * @param channels 通道配置列表
+   */
+  updateChannels(channels: EmbeddingChannelConfig[]): Promise<void>
+
   /**
    * 向量检索
    * @param params 检索参数

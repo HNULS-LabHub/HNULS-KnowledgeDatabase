@@ -181,6 +181,8 @@ const handleEmbeddingBlur = async (): Promise<void> => {
 
   try {
     await userConfigStore.updateEmbeddingConcurrency(draftEmbeddingConcurrency.value)
+    // 同步到嵌入引擎后端
+    await window.api.embedding.setConcurrency(draftEmbeddingConcurrency.value)
   } catch {
     // store already holds error state
   }

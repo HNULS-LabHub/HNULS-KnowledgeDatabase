@@ -66,6 +66,7 @@ export const useEmbeddingStore = defineStore('embedding', () => {
    * @param fileKey 文件标识
    * @param config 嵌入配置
    * @param options 嵌入选项
+   * @param chunks 分块数据
    * @param onProgress 进度回调
    * @returns 文件嵌入状态
    */
@@ -76,7 +77,9 @@ export const useEmbeddingStore = defineStore('embedding', () => {
       knowledgeBaseId: number
       fileRelativePath: string
       totalChunks: number
+      fileName?: string
     },
+    chunks: Array<{ index: number; text: string }>,
     onProgress?: (progress: number, processed: number) => void
   ): Promise<FileEmbeddingState> {
     // 如果正在加载，直接返回（防止重复触发）
@@ -102,6 +105,7 @@ export const useEmbeddingStore = defineStore('embedding', () => {
         fileKey,
         config,
         options,
+        chunks,
         (progress, processed) => {
           // 更新进度
           const currentState = fileStates.value.get(fileKey)

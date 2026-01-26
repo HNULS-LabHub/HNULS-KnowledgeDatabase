@@ -152,7 +152,6 @@ import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/kno
 import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 import type { EmbeddingConfig } from '@renderer/stores/embedding/embedding.types'
 import type { FileNode } from '../../../types'
-import type { TaskHandle } from '@preload/types'
 
 const props = defineProps<{
   fileKey: string
@@ -263,10 +262,8 @@ const handleStartEmbedding = async (): Promise<void> => {
   if (!props.fileKey || !props.knowledgeBaseId || !embeddingConfig.value) return
   if (isEmbedding.value || !props.canEmbed) return
 
-  let taskHandle: TaskHandle | null = null
-
   try {
-    // 获取分块数量
+    // 获取分块数据
     const chunkingState = chunkingStore.getState(props.fileKey)
     if (!chunkingState || chunkingState.chunks.length === 0) {
       console.warn('[EmbeddingPanel] No chunks found, cannot embed')
@@ -274,49 +271,30 @@ const handleStartEmbedding = async (): Promise<void> => {
     }
 
     const totalChunks = chunkingState.chunks.length
-
-    // 获取知识库名称和文件名
-    const kb = knowledgeLibraryStore.getById(props.knowledgeBaseId)
-    const knowledgeBaseName = kb?.name || `知识库 ${props.knowledgeBaseId}`
     const fileName = props.fileData?.name || props.fileKey.split('/').pop() || '未知文件'
 
-    // 创建任务
-    taskHandle = await window.api.taskMonitor.createTask({
-      type: 'embedding',
-      title: `向量嵌入 - ${fileName}`,
-      meta: {
-        fileKey: props.fileKey,
-        fileName,
-        knowledgeBaseId: props.knowledgeBaseId,
-        knowledgeBaseName,
-        configId: embeddingConfig.value.configId,
-        totalChunks
-      }
-    })
+    // 转换分块为 ChunkInput 格式
+    const chunks = chunkingState.chunks.map((chunk, index) => ({
+      index,
+      text: chunk.content
+    }))
 
-    // 执行嵌入
+    // 执行嵌入（后端会自动创建 TaskMonitor 任务）
     await embeddingStore.startEmbedding(
       props.fileKey,
       embeddingConfig.value,
       {
         knowledgeBaseId: props.knowledgeBaseId,
         fileRelativePath: props.fileKey,
-        totalChunks
+        totalChunks,
+        fileName
       },
-      (progress, processed) => {
-        // 更新任务进度
-        taskHandle?.updateProgress(progress, {
-          processedVectors: processed,
-          currentDetail: `${processed}/${totalChunks} 向量`
-        })
-      }
+      chunks
     )
 
-    // 完成任务
-    taskHandle.complete({ totalVectors: totalChunks })
+    console.log('[EmbeddingPanel] Embedding completed')
   } catch (error) {
     console.error('[EmbeddingPanel] Failed to start embedding:', error)
-    taskHandle?.fail(error instanceof Error ? error.message : '嵌入失败')
   }
 }
 

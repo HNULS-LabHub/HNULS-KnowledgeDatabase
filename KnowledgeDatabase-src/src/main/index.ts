@@ -1,6 +1,7 @@
 import { AppService } from './services'
 import { IPCManager } from './ipc'
 import { globalMonitorBridge } from './services/global-monitor-bridge'
+import { embeddingEngineBridge } from './services/embedding-engine-bridge'
 import { logServiceDiagnostics } from './services/logger'
 
 // Windows: 强制 Node 控制台使用 UTF-8，避免中文日志乱码
@@ -32,6 +33,9 @@ class Application {
       // 启动全局监控服务（Utility Process）- 必须在 app ready 之后
       await globalMonitorBridge.start()
 
+      // 启动嵌入引擎（Utility Process）
+      await embeddingEngineBridge.start()
+
       // 初始化 IPC 处理器（传入 SurrealDBService 和 KnowledgeLibraryService）
       this.ipcManager.initialize(
         this.appService.getSurrealDBService(),
@@ -51,6 +55,7 @@ class Application {
   async shutdown(): Promise<void> {
     try {
       this.ipcManager.cleanup()
+      embeddingEngineBridge.stop()
       globalMonitorBridge.stop()
       console.log('Application shutdown completed')
     } catch (error) {
