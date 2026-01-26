@@ -2,6 +2,7 @@ import { app } from 'electron'
 import * as path from 'path'
 import * as fs from 'fs/promises'
 import { logger } from '../logger'
+import { ServiceTracker } from '../logger/service-tracker'
 import { DocumentService } from './document-service'
 import type { QueryService } from '../surrealdb-service'
 import { kbDocumentTable, chunkTable } from '../surrealdb-service'
@@ -29,6 +30,14 @@ export class KnowledgeLibraryService {
   private readonly defaultVersion = '1.0.0'
   private documentService: DocumentService
   private queryService?: QueryService
+  private tracker: ServiceTracker
+
+  /**
+   * 获取实例 ID（用于追踪）
+   */
+  getInstanceId(): string {
+    return this.tracker.getInstanceId()
+  }
 
   private getNamespace(): string {
     return this.queryService?.getNamespace() || 'knowledge'
@@ -51,11 +60,16 @@ export class KnowledgeLibraryService {
   }
 
   constructor(queryService?: QueryService) {
+    this.tracker = new ServiceTracker('KnowledgeLibraryService')
     // 获取用户数据目录下的 data 目录
     const userDataPath = app.getPath('userData')
     this.metaFilePath = path.join(userDataPath, 'data', 'Knowledge-library-meta.json')
     this.documentService = new DocumentService()
     this.queryService = queryService
+
+    if (queryService) {
+      this.tracker.trackDependencyInjection('QueryService', queryService)
+    }
   }
 
   /**
@@ -63,10 +77,7 @@ export class KnowledgeLibraryService {
    */
   setQueryService(queryService: QueryService): void {
     this.queryService = queryService
-    logger.info('QueryService set in KnowledgeLibraryService', {
-      isConnected: queryService?.isConnected(),
-      hasQueryService: !!this.queryService
-    })
+    this.tracker.trackDependencyInjection('QueryService', queryService)
   }
 
   /**
@@ -224,13 +235,19 @@ export class KnowledgeLibraryService {
 
         // 初始化知识库数据库的表结构
         const namespace = this.queryService.getNamespace() || 'knowledge'
+        const schemaSql = `${kbDocumentTable.sql}\n${chunkTable.sql}`
         try {
-          await this.queryService.queryInDatabase(
+          logger.debug(`Initializing KB schema in ${namespace}:${databaseName}`, {
+            sql: schemaSql.substring(0, 200) + '...'
+          })
+          const schemaResult = await this.queryService.queryInDatabase(
             namespace,
             databaseName,
-            `${kbDocumentTable.sql}\n${chunkTable.sql}`
+            schemaSql
           )
-          logger.info(`Initialized knowledge base schema: ${databaseName}`)
+          logger.info(`Initialized knowledge base schema: ${databaseName}`, {
+            result: schemaResult
+          })
         } catch (schemaError) {
           logger.error(`Failed to initialize schema for KB ${newId}:`, schemaError)
         }

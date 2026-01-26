@@ -1,6 +1,7 @@
 import { Surreal } from 'surrealdb'
 import { SurrealDBConfig } from './config'
 import { logger } from '../logger'
+import { ServiceTracker } from '../logger/service-tracker'
 
 /**
  * 查询服务 - 使用 SDK 进行数据库操作并自动记录日志
@@ -11,9 +12,18 @@ export class QueryService {
   private enableLogging: boolean = true
   private namespace?: string
   private database?: string
+  private tracker: ServiceTracker
 
   constructor() {
     this.db = new Surreal()
+    this.tracker = new ServiceTracker('QueryService')
+  }
+
+  /**
+   * 获取实例 ID（用于追踪）
+   */
+  getInstanceId(): string {
+    return this.tracker.getInstanceId()
   }
 
   /**

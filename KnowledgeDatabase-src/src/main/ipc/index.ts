@@ -21,26 +21,23 @@ export class IPCManager {
   private handlers: any[] = []
 
   initialize(
-    surrealDBService?: SurrealDBService,
-    knowledgeLibraryService?: KnowledgeLibraryService
+    surrealDBService: SurrealDBService,
+    knowledgeLibraryService: KnowledgeLibraryService
   ): void {
     // 注册所有 IPC 处理器
     this.handlers.push(new TestIPCHandler())
 
     // 注册数据库处理器
-    if (surrealDBService) {
-      this.handlers.push(new DatabaseIPCHandler(surrealDBService))
-    }
+    this.handlers.push(new DatabaseIPCHandler(surrealDBService))
 
-    // 使用传入的 KnowledgeLibraryService 或创建新实例
-    const kbService = knowledgeLibraryService || new KnowledgeLibraryService()
-    this.handlers.push(new KnowledgeLibraryIPCHandler(kbService))
+    // 使用传入的 KnowledgeLibraryService（已注入 QueryService）
+    this.handlers.push(new KnowledgeLibraryIPCHandler(knowledgeLibraryService))
 
     // 注册文件处理器
-    this.handlers.push(new FileIPCHandler(kbService))
+    this.handlers.push(new FileIPCHandler(knowledgeLibraryService))
 
     // 注册文件导入处理器
-    this.handlers.push(new FileImportIPCHandler(kbService))
+    this.handlers.push(new FileImportIPCHandler(knowledgeLibraryService))
 
     // 注册用户配置处理器
     const userConfigService = new UserConfigService()
@@ -62,7 +59,7 @@ export class IPCManager {
     this.handlers.push(new ChunkingIPCHandler(chunkingService))
 
     // 注册知识库配置处理器
-    this.handlers.push(new KnowledgeConfigIPCHandler(kbService))
+    this.handlers.push(new KnowledgeConfigIPCHandler(knowledgeLibraryService))
 
     // 注册任务监控处理器
     this.handlers.push(new TaskMonitorIPCHandler())

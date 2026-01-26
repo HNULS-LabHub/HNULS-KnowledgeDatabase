@@ -1,6 +1,7 @@
 import { AppService } from './services'
 import { IPCManager } from './ipc'
 import { globalMonitorBridge } from './services/global-monitor-bridge'
+import { logServiceDiagnostics } from './services/logger'
 
 // Windows: 强制 Node 控制台使用 UTF-8，避免中文日志乱码
 try {
@@ -36,6 +37,9 @@ class Application {
         this.appService.getSurrealDBService(),
         this.appService.getKnowledgeLibraryService()
       )
+
+      // 打印服务诊断报告（用于调试依赖注入问题）
+      logServiceDiagnostics()
 
       console.log('Application started successfully')
     } catch (error) {
