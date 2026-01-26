@@ -75,7 +75,7 @@ export class EmbeddingEngineBridge {
       this.readyResolve = resolve
     })
 
-    const modulePath = path.join(__dirname, 'utility/embedding-engine.js')
+    const modulePath = path.join(__dirname, 'utility/embedding.js')
     console.log('[EmbeddingEngineBridge] Starting utility process:', modulePath)
 
     this.process = utilityProcess.fork(modulePath)
