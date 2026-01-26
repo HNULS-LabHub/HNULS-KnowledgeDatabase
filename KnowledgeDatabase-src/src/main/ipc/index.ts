@@ -9,6 +9,7 @@ import { ChunkingIPCHandler } from './chunking-handler'
 import { ModelConfigIPCHandler } from './model-config-handler'
 import { KnowledgeConfigIPCHandler } from './knowledge-config-handler'
 import { TaskMonitorIPCHandler } from './task-monitor-handler'
+import { EmbeddingIPCHandler } from './embedding-handler'
 import { SurrealDBService } from '../services/surrealdb-service'
 import { KnowledgeLibraryService } from '../services/knowledgeBase-library'
 import { UserConfigService } from '../services/user-config-service'
@@ -65,6 +66,9 @@ export class IPCManager {
 
     // 注册任务监控处理器
     this.handlers.push(new TaskMonitorIPCHandler())
+
+    // 注册嵌入服务处理器
+    this.handlers.push(new EmbeddingIPCHandler())
 
     console.log(`Registered ${this.handlers.length} IPC handlers`)
   }

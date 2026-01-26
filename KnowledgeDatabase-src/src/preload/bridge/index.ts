@@ -11,6 +11,7 @@ import { utilsAPI } from '../api/utils-api'
 import { modelConfigAPI } from '../api/model-config-api'
 import { knowledgeConfigAPI } from '../api/knowledge-config-api'
 import { taskMonitorAPI } from '../api/task-monitor-api'
+import { embeddingAPI } from '../api/embedding-api'
 
 // 自定义 API 集合
 const customAPI = {
@@ -24,10 +25,9 @@ const customAPI = {
   modelConfig: modelConfigAPI,
   knowledgeConfig: knowledgeConfigAPI,
   taskMonitor: taskMonitorAPI,
+  embedding: embeddingAPI,
   // Electron 文件路径工具
   utils: utilsAPI
-  // TODO: 添加其他业务域 API
-  // database: databaseAPI,
 }
 
 // 安全地暴露 API 到渲染进程
