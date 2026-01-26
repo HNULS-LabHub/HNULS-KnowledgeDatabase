@@ -71,6 +71,40 @@ export interface EmbeddingTaskResult {
 }
 
 // ============================================================================
+// 向量检索
+// ============================================================================
+
+/**
+ * 向量检索参数
+ */
+export interface EmbeddingVectorSearchParams {
+  /** 知识库 ID */
+  knowledgeBaseId: number
+  /** 查询向量 */
+  queryVector: number[]
+  /** 返回数量 */
+  k?: number
+}
+
+/**
+ * 向量检索结果
+ */
+export interface EmbeddingVectorSearchResult {
+  /** chunk 记录 ID */
+  id: string
+  /** chunk 内容 */
+  content: string
+  /** chunk 索引 */
+  chunk_index?: number
+  /** 文件标识 */
+  file_key?: string
+  /** 文件名称 */
+  file_name?: string
+  /** 距离（越小越相似） */
+  distance?: number
+}
+
+// ============================================================================
 // 嵌入任务进度
 // ============================================================================
 
@@ -196,6 +230,11 @@ export interface EmbeddingAPI {
    * 获取通道列表
    */
   getChannels(): Promise<EmbeddingChannelInfo[]>
+  /**
+   * 向量检索
+   * @param params 检索参数
+   */
+  search(params: EmbeddingVectorSearchParams): Promise<EmbeddingVectorSearchResult[]>
 
   /**
    * 监听嵌入完成事件

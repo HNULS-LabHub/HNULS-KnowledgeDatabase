@@ -5,6 +5,7 @@
 
 export * from './base.types'
 export * from './chunking.types'
+export * from './embedding.types'
 export * from './file-import.types'
 export * from './file.types'
 export * from './knowledge-config.types'
@@ -15,4 +16,3 @@ export * from './model-config.types'
 export * from './task-monitor.types'
 export * from './test.types'
 export * from './user-config.types'
-export * from './embedding.types'

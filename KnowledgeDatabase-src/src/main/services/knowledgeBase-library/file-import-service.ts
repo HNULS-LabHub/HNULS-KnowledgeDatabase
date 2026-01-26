@@ -172,6 +172,21 @@ export class FileImportService {
           sourcePath: item.source,
           targetPath
         })
+
+        // 同步到 SurrealDB（不影响导入主流程）
+        try {
+          const fileKey = path.relative(targetBase, targetPath).replace(/\\/g, '/')
+          await this.knowledgeLibraryService.syncImportedFileToSurrealDB({
+            knowledgeBaseId,
+            fileKey
+          })
+        } catch (dbError) {
+          logger.warn('[FileImportService] Failed to sync imported file to SurrealDB', {
+            knowledgeBaseId,
+            targetPath,
+            error: dbError
+          })
+        }
         logger.info('[FileImportService] File copied successfully', {
           source: item.source,
           target: targetPath

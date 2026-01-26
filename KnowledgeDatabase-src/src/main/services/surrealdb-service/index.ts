@@ -33,5 +33,13 @@ export { HookSystem } from './hook-system'
 export { ErrorHandler } from './error-handler'
 
 // Schema 定义
-export { schemas, userTable, documentTable, operationLogTable } from './schema'
+export {
+  schemas,
+  knowledgeBaseSchemas,
+  userTable,
+  documentTable,
+  operationLogTable,
+  kbDocumentTable,
+  chunkTable
+} from './schema'
 export type { TableDefinition } from './schema'

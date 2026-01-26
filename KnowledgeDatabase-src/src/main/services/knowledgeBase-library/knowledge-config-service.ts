@@ -154,6 +154,58 @@ export class KnowledgeConfigService {
   }
 
   /**
+   * 文件移动/重命名：迁移单个 document key
+   */
+  async moveDocumentKey(
+    knowledgeBaseDocumentPath: string,
+    oldFileKey: string,
+    newFileKey: string
+  ): Promise<void> {
+    const config = await this.readConfig(knowledgeBaseDocumentPath)
+    const configPath = this.getConfigPath(knowledgeBaseDocumentPath)
+
+    const oldKey = oldFileKey.replace(/\\/g, '/')
+    const newKey = newFileKey.replace(/\\/g, '/')
+
+    if (!config.documents[oldKey]) return
+
+    config.documents[newKey] = config.documents[oldKey]
+    delete config.documents[oldKey]
+
+    await this.writeConfig(configPath, config)
+    logger.info(`Moved document config key: ${oldKey} -> ${newKey}`)
+  }
+
+  /**
+   * 目录移动：迁移 prefix 下所有 document keys
+   */
+  async moveDocumentKeysByPrefix(
+    knowledgeBaseDocumentPath: string,
+    oldPrefix: string,
+    newPrefix: string
+  ): Promise<void> {
+    const config = await this.readConfig(knowledgeBaseDocumentPath)
+    const configPath = this.getConfigPath(knowledgeBaseDocumentPath)
+
+    const from = oldPrefix.replace(/\\/g, '/').replace(/\/+$/, '') + '/'
+    const to = newPrefix.replace(/\\/g, '/').replace(/\/+$/, '') + '/'
+
+    let hasChanges = false
+    for (const key of Object.keys(config.documents)) {
+      if (!key.startsWith(from)) continue
+      const nextKey = to + key.slice(from.length)
+      config.documents[nextKey] = config.documents[key]
+      delete config.documents[key]
+      hasChanges = true
+    }
+
+    if (hasChanges) {
+      await this.writeConfig(configPath, config)
+      logger.info(`Moved document config keys by prefix: ${from} -> ${to}`)
+    }
+  }
+
+  /**
    * 清理已删除文档的配置
    * @param knowledgeBaseDocumentPath 知识库文档路径
    * @param fileKey 文件标识（支持目录，会清理该目录下所有文件配置）

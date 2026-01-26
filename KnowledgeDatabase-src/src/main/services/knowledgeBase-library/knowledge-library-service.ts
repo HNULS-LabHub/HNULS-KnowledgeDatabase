@@ -4,6 +4,7 @@ import * as fs from 'fs/promises'
 import { logger } from '../logger'
 import { DocumentService } from './document-service'
 import type { QueryService } from '../surrealdb-service'
+import { kbDocumentTable, chunkTable } from '../surrealdb-service'
 import type {
   KnowledgeBaseMeta,
   KnowledgeLibraryMeta,
@@ -11,6 +12,13 @@ import type {
   UpdateKnowledgeBaseData,
   CleanupResult
 } from './types'
+
+type FileTypeHint = {
+  fileKey: string
+  fileName: string
+  filePath: string
+  fileType: string
+}
 
 /**
  * 知识库元数据服务
@@ -21,6 +29,26 @@ export class KnowledgeLibraryService {
   private readonly defaultVersion = '1.0.0'
   private documentService: DocumentService
   private queryService?: QueryService
+
+  private getNamespace(): string {
+    return this.queryService?.getNamespace() || 'knowledge'
+  }
+
+  private normalizeFileKey(fileKey: string): string {
+    return fileKey.replace(/\\/g, '/')
+  }
+
+  private buildFileHints(fileKey: string): FileTypeHint {
+    const normalized = this.normalizeFileKey(fileKey)
+    const fileName = path.basename(normalized)
+    const fileType = path.extname(fileName).slice(1)
+    return {
+      fileKey: normalized,
+      fileName,
+      filePath: normalized,
+      fileType
+    }
+  }
 
   constructor(queryService?: QueryService) {
     // 获取用户数据目录下的 data 目录
@@ -193,6 +221,19 @@ export class KnowledgeLibraryService {
           result: result?.[0],
           fullResult: result
         })
+
+        // 初始化知识库数据库的表结构
+        const namespace = this.queryService.getNamespace() || 'knowledge'
+        try {
+          await this.queryService.queryInDatabase(
+            namespace,
+            databaseName,
+            `${kbDocumentTable.sql}\n${chunkTable.sql}`
+          )
+          logger.info(`Initialized knowledge base schema: ${databaseName}`)
+        } catch (schemaError) {
+          logger.error(`Failed to initialize schema for KB ${newId}:`, schemaError)
+        }
       } catch (error) {
         logger.error(`Failed to create SurrealDB database for KB ${newId}:`, error)
         // 不阻塞知识库创建，继续执行
@@ -280,6 +321,197 @@ export class KnowledgeLibraryService {
 
     logger.info(`Deleted knowledge base: ${deletedKB.name} (ID: ${id})`)
     return true
+  }
+
+  // ==========================================================================
+  // SurrealDB：文件同步（导入/移动/删除）
+  // ==========================================================================
+
+  /**
+   * 文件导入成功后，创建/更新 kb_document（embedding 状态置为 pending）
+   */
+  async syncImportedFileToSurrealDB(params: {
+    knowledgeBaseId: number
+    fileKey: string
+  }): Promise<void> {
+    if (!this.queryService || !this.queryService.isConnected()) return
+
+    const kb = await this.getById(params.knowledgeBaseId)
+    if (!kb?.databaseName) return
+
+    const namespace = this.getNamespace()
+    const hints = this.buildFileHints(params.fileKey)
+
+    const sql = `
+      UPSERT kb_document SET
+        file_key = $fileKey,
+        file_name = $fileName,
+        file_path = $filePath,
+        file_type = $fileType,
+        chunk_count = 0,
+        embedding_status = 'pending',
+        embedding_model = NONE,
+        embedding_dimensions = NONE,
+        updated_at = time::now()
+      WHERE file_key = $fileKey;
+    `
+
+    try {
+      await this.queryService.queryInDatabase(namespace, kb.databaseName, sql, {
+        fileKey: hints.fileKey,
+        fileName: hints.fileName,
+        filePath: hints.filePath,
+        fileType: hints.fileType
+      })
+    } catch (error) {
+      logger.warn('[KnowledgeLibraryService] Failed to sync imported file to SurrealDB', {
+        knowledgeBaseId: params.knowledgeBaseId,
+        fileKey: params.fileKey,
+        error
+      })
+    }
+  }
+
+  /**
+   * 文件移动/重命名后，同步更新 kb_document 的 file_key 等字段
+   */
+  async syncMovedFileToSurrealDB(params: {
+    knowledgeBaseId: number
+    oldFileKey: string
+    newFileKey: string
+  }): Promise<void> {
+    if (!this.queryService || !this.queryService.isConnected()) return
+
+    const kb = await this.getById(params.knowledgeBaseId)
+    if (!kb?.databaseName) return
+
+    const namespace = this.getNamespace()
+    const oldKey = this.normalizeFileKey(params.oldFileKey)
+    const hints = this.buildFileHints(params.newFileKey)
+
+    const sql = `
+      UPDATE kb_document SET
+        file_key = $newFileKey,
+        file_name = $fileName,
+        file_path = $filePath,
+        file_type = $fileType,
+        updated_at = time::now()
+      WHERE file_key = $oldFileKey;
+
+      UPSERT kb_document SET
+        file_key = $newFileKey,
+        file_name = $fileName,
+        file_path = $filePath,
+        file_type = $fileType,
+        chunk_count = 0,
+        embedding_status = 'pending',
+        embedding_model = NONE,
+        embedding_dimensions = NONE,
+        updated_at = time::now()
+      WHERE file_key = $newFileKey;
+    `
+
+    try {
+      await this.queryService.queryInDatabase(namespace, kb.databaseName, sql, {
+        oldFileKey: oldKey,
+        newFileKey: hints.fileKey,
+        fileName: hints.fileName,
+        filePath: hints.filePath,
+        fileType: hints.fileType
+      })
+    } catch (error) {
+      logger.warn('[KnowledgeLibraryService] Failed to sync moved file to SurrealDB', {
+        knowledgeBaseId: params.knowledgeBaseId,
+        oldFileKey: params.oldFileKey,
+        newFileKey: params.newFileKey,
+        error
+      })
+    }
+  }
+
+  /**
+   * 目录移动后，同步更新 prefix 下所有 kb_document 的 file_key/file_path
+   */
+  async syncMovedDirectoryToSurrealDB(params: {
+    knowledgeBaseId: number
+    oldPrefix: string
+    newPrefix: string
+  }): Promise<void> {
+    if (!this.queryService || !this.queryService.isConnected()) return
+
+    const kb = await this.getById(params.knowledgeBaseId)
+    if (!kb?.databaseName) return
+
+    const namespace = this.getNamespace()
+    const oldPrefix = this.normalizeFileKey(params.oldPrefix).replace(/\/+$/, '') + '/'
+    const newPrefix = this.normalizeFileKey(params.newPrefix).replace(/\/+$/, '') + '/'
+
+    const sql = `
+      UPDATE kb_document SET
+        file_key = string::replace(file_key, $oldPrefix, $newPrefix),
+        file_path = string::replace(file_path, $oldPrefix, $newPrefix),
+        updated_at = time::now()
+      WHERE string::starts_with(file_key, $oldPrefix);
+    `
+
+    try {
+      await this.queryService.queryInDatabase(namespace, kb.databaseName, sql, {
+        oldPrefix,
+        newPrefix
+      })
+    } catch (error) {
+      logger.warn('[KnowledgeLibraryService] Failed to sync moved directory to SurrealDB', {
+        knowledgeBaseId: params.knowledgeBaseId,
+        oldPrefix: params.oldPrefix,
+        newPrefix: params.newPrefix,
+        error
+      })
+    }
+  }
+
+  /**
+   * 删除文件/目录后，同步删除 kb_document 以及关联 chunk
+   */
+  async syncDeletedPathToSurrealDB(params: {
+    knowledgeBaseId: number
+    filePath: string
+    isDirectory: boolean
+  }): Promise<void> {
+    if (!this.queryService || !this.queryService.isConnected()) return
+
+    const kb = await this.getById(params.knowledgeBaseId)
+    if (!kb?.databaseName) return
+
+    const namespace = this.getNamespace()
+    const normalized = this.normalizeFileKey(params.filePath)
+
+    const prefix = normalized.replace(/\/+$/, '') + '/'
+
+    const sql = params.isDirectory
+      ? `
+        LET $docIds = (SELECT VALUE id FROM kb_document WHERE string::starts_with(file_key, $prefix));
+        DELETE chunk WHERE document INSIDE $docIds;
+        DELETE kb_document WHERE string::starts_with(file_key, $prefix);
+      `
+      : `
+        LET $docIds = (SELECT VALUE id FROM kb_document WHERE file_key = $fileKey);
+        DELETE chunk WHERE document INSIDE $docIds;
+        DELETE kb_document WHERE file_key = $fileKey;
+      `
+
+    try {
+      await this.queryService.queryInDatabase(namespace, kb.databaseName, sql, {
+        prefix,
+        fileKey: normalized
+      })
+    } catch (error) {
+      logger.warn('[KnowledgeLibraryService] Failed to sync deleted path to SurrealDB', {
+        knowledgeBaseId: params.knowledgeBaseId,
+        filePath: params.filePath,
+        isDirectory: params.isDirectory,
+        error
+      })
+    }
   }
 
   /**

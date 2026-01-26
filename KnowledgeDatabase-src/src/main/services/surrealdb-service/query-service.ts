@@ -9,6 +9,8 @@ export class QueryService {
   private db: Surreal
   private connected: boolean = false
   private enableLogging: boolean = true
+  private namespace?: string
+  private database?: string
 
   constructor() {
     this.db = new Surreal()
@@ -29,6 +31,8 @@ export class QueryService {
         database: config.database
       })
       this.connected = true
+      this.namespace = config.namespace
+      this.database = config.database
       logger.info('QueryService connected to SurrealDB')
     } catch (error) {
       logger.error('Failed to connect QueryService', error)
@@ -52,6 +56,20 @@ export class QueryService {
    */
   isConnected(): boolean {
     return this.connected
+  }
+
+  /**
+   * 获取当前命名空间
+   */
+  getNamespace(): string | undefined {
+    return this.namespace
+  }
+
+  /**
+   * 获取当前数据库名称
+   */
+  getDatabase(): string | undefined {
+    return this.database
   }
 
   /**
@@ -111,6 +129,56 @@ export class QueryService {
     const result = (await this.db.query(sql, params)) as any
     await this.log('QUERY', 'custom', { sql, params }, Array.isArray(result) ? result.length : 0)
     return result as T
+  }
+
+  /**
+   * 在指定数据库中执行查询（不会写入 operation_log）
+   */
+  async queryInDatabase<T = any>(
+    namespace: string,
+    database: string,
+    sql: string,
+    params?: Record<string, any>
+  ): Promise<T> {
+    this.ensureConnected()
+    const prevNamespace = this.namespace
+    const prevDatabase = this.database
+
+    await this.db.use({ namespace, database })
+
+    try {
+      const result = (await this.db.query(sql, params)) as any
+      return result as T
+    } finally {
+      if (prevNamespace && prevDatabase) {
+        await this.db.use({ namespace: prevNamespace, database: prevDatabase })
+      }
+    }
+  }
+
+  /**
+   * 向量检索（KNN）
+   */
+  async vectorSearch(
+    namespace: string,
+    database: string,
+    queryVector: number[],
+    k: number = 10,
+    ef: number = 100
+  ): Promise<any> {
+    const sql = `
+      SELECT
+        id,
+        content,
+        chunk_index,
+        document.file_key AS file_key,
+        document.file_name AS file_name,
+        vector::distance::knn() AS distance
+      FROM chunk
+      WHERE embedding <|${k},${ef}|> $queryVector
+      ORDER BY distance ASC;
+    `
+    return this.queryInDatabase(namespace, database, sql, { queryVector })
   }
 
   // ==================== 日志记录 ====================

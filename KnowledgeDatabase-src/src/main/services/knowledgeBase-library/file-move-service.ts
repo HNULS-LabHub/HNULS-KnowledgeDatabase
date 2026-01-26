@@ -85,8 +85,10 @@ export class FileMoveService {
       const fullTargetPath = path.join(targetDirPath, fileName)
 
       // 验证源路径存在
+      let sourceStats: Awaited<ReturnType<typeof fs.stat>> | null = null
       try {
         await fs.access(fullSourcePath)
+        sourceStats = await fs.stat(fullSourcePath)
       } catch {
         return {
           success: false,
@@ -135,6 +137,46 @@ export class FileMoveService {
         sourcePath,
         targetPath: relativeNewPath
       })
+
+      // 同步 KnowledgeConfig（不影响移动主流程）
+      try {
+        if (sourceStats?.isDirectory()) {
+          await this.knowledgeConfigService.moveDocumentKeysByPrefix(basePath, sourcePath, relativeNewPath)
+        } else {
+          await this.knowledgeConfigService.moveDocumentKey(basePath, sourcePath, relativeNewPath)
+        }
+      } catch (configError) {
+        logger.warn('[FileMoveService] Failed to sync KnowledgeConfig after move', {
+          knowledgeBaseId,
+          sourcePath,
+          targetPath: relativeNewPath,
+          error: configError
+        })
+      }
+
+      // 同步 SurrealDB（不影响移动主流程）
+      try {
+        if (sourceStats?.isDirectory()) {
+          await this.knowledgeLibraryService.syncMovedDirectoryToSurrealDB({
+            knowledgeBaseId,
+            oldPrefix: sourcePath,
+            newPrefix: relativeNewPath
+          })
+        } else {
+          await this.knowledgeLibraryService.syncMovedFileToSurrealDB({
+            knowledgeBaseId,
+            oldFileKey: sourcePath,
+            newFileKey: relativeNewPath
+          })
+        }
+      } catch (dbError) {
+        logger.warn('[FileMoveService] Failed to sync SurrealDB after move', {
+          knowledgeBaseId,
+          sourcePath,
+          targetPath: relativeNewPath,
+          error: dbError
+        })
+      }
 
       return {
         success: true,
@@ -265,7 +307,8 @@ export class FileMoveService {
         const stats = await fs.stat(fullFilePath)
 
         // 删除文件或目录
-        if (stats.isDirectory()) {
+        const isDirectory = stats.isDirectory()
+        if (isDirectory) {
           await fs.rm(fullFilePath, { recursive: true, force: true })
           logger.info('[FileMoveService] Deleted directory', {
             knowledgeBaseId,
@@ -294,6 +337,22 @@ export class FileMoveService {
             knowledgeBaseId,
             filePath,
             error: configError
+          })
+        }
+
+        // 同步 SurrealDB 删除（不影响删除主流程）
+        try {
+          await this.knowledgeLibraryService.syncDeletedPathToSurrealDB({
+            knowledgeBaseId,
+            filePath,
+            isDirectory
+          })
+        } catch (dbError) {
+          logger.warn('[FileMoveService] Failed to sync SurrealDB after delete', {
+            knowledgeBaseId,
+            filePath,
+            isDirectory,
+            error: dbError
           })
         }
 

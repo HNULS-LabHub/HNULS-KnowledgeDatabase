@@ -4,6 +4,7 @@ import { WindowService } from './window-service'
 import { SurrealDBService } from '../surrealdb-service'
 import { DocumentService } from '../knowledgeBase-library/document-service'
 import { KnowledgeLibraryService } from '../knowledgeBase-library/knowledge-library-service'
+import { embeddingEngineBridge } from '../embedding-engine-bridge'
 import { logger } from '../logger'
 
 export class AppService {
@@ -52,6 +53,11 @@ export class AppService {
       const queryService = this.surrealDBService.getQueryService()
       this.knowledgeLibraryService.setQueryService(queryService)
       logger.info('QueryService injected into KnowledgeLibraryService')
+
+      embeddingEngineBridge.setQueryService(queryService)
+      embeddingEngineBridge.setKnowledgeLibraryService(this.knowledgeLibraryService)
+      embeddingEngineBridge.setDocumentService(this.documentService)
+      logger.info('QueryService injected into EmbeddingEngineBridge')
     } catch (error) {
       logger.error('Failed to start SurrealDB service', error)
       // Continue app initialization even if DB fails

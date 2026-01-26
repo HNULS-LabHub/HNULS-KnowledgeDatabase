@@ -5,7 +5,10 @@
 
 import { ipcMain } from 'electron'
 import { embeddingEngineBridge } from '../services/embedding-engine-bridge'
-import type { SubmitEmbeddingTaskParams } from '../../preload/types/embedding.types'
+import type {
+  SubmitEmbeddingTaskParams,
+  EmbeddingVectorSearchParams
+} from '../../preload/types/embedding.types'
 
 // ============================================================================
 // IPC Channel 常量
@@ -18,7 +21,8 @@ const IPC_CHANNELS = {
   CANCEL_TASK: 'embedding:cancel',
   GET_TASK_INFO: 'embedding:get-task-info',
   SET_CONCURRENCY: 'embedding:set-concurrency',
-  GET_CHANNELS: 'embedding:get-channels'
+  GET_CHANNELS: 'embedding:get-channels',
+  SEARCH: 'embedding:search'
 } as const
 
 // ============================================================================
@@ -64,6 +68,11 @@ export class EmbeddingIPCHandler {
     // 获取通道列表
     ipcMain.handle(IPC_CHANNELS.GET_CHANNELS, async () => {
       return embeddingEngineBridge.getChannels()
+    })
+
+    // 向量检索
+    ipcMain.handle(IPC_CHANNELS.SEARCH, async (_event, params: EmbeddingVectorSearchParams) => {
+      return embeddingEngineBridge.search(params)
     })
 
     console.log('[EmbeddingIPCHandler] Registered embedding IPC handlers')

@@ -9,7 +9,9 @@ import type {
   SubmitEmbeddingTaskParams,
   EmbeddingTaskInfo,
   EmbeddingTaskResult,
-  EmbeddingChannelInfo
+  EmbeddingChannelInfo,
+  EmbeddingVectorSearchParams,
+  EmbeddingVectorSearchResult
 } from '../types/embedding.types'
 
 // ============================================================================
@@ -24,6 +26,7 @@ const IPC_CHANNELS = {
   GET_TASK_INFO: 'embedding:get-task-info',
   SET_CONCURRENCY: 'embedding:set-concurrency',
   GET_CHANNELS: 'embedding:get-channels',
+  SEARCH: 'embedding:search',
 
   // 事件通道
   EMBEDDING_COMPLETED: 'embedding:completed',
@@ -62,6 +65,10 @@ export const embeddingAPI: EmbeddingAPI = {
 
   async getChannels(): Promise<EmbeddingChannelInfo[]> {
     return ipcRenderer.invoke(IPC_CHANNELS.GET_CHANNELS)
+  },
+
+  async search(params: EmbeddingVectorSearchParams): Promise<EmbeddingVectorSearchResult[]> {
+    return ipcRenderer.invoke(IPC_CHANNELS.SEARCH, params)
   },
 
   onEmbeddingCompleted(callback: (result: EmbeddingTaskResult) => void): () => void {
