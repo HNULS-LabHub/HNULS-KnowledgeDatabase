@@ -6,6 +6,17 @@
 export { SurrealDBService } from './surrealdb-service'
 export { QueryService } from './query-service'
 
+// 错误类
+export {
+  DatabaseOperationError,
+  DatabaseConnectionError,
+  QuerySyntaxError,
+  RecordNotFoundError,
+  ConstraintViolationError,
+  isDatabaseError,
+  parseSurrealDBError
+} from './database-errors'
+
 // 类型定义
 export type {
   ServerStatus,

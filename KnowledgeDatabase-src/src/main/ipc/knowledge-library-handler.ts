@@ -5,6 +5,8 @@ import type {
   CreateKnowledgeBaseData,
   UpdateKnowledgeBaseData
 } from '../services/knowledgeBase-library'
+import { isDatabaseError } from '../services/surrealdb-service'
+import { logger } from '../services/logger'
 
 /**
  * 知识库元数据 IPC 处理器
@@ -22,6 +24,42 @@ export class KnowledgeLibraryIPCHandler extends BaseIPCHandler {
   }
 
   /**
+   * 统一错误处理
+   */
+  private handleError(operation: string, error: unknown, context?: any) {
+    // 记录详细错误日志
+    logger.error(`IPC ${operation} failed`, {
+      operation,
+      context,
+      error: error instanceof Error ? error.message : String(error),
+      isDatabaseError: isDatabaseError(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
+
+    // 返回结构化错误信息
+    if (isDatabaseError(error)) {
+      return {
+        success: false,
+        error: {
+          message: error.message,
+          type: 'DATABASE_ERROR',
+          operation: error.operation,
+          table: error.table,
+          details: error.toJSON()
+        }
+      }
+    }
+
+    return {
+      success: false,
+      error: {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        type: 'UNKNOWN_ERROR'
+      }
+    }
+  }
+
+  /**
    * 获取所有知识库
    */
   async handleGetall(_event: IpcMainInvokeEvent) {
@@ -32,10 +70,7 @@ export class KnowledgeLibraryIPCHandler extends BaseIPCHandler {
         data: knowledgeBases
       }
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }
+      return this.handleError('knowledge-library:getall', error)
     }
   }
 
@@ -48,7 +83,11 @@ export class KnowledgeLibraryIPCHandler extends BaseIPCHandler {
       if (!knowledgeBase) {
         return {
           success: false,
-          error: `Knowledge base with id ${id} not found`
+          error: {
+            message: `知识库不存在 (ID: ${id})`,
+            type: 'NOT_FOUND',
+            id
+          }
         }
       }
       return {
@@ -56,10 +95,7 @@ export class KnowledgeLibraryIPCHandler extends BaseIPCHandler {
         data: knowledgeBase
       }
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }
+      return this.handleError('knowledge-library:getbyid', error, { id })
     }
   }
 
@@ -72,20 +108,27 @@ export class KnowledgeLibraryIPCHandler extends BaseIPCHandler {
       if (!data.name || !data.name.trim()) {
         return {
           success: false,
-          error: 'Knowledge base name is required'
+          error: {
+            message: '知识库名称不能为空',
+            type: 'VALIDATION_ERROR',
+            field: 'name'
+          }
         }
       }
 
       const knowledgeBase = await this.knowledgeLibraryService.create(data)
+      
+      logger.info('Knowledge base created successfully', {
+        id: knowledgeBase.id,
+        name: knowledgeBase.name
+      })
+      
       return {
         success: true,
         data: knowledgeBase
       }
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }
+      return this.handleError('knowledge-library:create', error, { data })
     }
   }
 
@@ -98,18 +141,25 @@ export class KnowledgeLibraryIPCHandler extends BaseIPCHandler {
       if (!knowledgeBase) {
         return {
           success: false,
-          error: `Knowledge base with id ${id} not found`
+          error: {
+            message: `知识库不存在 (ID: ${id})`,
+            type: 'NOT_FOUND',
+            id
+          }
         }
       }
+      
+      logger.info('Knowledge base updated successfully', {
+        id,
+        updates: Object.keys(data)
+      })
+      
       return {
         success: true,
         data: knowledgeBase
       }
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }
+      return this.handleError('knowledge-library:update', error, { id, data })
     }
   }
 
@@ -122,18 +172,22 @@ export class KnowledgeLibraryIPCHandler extends BaseIPCHandler {
       if (!deleted) {
         return {
           success: false,
-          error: `Knowledge base with id ${id} not found`
+          error: {
+            message: `知识库不存在 (ID: ${id})`,
+            type: 'NOT_FOUND',
+            id
+          }
         }
       }
+      
+      logger.info('Knowledge base deleted successfully', { id })
+      
       return {
         success: true,
         data: { id }
       }
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }
+      return this.handleError('knowledge-library:delete', error, { id })
     }
   }
 }
