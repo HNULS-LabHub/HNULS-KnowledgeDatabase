@@ -57,6 +57,14 @@ export const useUserConfigStore = defineStore('user-config', () => {
     })
   }
 
+  async function updateEmbeddingConcurrency(concurrency: number): Promise<void> {
+    await update({
+      embedding: {
+        concurrency
+      }
+    })
+  }
+
   return {
     config,
     loading,
@@ -65,6 +73,7 @@ export const useUserConfigStore = defineStore('user-config', () => {
     saveError,
     fetch,
     update,
-    updateMinerUApiKey
+    updateMinerUApiKey,
+    updateEmbeddingConcurrency
   }
 })
