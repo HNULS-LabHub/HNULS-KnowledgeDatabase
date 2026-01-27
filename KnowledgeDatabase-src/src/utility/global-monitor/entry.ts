@@ -36,7 +36,10 @@ function sendMessage(msg: UtilityToMainMessage): void {
 // 注意：Electron UtilityProcess 的 message 事件传递的是 { data: actualMessage }
 parentPort.on('message', (event: { data: MainToUtilityMessage }) => {
   const msg = event.data
-  log(`Received: ${msg?.type}`)
+  // 过滤掉 updateProgress 的日志噪音
+  if (msg?.type !== 'updateProgress') {
+    log(`Received: ${msg?.type}`)
+  }
 
   try {
     switch (msg.type) {

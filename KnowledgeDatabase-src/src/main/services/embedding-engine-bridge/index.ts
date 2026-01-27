@@ -21,6 +21,7 @@ import { ChunkMetaStore } from '../chunking/chunk-meta-store'
 import { DocumentService } from '../knowledgeBase-library/document-service'
 import { KnowledgeLibraryService } from '../knowledgeBase-library/knowledge-library-service'
 import type { QueryService } from '../surrealdb-service'
+import { logger } from '../logger'
 
 // ============================================================================
 // 类型定义
@@ -522,9 +523,17 @@ export class EmbeddingEngineBridge {
     })
 
     if (!docRecord?.id) {
-      console.warn('[EmbeddingEngineBridge] Failed to upsert kb_document', { fileKey })
+      logger.warn('[EmbeddingEngineBridge] Failed to upsert kb_document - no id returned', { 
+        fileKey,
+        docRecord 
+      })
       return
     }
+    
+    logger.debug('[EmbeddingEngineBridge] Successfully upserted kb_document', {
+      documentId: docRecord.id,
+      fileKey
+    })
 
     if (embeddingDimensions) {
       await this.ensureVectorIndex(namespace, kb.databaseName, embeddingDimensions)
@@ -606,7 +615,18 @@ export class EmbeddingEngineBridge {
       }
     )
 
+    logger.debug('[EmbeddingEngineBridge] UPSERT kb_document raw result', { 
+      resultType: typeof result,
+      isArray: Array.isArray(result),
+      result: result 
+    })
+    
     const records = this.extractQueryRecords(result)
+    logger.debug('[EmbeddingEngineBridge] Extracted records', { 
+      recordsCount: records.length,
+      firstRecord: records[0]
+    })
+    
     return records[0] || null
   }
 
@@ -637,8 +657,24 @@ export class EmbeddingEngineBridge {
       document: documentId
     }))
 
-    await this.queryService.queryInDatabase(namespace, database, 'INSERT INTO chunk $chunks;', {
-      chunks: payload
+    // SurrealDB 的 INSERT 语句会自动处理数组参数
+    // 当 $chunks 是数组时，引擎会自动遍历并为每个元素创建记录
+    logger.debug('[EmbeddingEngineBridge] Inserting chunks', {
+      documentId,
+      chunkCount: payload.length
+    })
+    
+    const result = await this.queryService.queryInDatabase(
+      namespace, 
+      database, 
+      'INSERT INTO chunk $chunks;', 
+      { chunks: payload }
+    )
+    
+    logger.debug('[EmbeddingEngineBridge] Chunks insert result', { 
+      resultType: typeof result,
+      isArray: Array.isArray(result),
+      result
     })
   }
 
@@ -663,6 +699,14 @@ export class EmbeddingEngineBridge {
   private extractQueryRecords(result: any): any[] {
     if (!result) return []
     if (Array.isArray(result)) {
+      // Handle double-nested arrays from UPSERT RETURN AFTER: [ [ {record} ] ]
+      if (result.length === 1 && Array.isArray(result[0])) {
+        const inner = result[0]
+        if (inner.length > 0 && typeof inner[0] === 'object' && !Array.isArray(inner[0])) {
+          return inner
+        }
+      }
+      
       for (const entry of result) {
         if (Array.isArray(entry?.result)) {
           if (entry.result.length > 0) return entry.result
