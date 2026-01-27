@@ -88,6 +88,9 @@
                 <p v-if="configOptions.length === 0" class="text-xs text-amber-600">
                   当前知识库尚未配置嵌入模型，请先在设置中添加配置
                 </p>
+                <p v-else-if="!defaultConfigId" class="text-xs text-amber-600">
+                  建议在设置中配置默认嵌入模型，方便快速批量嵌入
+                </p>
               </div>
             </div>
 
@@ -133,11 +136,16 @@ const emit = defineEmits<{
 const configStore = useKnowledgeConfigStore()
 const selectedConfigId = ref<string | null>(null)
 
+// 获取默认配置ID
+const defaultConfigId = computed(() =>
+  configStore.getDefaultEmbeddingConfigId(props.knowledgeBaseId)
+)
+
 // 获取嵌入模型配置选项
 const configOptions = computed(() => {
   const configs = configStore.getEmbeddingConfigs(props.knowledgeBaseId)
   return configs.map((config) => ({
-    label: `${config.name} (${config.candidates.length} 节点)`,
+    label: `${config.name} (${config.candidates.length} 节点)${config.id === defaultConfigId.value ? ' [默认]' : ''}`,
     value: config.id
   }))
 })
@@ -148,8 +156,11 @@ watch(
   async (visible) => {
     if (visible) {
       await configStore.loadConfig(props.knowledgeBaseId)
-      // 如果只有一个配置，自动选中
-      if (configOptions.value.length === 1) {
+      // 优先使用默认配置
+      if (defaultConfigId.value) {
+        selectedConfigId.value = defaultConfigId.value
+      } else if (configOptions.value.length === 1) {
+        // 如果只有一个配置，自动选中
         selectedConfigId.value = configOptions.value[0].value as string
       }
     } else {

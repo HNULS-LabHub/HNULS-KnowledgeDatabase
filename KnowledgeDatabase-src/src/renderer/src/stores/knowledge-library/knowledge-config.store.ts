@@ -109,6 +109,41 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
   })
 
   /**
+   * 获取默认嵌入配置ID
+   */
+  const getDefaultEmbeddingConfigId = computed(() => (kbId: number): string | null => {
+    return configByKbId.value.get(kbId)?.global.embedding?.defaultConfigId ?? null
+  })
+
+  /**
+   * 获取文档的嵌入配置ID（文档独立配置 > 全局默认配置）
+   */
+  const getDocumentEmbeddingConfigId = computed(
+    () =>
+      (kbId: number, fileKey: string): string | null => {
+        const config = configByKbId.value.get(kbId)
+        if (!config) return null
+
+        // 优先使用文档独立配置
+        const docConfig = config.documents[fileKey]
+        if (docConfig?.embeddingConfigId) {
+          return docConfig.embeddingConfigId
+        }
+
+        // 其次使用全局默认配置
+        return config.global.embedding?.defaultConfigId ?? null
+      }
+  )
+
+  /**
+   * 检查文档是否有独立的嵌入配置
+   */
+  const hasCustomEmbeddingConfig = computed(() => (kbId: number, fileKey: string): boolean => {
+    const config = configByKbId.value.get(kbId)
+    return !!config?.documents[fileKey]?.embeddingConfigId
+  })
+
+  /**
    * 创建嵌入配置项
    */
   async function createEmbeddingConfig(
@@ -156,12 +191,64 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
    */
   async function deleteEmbeddingConfig(kbId: number, configId: string): Promise<void> {
     const currentConfigs = getEmbeddingConfigs.value(kbId)
+    const currentDefaultId = getDefaultEmbeddingConfigId.value(kbId)
 
     const updatedConfigs = currentConfigs.filter((c) => c.id !== configId)
 
+    // 如果删除的是默认配置，清除 defaultConfigId
+    const newDefaultId = configId === currentDefaultId ? undefined : currentDefaultId
+
     await updateGlobalConfig(kbId, {
-      embedding: { configs: JSON.parse(JSON.stringify(updatedConfigs)) }
+      embedding: {
+        configs: JSON.parse(JSON.stringify(updatedConfigs)),
+        defaultConfigId: newDefaultId
+      }
     })
+  }
+
+  /**
+   * 设置默认嵌入配置ID
+   */
+  async function setDefaultEmbeddingConfigId(
+    kbId: number,
+    configId: string | null
+  ): Promise<void> {
+    const currentConfigs = getEmbeddingConfigs.value(kbId)
+
+    await updateGlobalConfig(kbId, {
+      embedding: {
+        configs: JSON.parse(JSON.stringify(currentConfigs)),
+        defaultConfigId: configId ?? undefined
+      }
+    })
+  }
+
+  /**
+   * 设置文档的嵌入配置ID
+   */
+  async function setDocumentEmbeddingConfigId(
+    kbId: number,
+    fileKey: string,
+    configId: string | null
+  ): Promise<void> {
+    const currentDocConfig = configByKbId.value.get(kbId)?.documents[fileKey] || {}
+
+    if (configId === null) {
+      // 清除文档独立的嵌入配置（跟随全局）
+      const { embeddingConfigId: _, ...restConfig } = currentDocConfig
+      if (Object.keys(restConfig).length === 0) {
+        // 如果没有其他配置，完全清除文档配置
+        await clearDocumentConfig(kbId, fileKey)
+      } else {
+        await updateDocumentConfig(kbId, fileKey, restConfig)
+      }
+    } else {
+      // 设置文档独立的嵌入配置
+      await updateDocumentConfig(kbId, fileKey, {
+        ...currentDocConfig,
+        embeddingConfigId: configId
+      })
+    }
   }
 
   return {
@@ -175,9 +262,15 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
     updateGlobalConfig,
     updateDocumentConfig,
     clearDocumentConfig,
+    // 嵌入配置相关
     getEmbeddingConfigs,
+    getDefaultEmbeddingConfigId,
+    getDocumentEmbeddingConfigId,
+    hasCustomEmbeddingConfig,
     createEmbeddingConfig,
     updateEmbeddingCandidates,
-    deleteEmbeddingConfig
+    deleteEmbeddingConfig,
+    setDefaultEmbeddingConfigId,
+    setDocumentEmbeddingConfigId
   }
 })

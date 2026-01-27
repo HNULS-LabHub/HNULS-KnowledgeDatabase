@@ -29,13 +29,29 @@
         </div>
       </div>
 
-      <!-- Status Badge -->
-      <div
-        v-if="embeddingState"
-        class="px-3 py-1 rounded-full text-xs font-semibold"
-        :class="statusBadgeClass"
-      >
-        {{ statusText }}
+      <!-- 配置状态指示 + 状态徽章 -->
+      <div class="flex items-center gap-2">
+        <div v-if="hasCustomEmbeddingConfig" class="flex items-center gap-2">
+          <span
+            class="text-[10px] font-mono text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-200"
+          >
+            独立配置
+          </span>
+          <button
+            class="text-xs text-slate-600 hover:text-purple-600 underline transition"
+            @click="handleResetConfig"
+          >
+            回正
+          </button>
+        </div>
+        <!-- Status Badge -->
+        <div
+          v-if="embeddingState"
+          class="px-3 py-1 rounded-full text-xs font-semibold"
+          :class="statusBadgeClass"
+        >
+          {{ statusText }}
+        </div>
       </div>
     </div>
 
@@ -46,12 +62,16 @@
         <label class="text-sm font-medium text-slate-700">嵌入模型配置</label>
         <WhiteSelect
           v-model="selectedConfigId"
-          :options="configOptions"
-          placeholder="选择嵌入模型配置"
+          :options="configOptionsWithDefault"
+          :placeholder="defaultConfigPlaceholder"
           :disabled="isEmbedding || !canEmbed"
+          @update:model-value="handleConfigChange"
         />
         <p v-if="!canEmbed" class="text-xs text-amber-600">
           {{ embeddingDisabledReason }}
+        </p>
+        <p v-else-if="!hasCustomEmbeddingConfig && defaultEmbeddingConfigId" class="text-xs text-slate-500">
+          当前跟随全局默认配置
         </p>
       </div>
 
@@ -144,11 +164,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useEmbeddingStore } from '@renderer/stores/embedding/embedding.store'
 import { useChunkingStore } from '@renderer/stores/chunking/chunking.store'
 import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
-import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
 import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 import type { EmbeddingConfig } from '@renderer/stores/embedding/embedding.types'
 import type { FileNode } from '../../../types'
@@ -164,10 +183,28 @@ const props = defineProps<{
 const embeddingStore = useEmbeddingStore()
 const chunkingStore = useChunkingStore()
 const configStore = useKnowledgeConfigStore()
-const knowledgeLibraryStore = useKnowledgeLibraryStore()
 
 const embeddingPanelRef = ref<HTMLElement | null>(null)
 const selectedConfigId = ref<string | null>(null)
+
+// 获取全局默认嵌入配置ID
+const defaultEmbeddingConfigId = computed(() =>
+  props.knowledgeBaseId ? configStore.getDefaultEmbeddingConfigId(props.knowledgeBaseId) : null
+)
+
+// 检查文档是否有独立的嵌入配置
+const hasCustomEmbeddingConfig = computed(() =>
+  props.knowledgeBaseId && props.fileKey
+    ? configStore.hasCustomEmbeddingConfig(props.knowledgeBaseId, props.fileKey)
+    : false
+)
+
+// 获取文档的嵌入配置ID（文档独立 > 全局默认）
+const documentEmbeddingConfigId = computed(() =>
+  props.knowledgeBaseId && props.fileKey
+    ? configStore.getDocumentEmbeddingConfigId(props.knowledgeBaseId, props.fileKey)
+    : null
+)
 
 // 获取嵌入模型配置选项
 const configOptions = computed(() => {
@@ -177,6 +214,26 @@ const configOptions = computed(() => {
     label: `${config.name} (${config.candidates.length} 节点)`,
     value: config.id
   }))
+})
+
+// 配置选项（带跟随全局选项）
+const configOptionsWithDefault = computed(() => {
+  if (!defaultEmbeddingConfigId.value) {
+    // 没有全局默认配置，直接返回原始选项
+    return configOptions.value
+  }
+  // 有全局默认配置，添加“跟随全局”选项
+  const defaultConfig = configOptions.value.find((c) => c.value === defaultEmbeddingConfigId.value)
+  const defaultLabel = defaultConfig ? `跟随全局 (${defaultConfig.label})` : '跟随全局'
+  return [{ label: defaultLabel, value: '' }, ...configOptions.value]
+})
+
+// 默认配置占位符
+const defaultConfigPlaceholder = computed(() => {
+  if (defaultEmbeddingConfigId.value) {
+    return '选择嵌入模型配置'
+  }
+  return '请先在设置中配置默认嵌入模型'
 })
 
 // 获取选中的配置
@@ -247,6 +304,28 @@ const statusBadgeClass = computed(() => {
   }
 })
 
+// 初始化配置
+onMounted(async () => {
+  if (props.knowledgeBaseId) {
+    await configStore.loadConfig(props.knowledgeBaseId)
+  }
+})
+
+// 监听文档嵌入配置ID变化，同步到本地选择
+watch(
+  documentEmbeddingConfigId,
+  (configId) => {
+    if (hasCustomEmbeddingConfig.value) {
+      // 有独立配置，使用独立配置ID
+      selectedConfigId.value = configId
+    } else {
+      // 跟随全局，选中空值
+      selectedConfigId.value = defaultEmbeddingConfigId.value ? '' : configId
+    }
+  },
+  { immediate: true }
+)
+
 // 监听配置变化，加载嵌入状态
 watch(
   [() => props.fileKey, embeddingConfig, () => props.knowledgeBaseId],
@@ -303,6 +382,36 @@ const handleViewVectors = (): void => {
   console.log('[EmbeddingPanel] View vectors:', embeddingState.value?.vectors)
   // TODO: 实现向量查看对话框
   alert(`已生成 ${embeddingState.value?.vectors.length || 0} 个向量\n\n功能开发中...`)
+}
+
+// 配置变更处理
+const handleConfigChange = async (value: string | null): Promise<void> => {
+  if (!props.knowledgeBaseId || !props.fileKey) return
+
+  try {
+    if (value === '' || value === null) {
+      // 选择“跟随全局”，清除文档独立配置
+      await configStore.setDocumentEmbeddingConfigId(props.knowledgeBaseId, props.fileKey, null)
+    } else {
+      // 选择具体配置，设置文档独立配置
+      await configStore.setDocumentEmbeddingConfigId(props.knowledgeBaseId, props.fileKey, value)
+    }
+  } catch (error) {
+    console.error('[EmbeddingPanel] Failed to save embedding config:', error)
+  }
+}
+
+// 回正配置（跟随全局）
+const handleResetConfig = async (): Promise<void> => {
+  if (!props.knowledgeBaseId || !props.fileKey) return
+
+  try {
+    await configStore.setDocumentEmbeddingConfigId(props.knowledgeBaseId, props.fileKey, null)
+    // 如果有全局默认配置，选中空值（跟随全局）
+    selectedConfigId.value = defaultEmbeddingConfigId.value ? '' : null
+  } catch (error) {
+    console.error('[EmbeddingPanel] Failed to reset embedding config:', error)
+  }
 }
 
 // 暴露 ref 给父组件（用于滚动定位）

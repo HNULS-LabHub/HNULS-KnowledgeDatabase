@@ -22,6 +22,20 @@
       </button>
     </div>
 
+    <!-- 默认嵌入配置选择 -->
+    <div class="kb-default-embedding-config">
+      <label class="block text-sm font-medium text-slate-700 mb-2"> 默认嵌入配置 </label>
+      <WhiteSelect
+        :model-value="defaultConfigId"
+        :options="defaultConfigOptions"
+        placeholder="请选择默认嵌入配置"
+        @update:model-value="handleDefaultConfigChange"
+      />
+      <p class="mt-1.5 text-xs text-slate-500 leading-relaxed">
+        默认配置用于批量嵌入以及未设置独立配置的文档。文档可在详情抽屉中设置独立配置以覆盖此默认值。
+      </p>
+    </div>
+
     <!-- Config List -->
     <div class="space-y-4">
       <div
@@ -135,6 +149,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
 import type { EmbeddingModelConfig } from '@preload/types'
 import CreateConfigDialog from './CreateConfigDialog.vue'
+import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 
 const props = defineProps<{
   knowledgeBaseId: number
@@ -150,6 +165,20 @@ const showCreateDialog = ref(false)
 // 直接从 Store 获取（响应式）
 const configs = computed(() => knowledgeConfigStore.getEmbeddingConfigs(props.knowledgeBaseId))
 
+// 默认配置ID
+const defaultConfigId = computed(
+  () => knowledgeConfigStore.getDefaultEmbeddingConfigId(props.knowledgeBaseId)
+)
+
+// 默认配置选项
+const defaultConfigOptions = computed(() => {
+  const options = configs.value.map((config) => ({
+    label: `${config.name} (${config.candidates.length} 节点)`,
+    value: config.id
+  }))
+  return [{ label: '未设置', value: '' }, ...options]
+})
+
 onMounted(async () => {
   await knowledgeConfigStore.loadConfig(props.knowledgeBaseId)
 })
@@ -161,5 +190,13 @@ async function handleCreate(data: { name: string; presetId?: string; dimensions?
 
 async function handleRemove(id: string) {
   await knowledgeConfigStore.deleteEmbeddingConfig(props.knowledgeBaseId, id)
+}
+
+// 设置默认配置
+async function handleDefaultConfigChange(value: string | null) {
+  await knowledgeConfigStore.setDefaultEmbeddingConfigId(
+    props.knowledgeBaseId,
+    value || null
+  )
 }
 </script>

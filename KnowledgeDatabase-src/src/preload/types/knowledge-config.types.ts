@@ -31,6 +31,8 @@ export interface EmbeddingModelConfig {
  */
 export interface EmbeddingConfig {
   configs: EmbeddingModelConfig[]
+  /** 默认嵌入配置ID（用于批量嵌入等场景） */
+  defaultConfigId?: string
 }
 
 /**
@@ -38,7 +40,8 @@ export interface EmbeddingConfig {
  */
 export interface DocumentConfig {
   chunking?: ChunkingConfig
-  // 预留其他配置
+  /** 文档独立的嵌入配置ID（可选，不设置则跟随全局默认） */
+  embeddingConfigId?: string
 }
 
 /**

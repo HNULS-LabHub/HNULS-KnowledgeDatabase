@@ -310,16 +310,23 @@ export function useBatchOperations() {
    * 批量嵌入
    * @param files 要嵌入的文件列表
    * @param knowledgeBaseId 知识库 ID
-   * @param configId 嵌入配置 ID
+   * @param configId 嵌入配置 ID（可选，不提供则使用知识库默认配置）
    * @returns 批量操作结果
    */
   async function batchEmbedDocuments(
     files: FileNode[],
     knowledgeBaseId: number,
-    configId: string
+    configId?: string
   ): Promise<BatchOperationResult> {
     if (isBatchEmbedding.value) {
       console.warn('[BatchEmbedding] Already embedding')
+      return { success: 0, failed: 0 }
+    }
+
+    // 确定使用的配置ID（传入的 > 知识库默认）
+    const effectiveConfigId = configId || configStore.getDefaultEmbeddingConfigId(knowledgeBaseId)
+    if (!effectiveConfigId) {
+      console.error('[BatchEmbedding] No config specified and no default config found')
       return { success: 0, failed: 0 }
     }
 
@@ -353,9 +360,9 @@ export function useBatchOperations() {
 
       // 获取嵌入配置
       const configs = configStore.getEmbeddingConfigs(knowledgeBaseId)
-      const selectedConfig = configs.find((c) => c.id === configId)
+      const selectedConfig = configs.find((c) => c.id === effectiveConfigId)
       if (!selectedConfig) {
-        console.error('[BatchEmbedding] Config not found:', configId)
+        console.error('[BatchEmbedding] Config not found:', effectiveConfigId)
         return { success: 0, failed: 0 }
       }
 
@@ -408,6 +415,12 @@ export function useBatchOperations() {
               }
             })
 
+            // 转换分块为 ChunkInput 格式
+            const chunks = chunkingState.chunks.map((chunk, index) => ({
+              index,
+              text: chunk.content
+            }))
+
             // 执行嵌入
             await embeddingStore.startEmbedding(
               fileKey,
@@ -415,8 +428,10 @@ export function useBatchOperations() {
               {
                 knowledgeBaseId,
                 fileRelativePath: fileKey,
-                totalChunks
+                totalChunks,
+                fileName
               },
+              chunks,
               (progress, processed) => {
                 // 更新任务进度
                 taskHandle?.updateProgress(progress, {
