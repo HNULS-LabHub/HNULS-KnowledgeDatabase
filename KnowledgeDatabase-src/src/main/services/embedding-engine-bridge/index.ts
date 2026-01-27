@@ -33,6 +33,26 @@ interface PendingRequest<T> {
 }
 
 // ============================================================================
+// 工具函数：分表命名
+// ============================================================================
+
+/**
+ * 清理表名中的非法字符，只保留字母、数字、下划线
+ */
+function sanitizeTableName(input: string): string {
+  return input.replace(/[^a-zA-Z0-9_]/g, '_')
+}
+
+/**
+ * 根据 embeddingConfigId 和 dimensions 生成 chunks 分表名
+ * 格式: emb_{configId}_{dim}_chunks
+ */
+function getChunksTableName(configId: string, dimensions: number): string {
+  const safeId = sanitizeTableName(configId)
+  return `emb_${safeId}_${dimensions}_chunks`
+}
+
+// ============================================================================
 // EmbeddingEngineBridge
 // ============================================================================
 
@@ -56,6 +76,9 @@ export class EmbeddingEngineBridge {
 
   /** 数据库同步队列 */
   private syncQueue: Promise<void> = Promise.resolve()
+
+  /** 模型分表缓存（避免重复创建表/索引） */
+  private modelTableCache: Set<string> = new Set()
 
   /** 完成事件监听器 */
   private completedListeners: Set<(result: EmbeddingTaskResult) => void> = new Set()
@@ -356,10 +379,18 @@ export class EmbeddingEngineBridge {
   // 向量检索
   // ==========================================================================
 
+  /**
+   * 向量检索（KNN）
+   * @param params.embeddingConfigId 嵌入配置 ID（用于确定查询哪个分表）
+   * @param params.dimensions 嵌入维度（用于确定查询哪个分表）
+   */
   async search(params: {
     knowledgeBaseId: number
     queryVector: number[]
+    embeddingConfigId: string
+    dimensions: number
     k?: number
+    ef?: number
   }): Promise<
     Array<{
       id: string
@@ -383,21 +414,47 @@ export class EmbeddingEngineBridge {
     }
 
     const namespace = this.queryService.getNamespace() || 'knowledge'
-    const rawResult = await this.queryService.vectorSearch(
-      namespace,
-      kb.databaseName,
-      params.queryVector,
-      params.k ?? 10
-    )
+    const tableName = getChunksTableName(params.embeddingConfigId, params.dimensions)
+    const k = params.k ?? 10
+    const ef = params.ef ?? 100
 
-    return this.extractQueryRecords(rawResult) as Array<{
-      id: string
-      content: string
-      chunk_index?: number
-      file_key?: string
-      file_name?: string
-      distance?: number
-    }>
+    const sql = `
+      SELECT
+        id,
+        content,
+        chunk_index,
+        document.file_key AS file_key,
+        document.file_name AS file_name,
+        vector::distance::knn() AS distance
+      FROM \`${tableName}\`
+      WHERE embedding <|${k},${ef}|> $queryVector
+      ORDER BY distance ASC;
+    `
+
+    try {
+      const rawResult = await this.queryService.queryInDatabase(
+        namespace,
+        kb.databaseName,
+        sql,
+        { queryVector: params.queryVector }
+      )
+      return this.extractQueryRecords(rawResult) as Array<{
+        id: string
+        content: string
+        chunk_index?: number
+        file_key?: string
+        file_name?: string
+        distance?: number
+      }>
+    } catch (error) {
+      logger.error('[EmbeddingEngineBridge] Vector search failed', {
+        tableName,
+        k,
+        ef,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      return []
+    }
   }
 
   // ==========================================================================
@@ -505,11 +562,31 @@ export class EmbeddingEngineBridge {
       embedding: embeddingsMap.get(chunk.index) ?? null
     }))
 
+    // 获取嵌入配置信息
+    const embeddingConfigId = params?.embeddingConfig?.id
     const embeddingDimensions =
       result.embeddings[0]?.embedding?.length ?? params?.embeddingConfig?.dimensions ?? null
 
+    // 校验必要的配置信息
+    if (!embeddingConfigId || !embeddingDimensions) {
+      logger.warn('[EmbeddingEngineBridge] Missing embedding config, skip sync', {
+        embeddingConfigId,
+        embeddingDimensions
+      })
+      return
+    }
+
     const namespace = this.queryService.getNamespace() || 'knowledge'
 
+    // Step 1: 确保模型分表存在（含 HNSW 索引）
+    const tableName = await this.ensureModelChunksTable(
+      namespace,
+      kb.databaseName,
+      embeddingConfigId,
+      embeddingDimensions
+    )
+
+    // Step 2: upsert kb_document（新增 embedding_config_id 字段）
     const docRecord = await this.upsertKbDocument({
       namespace,
       database: kb.databaseName,
@@ -519,27 +596,26 @@ export class EmbeddingEngineBridge {
       fileType,
       chunkCount: chunkRecords.length,
       embeddingModel: params?.embeddingConfig?.modelId ?? null,
-      embeddingDimensions
+      embeddingDimensions,
+      embeddingConfigId
     })
 
     if (!docRecord?.id) {
-      logger.warn('[EmbeddingEngineBridge] Failed to upsert kb_document - no id returned', { 
+      logger.warn('[EmbeddingEngineBridge] Failed to upsert kb_document - no id returned', {
         fileKey,
-        docRecord 
+        docRecord
       })
       return
     }
-    
+
     logger.debug('[EmbeddingEngineBridge] Successfully upserted kb_document', {
       documentId: docRecord.id,
-      fileKey
+      fileKey,
+      tableName
     })
 
-    if (embeddingDimensions) {
-      await this.ensureVectorIndex(namespace, kb.databaseName, embeddingDimensions)
-    }
-
-    await this.replaceChunks(namespace, kb.databaseName, docRecord.id, chunkRecords)
+    // Step 3: 写入 chunks 到模型分表
+    await this.replaceChunks(namespace, kb.databaseName, tableName, docRecord.id, chunkRecords)
   }
 
   private async loadChunkingResult(kbRoot: string, fileName: string) {
@@ -582,6 +658,7 @@ export class EmbeddingEngineBridge {
     chunkCount: number
     embeddingModel: string | null
     embeddingDimensions: number | null
+    embeddingConfigId: string
   }): Promise<any | null> {
     if (!this.queryService) return null
 
@@ -595,6 +672,7 @@ export class EmbeddingEngineBridge {
         embedding_status = 'completed',
         embedding_model = $embeddingModel,
         embedding_dimensions = $embeddingDimensions,
+        embedding_config_id = $embeddingConfigId,
         updated_at = time::now()
       WHERE file_key = $fileKey
       RETURN AFTER;
@@ -611,28 +689,91 @@ export class EmbeddingEngineBridge {
         fileType: params.fileType,
         chunkCount: params.chunkCount,
         embeddingModel: params.embeddingModel,
-        embeddingDimensions: params.embeddingDimensions
+        embeddingDimensions: params.embeddingDimensions,
+        embeddingConfigId: params.embeddingConfigId
       }
     )
 
-    logger.debug('[EmbeddingEngineBridge] UPSERT kb_document raw result', { 
+    logger.debug('[EmbeddingEngineBridge] UPSERT kb_document raw result', {
       resultType: typeof result,
       isArray: Array.isArray(result),
-      result: result 
+      result: result
     })
-    
+
     const records = this.extractQueryRecords(result)
-    logger.debug('[EmbeddingEngineBridge] Extracted records', { 
+    logger.debug('[EmbeddingEngineBridge] Extracted records', {
       recordsCount: records.length,
       firstRecord: records[0]
     })
-    
+
     return records[0] || null
   }
 
+  /**
+   * 确保模型专属 chunks 分表存在（含 HNSW 索引）
+   * 使用 IF NOT EXISTS 保证幂等性
+   * @returns 分表名
+   */
+  private async ensureModelChunksTable(
+    namespace: string,
+    database: string,
+    configId: string,
+    dimensions: number
+  ): Promise<string> {
+    if (!this.queryService) {
+      throw new Error('QueryService not available')
+    }
+
+    const tableName = getChunksTableName(configId, dimensions)
+    const cacheKey = `${namespace}.${database}.${tableName}`
+
+    // 检查缓存，避免重复创建
+    if (this.modelTableCache.has(cacheKey)) {
+      return tableName
+    }
+
+    // 创建表和索引（幂等）
+    const sql = `
+      DEFINE TABLE IF NOT EXISTS \`${tableName}\`;
+      DEFINE INDEX IF NOT EXISTS uniq_doc_chunk
+        ON TABLE \`${tableName}\` FIELDS document, chunk_index UNIQUE;
+      DEFINE INDEX IF NOT EXISTS hnsw_embedding
+        ON TABLE \`${tableName}\` FIELDS embedding
+        HNSW DIMENSION ${dimensions} DIST COSINE TYPE F32 EFC 200 M 16;
+    `
+
+    try {
+      await this.queryService.queryInDatabase(namespace, database, sql)
+      this.modelTableCache.add(cacheKey)
+      logger.info('[EmbeddingEngineBridge] Created model chunks table', {
+        tableName,
+        dimensions,
+        database
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      // 如果表/索引已存在，视为成功
+      if (!message.includes('already exists')) {
+        logger.error('[EmbeddingEngineBridge] Failed to create model chunks table', {
+          tableName,
+          error: message
+        })
+        throw error
+      }
+      this.modelTableCache.add(cacheKey)
+    }
+
+    return tableName
+  }
+
+  /**
+   * 替换文档的 chunks（删除旧的，插入新的）
+   * @param tableName 目标分表名
+   */
   private async replaceChunks(
     namespace: string,
     database: string,
+    tableName: string,
     documentId: string,
     chunkRecords: Array<{
       chunk_index: number
@@ -645,55 +786,40 @@ export class EmbeddingEngineBridge {
   ): Promise<void> {
     if (!this.queryService) return
 
+    // 删除旧 chunks
     await this.queryService.queryInDatabase(
       namespace,
       database,
-      'DELETE chunk WHERE document = $documentId;',
+      `DELETE FROM \`${tableName}\` WHERE document = $documentId;`,
       { documentId }
     )
 
+    // 构建 payload
     const payload = chunkRecords.map((record) => ({
       ...record,
       document: documentId
     }))
 
-    // SurrealDB 的 INSERT 语句会自动处理数组参数
-    // 当 $chunks 是数组时，引擎会自动遍历并为每个元素创建记录
     logger.debug('[EmbeddingEngineBridge] Inserting chunks', {
+      tableName,
       documentId,
       chunkCount: payload.length
     })
-    
+
+    // 插入新 chunks
     const result = await this.queryService.queryInDatabase(
-      namespace, 
-      database, 
-      'INSERT INTO chunk $chunks;', 
+      namespace,
+      database,
+      `INSERT INTO \`${tableName}\` $chunks;`,
       { chunks: payload }
     )
-    
-    logger.debug('[EmbeddingEngineBridge] Chunks insert result', { 
+
+    logger.debug('[EmbeddingEngineBridge] Chunks insert result', {
+      tableName,
       resultType: typeof result,
       isArray: Array.isArray(result),
       result
     })
-  }
-
-  private async ensureVectorIndex(
-    namespace: string,
-    database: string,
-    dimensions: number
-  ): Promise<void> {
-    if (!this.queryService) return
-
-    const sql = `DEFINE INDEX idx_embedding ON chunk FIELDS embedding HNSW DIMENSION ${dimensions} DIST COSINE;`
-    try {
-      await this.queryService.queryInDatabase(namespace, database, sql)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      if (!message.includes('already exists')) {
-        console.warn('[EmbeddingEngineBridge] Failed to ensure vector index', message)
-      }
-    }
   }
 
   private extractQueryRecords(result: any): any[] {

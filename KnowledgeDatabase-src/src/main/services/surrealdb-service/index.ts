@@ -50,7 +50,6 @@ export {
   userTable,
   documentTable,
   operationLogTable,
-  kbDocumentTable,
-  chunkTable
+  kbDocumentTable
 } from './schema'
 export type { TableDefinition } from './schema'

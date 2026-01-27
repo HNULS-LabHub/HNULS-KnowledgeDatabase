@@ -5,7 +5,7 @@ import { logger } from '../logger'
 import { ServiceTracker } from '../logger/service-tracker'
 import { DocumentService } from './document-service'
 import type { QueryService } from '../surrealdb-service'
-import { kbDocumentTable, chunkTable } from '../surrealdb-service'
+import { kbDocumentTable } from '../surrealdb-service'
 import type {
   KnowledgeBaseMeta,
   KnowledgeLibraryMeta,
@@ -233,9 +233,9 @@ export class KnowledgeLibraryService {
           fullResult: result
         })
 
-        // 初始化知识库数据库的表结构
+        // 初始化知识库数据库的表结构 (只创建 kb_document，embedding 表会在执行 embedding 时动态创建)
         const namespace = this.queryService.getNamespace() || 'knowledge'
-        const schemaSql = `${kbDocumentTable.sql}\n${chunkTable.sql}`
+        const schemaSql = kbDocumentTable.sql
         try {
           logger.debug(`Initializing KB schema in ${namespace}:${databaseName}`, {
             sql: schemaSql.substring(0, 200) + '...'
@@ -488,6 +488,10 @@ export class KnowledgeLibraryService {
 
   /**
    * 删除文件/目录后，同步删除 kb_document 以及关联 chunk
+   *
+   * TODO: 新架构下 chunks 存储在动态分表中（如 emb_cfg_xxx_3072_chunks）
+   * 当前 `DELETE chunk` 语句为旧代码兼容，新分表的 chunks 需要通过
+   * kb_document.embedding_config_id 和 embedding_dimensions 构造表名后删除
    */
   async syncDeletedPathToSurrealDB(params: {
     knowledgeBaseId: number
@@ -504,6 +508,8 @@ export class KnowledgeLibraryService {
 
     const prefix = normalized.replace(/\/+$/, '') + '/'
 
+    // 注意: 新架构下 chunks 存储在 emb_{configId}_{dim}_chunks 分表中
+    // 这里的 DELETE chunk 只能清理旧 chunk 表，新分表需要额外处理
     const sql = params.isDirectory
       ? `
         LET $docIds = (SELECT VALUE id FROM kb_document WHERE string::starts_with(file_key, $prefix));

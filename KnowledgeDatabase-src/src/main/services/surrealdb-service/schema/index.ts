@@ -9,7 +9,6 @@ import {
   documentTable,
   operationLogTable,
   kbDocumentTable,
-  chunkTable,
   TableDefinition
 } from './tables'
 
@@ -21,10 +20,10 @@ export const schemas: string[] = [userTable.sql, documentTable.sql, operationLog
 /**
  * 知识库专用 schema 定义
  */
-export const knowledgeBaseSchemas: string[] = [kbDocumentTable.sql, chunkTable.sql]
+export const knowledgeBaseSchemas: string[] = [kbDocumentTable.sql]
 
 export default schemas
 
 // 导出表定义供其他地方使用
-export { userTable, documentTable, operationLogTable, kbDocumentTable, chunkTable }
+export { userTable, documentTable, operationLogTable, kbDocumentTable }
 export type { TableDefinition }

@@ -69,6 +69,7 @@ DEFINE INDEX idx_timestamp ON operation_log COLUMNS timestamp;`
 
 /**
  * 知识库文档表定义
+ * embedding_config_id: 用于标识使用哪个嵌入配置（对应动态创建的 emb_{configId}_{dim}_chunks 表）
  */
 export const kbDocumentTable: TableDefinition = {
   name: 'kb_document',
@@ -79,6 +80,7 @@ DEFINE FIELD file_path ON kb_document TYPE string;
 DEFINE FIELD file_type ON kb_document TYPE string;
 DEFINE FIELD chunk_count ON kb_document TYPE int DEFAULT 0;
 DEFINE FIELD embedding_status ON kb_document TYPE string DEFAULT 'pending';
+DEFINE FIELD embedding_config_id ON kb_document TYPE option<string>;
 DEFINE FIELD embedding_model ON kb_document TYPE option<string>;
 DEFINE FIELD embedding_dimensions ON kb_document TYPE option<int>;
 DEFINE FIELD created_at ON kb_document TYPE datetime DEFAULT time::now();
@@ -86,20 +88,3 @@ DEFINE FIELD updated_at ON kb_document TYPE datetime DEFAULT time::now() VALUE t
 DEFINE INDEX idx_file_key ON kb_document COLUMNS file_key UNIQUE;`
 }
 
-/**
- * 分块表定义
- */
-export const chunkTable: TableDefinition = {
-  name: 'chunk',
-  sql: `DEFINE TABLE chunk SCHEMAFULL;
-DEFINE FIELD document ON chunk TYPE record<kb_document>;
-DEFINE FIELD chunk_index ON chunk TYPE int;
-DEFINE FIELD content ON chunk TYPE string;
-DEFINE FIELD char_count ON chunk TYPE int;
-DEFINE FIELD start_char ON chunk TYPE option<int>;
-DEFINE FIELD end_char ON chunk TYPE option<int>;
-DEFINE FIELD embedding ON chunk TYPE option<array>;
-DEFINE FIELD created_at ON chunk TYPE datetime DEFAULT time::now();
-DEFINE INDEX idx_document ON chunk COLUMNS document;
-DEFINE INDEX idx_document_chunk ON chunk COLUMNS document, chunk_index UNIQUE;`
-}

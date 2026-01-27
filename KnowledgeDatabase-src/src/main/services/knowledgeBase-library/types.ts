@@ -65,3 +65,37 @@ export interface CleanupResult {
     error: string
   }>
 }
+
+// ============================================================================
+// 嵌入配置类型（用于多模型向量分表）
+// ============================================================================
+
+/**
+ * 嵌入配置候选项（provider + model 组合）
+ */
+export interface EmbeddingCandidate {
+  providerId: string
+  modelId: string
+}
+
+/**
+ * 单个嵌入配置项
+ * 来自 KnowledgeConfig.json 的 embedding.configs[]
+ */
+export interface EmbeddingConfigItem {
+  /** 配置唯一标识，如 "cfg_1769446275961" */
+  id: string
+  /** 配置名称，如 "Text Embedding 3 Large" */
+  name: string
+  /** 嵌入向量维度，如 3072 */
+  dimensions: number
+  /** 可用的 provider + model 候选列表 */
+  candidates: EmbeddingCandidate[]
+}
+
+/**
+ * 全局嵌入配置（包含多个配置项）
+ */
+export interface EmbeddingGlobalConfig {
+  configs: EmbeddingConfigItem[]
+}

@@ -138,8 +138,10 @@ export const EmbeddingDataSource = {
       documentId,
       chunks,
       embeddingConfig: {
+        id: config.configId,
         modelId: config.modelId,
-        dimensions: config.dimensions
+        dimensions: config.dimensions,
+        providerId: config.providerId
       },
       meta: {
         fileName: options.fileName || fileKey.split('/').pop() || fileKey,

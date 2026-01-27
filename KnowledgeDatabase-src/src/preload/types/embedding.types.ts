@@ -21,10 +21,14 @@ export interface ChunkInput {
  * 嵌入配置
  */
 export interface EmbeddingConfig {
+  /** 配置 ID（来自 KnowledgeConfig.json 的 embedding.configs[].id） */
+  id: string
   /** 模型 ID (e.g. text-embedding-3-large) */
   modelId: string
-  /** 可选: 向量维度 */
-  dimensions?: number
+  /** 向量维度 */
+  dimensions: number
+  /** 可选: Provider ID */
+  providerId?: string
 }
 
 /**
