@@ -33,6 +33,13 @@ interface PendingRequest<T> {
 }
 
 // ============================================================================
+// 批次插入配置
+// ============================================================================
+
+/** 每批插入的 chunk 数量（防止单次请求过大） */
+const BATCH_INSERT_SIZE = 100
+
+// ============================================================================
 // 工具函数：分表命名
 // ============================================================================
 
@@ -578,44 +585,72 @@ export class EmbeddingEngineBridge {
 
     const namespace = this.queryService.getNamespace() || 'knowledge'
 
-    // Step 1: 确保模型分表存在（含 HNSW 索引）
-    const tableName = await this.ensureModelChunksTable(
-      namespace,
-      kb.databaseName,
-      embeddingConfigId,
-      embeddingDimensions
-    )
+    try {
+      // Step 1: 确保模型分表存在（含 HNSW 索引）
+      const tableName = await this.ensureModelChunksTable(
+        namespace,
+        kb.databaseName,
+        embeddingConfigId,
+        embeddingDimensions
+      )
 
-    // Step 2: upsert kb_document（新增 embedding_config_id 字段）
-    const docRecord = await this.upsertKbDocument({
-      namespace,
-      database: kb.databaseName,
-      fileKey,
-      fileName,
-      filePath,
-      fileType,
-      chunkCount: chunkRecords.length,
-      embeddingModel: params?.embeddingConfig?.modelId ?? null,
-      embeddingDimensions,
-      embeddingConfigId
-    })
-
-    if (!docRecord?.id) {
-      logger.warn('[EmbeddingEngineBridge] Failed to upsert kb_document - no id returned', {
+      // Step 2: upsert kb_document（新增 embedding_config_id 字段）
+      const docRecord = await this.upsertKbDocument({
+        namespace,
+        database: kb.databaseName,
         fileKey,
-        docRecord
+        fileName,
+        filePath,
+        fileType,
+        chunkCount: chunkRecords.length,
+        embeddingModel: params?.embeddingConfig?.modelId ?? null,
+        embeddingDimensions,
+        embeddingConfigId
       })
-      return
+
+      if (!docRecord?.id) {
+        logger.warn('[EmbeddingEngineBridge] Failed to upsert kb_document - no id returned', {
+          fileKey,
+          docRecord
+        })
+        return
+      }
+
+      logger.debug('[EmbeddingEngineBridge] Successfully upserted kb_document', {
+        documentId: docRecord.id,
+        fileKey,
+        tableName
+      })
+
+      // Step 3: 写入 chunks 到模型分表
+      await this.replaceChunks(namespace, kb.databaseName, tableName, docRecord.id, chunkRecords)
+
+      logger.info('[EmbeddingEngineBridge] Successfully synced embeddings', {
+        documentId: docRecord.id,
+        fileKey,
+        tableName,
+        chunkCount: chunkRecords.length
+      })
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+
+      logger.error('[EmbeddingEngineBridge] Failed to sync embeddings', {
+        documentId: result.documentId,
+        fileKey,
+        error: errorMsg,
+        stack: error instanceof Error ? error.stack : undefined
+      })
+
+      // 通知前端同步失败
+      this.broadcastToRenderers('embedding:sync-failed', {
+        documentId: result.documentId,
+        fileKey,
+        error: errorMsg
+      })
+
+      // 重新抛出错误，让调用方知道同步失败
+      throw error
     }
-
-    logger.debug('[EmbeddingEngineBridge] Successfully upserted kb_document', {
-      documentId: docRecord.id,
-      fileKey,
-      tableName
-    })
-
-    // Step 3: 写入 chunks 到模型分表
-    await this.replaceChunks(namespace, kb.databaseName, tableName, docRecord.id, chunkRecords)
   }
 
   private async loadChunkingResult(kbRoot: string, fileName: string) {
@@ -767,7 +802,7 @@ export class EmbeddingEngineBridge {
   }
 
   /**
-   * 替换文档的 chunks（删除旧的，插入新的）
+   * 替换文档的 chunks（删除旧的，分批插入新的）
    * @param tableName 目标分表名
    */
   private async replaceChunks(
@@ -786,7 +821,7 @@ export class EmbeddingEngineBridge {
   ): Promise<void> {
     if (!this.queryService) return
 
-    // 删除旧 chunks
+    // Step 1: 删除旧 chunks
     await this.queryService.queryInDatabase(
       namespace,
       database,
@@ -794,7 +829,7 @@ export class EmbeddingEngineBridge {
       { documentId }
     )
 
-    // 构建 payload
+    // Step 2: 准备批次数据
     const payload = chunkRecords.map((record) => ({
       ...record,
       document: documentId
@@ -806,19 +841,94 @@ export class EmbeddingEngineBridge {
       chunkCount: payload.length
     })
 
-    // 插入新 chunks
-    const result = await this.queryService.queryInDatabase(
-      namespace,
-      database,
-      `INSERT INTO \`${tableName}\` $chunks;`,
-      { chunks: payload }
-    )
+    // Step 3: 分批插入
+    await this.insertChunksInBatches(namespace, database, tableName, payload)
+  }
 
-    logger.debug('[EmbeddingEngineBridge] Chunks insert result', {
+  /**
+   * 分批插入 chunks（固定批次大小）
+   */
+  private async insertChunksInBatches(
+    namespace: string,
+    database: string,
+    tableName: string,
+    chunks: Array<any>
+  ): Promise<void> {
+    if (!this.queryService) {
+      throw new Error('QueryService not available')
+    }
+
+    const totalChunks = chunks.length
+    const totalBatches = Math.ceil(totalChunks / BATCH_INSERT_SIZE)
+
+    logger.info('[EmbeddingEngineBridge] Starting batch insert', {
       tableName,
-      resultType: typeof result,
-      isArray: Array.isArray(result),
-      result
+      totalChunks,
+      totalBatches,
+      batchSize: BATCH_INSERT_SIZE
+    })
+
+    // 分批处理
+    for (let i = 0; i < totalBatches; i++) {
+      const start = i * BATCH_INSERT_SIZE
+      const end = Math.min(start + BATCH_INSERT_SIZE, totalChunks)
+      const batch = chunks.slice(start, end)
+
+      const batchNum = i + 1
+      const progress = Math.round((end / totalChunks) * 100)
+
+      logger.debug('[EmbeddingEngineBridge] Inserting batch', {
+        tableName,
+        batchNum,
+        totalBatches,
+        batchSize: batch.length,
+        progress: `${end}/${totalChunks} (${progress}%)`,
+        startIndex: start,
+        endIndex: end - 1
+      })
+
+      try {
+        const startTime = Date.now()
+
+        await this.queryService.queryInDatabase(
+          namespace,
+          database,
+          `INSERT INTO \`${tableName}\` $chunks;`,
+          { chunks: batch }
+        )
+
+        const duration = Date.now() - startTime
+
+        logger.debug('[EmbeddingEngineBridge] Batch inserted successfully', {
+          tableName,
+          batchNum,
+          batchSize: batch.length,
+          duration: `${duration}ms`,
+          avgPerChunk: `${(duration / batch.length).toFixed(2)}ms`
+        })
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error)
+
+        logger.error('[EmbeddingEngineBridge] Batch insert failed', {
+          tableName,
+          batchNum,
+          totalBatches,
+          batchSize: batch.length,
+          error: errorMsg
+        })
+
+        // 批次失败时抛出错误，停止后续批次
+        throw new Error(
+          `Failed to insert batch ${batchNum}/${totalBatches}: ${errorMsg}`
+        )
+      }
+    }
+
+    logger.info('[EmbeddingEngineBridge] All batches inserted successfully', {
+      tableName,
+      totalChunks,
+      totalBatches,
+      batchSize: BATCH_INSERT_SIZE
     })
   }
 

@@ -230,10 +230,17 @@ export class SurrealDBService implements ISurrealDBService {
 
     logger.debug(`Starting SurrealDB: ${exePath} ${args.join(' ')}`)
 
+    // 设置环境变量以配置 HTTP 请求体大小限制
+    const env = {
+      ...process.env,
+      SURREAL_HTTP_MAX_RPC_BODY_SIZE: '100MB' // 设置 RPC 端点最大请求体为 100MB
+    }
+
     this.process = spawn(exePath, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
       detached: false, // 确保子进程与父进程生命周期绑定
-      windowsHide: true
+      windowsHide: true,
+      env // 传递环境变量
     })
 
     // 监听进程输出
