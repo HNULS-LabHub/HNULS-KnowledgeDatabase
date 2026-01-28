@@ -429,39 +429,98 @@
         @click.stop
       >
         <!-- Header -->
-        <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
-          <div class="flex flex-col">
-            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <!-- ListFilter Icon -->
+        <div class="px-6 py-5 border-b border-gray-100 bg-white space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex flex-col">
+              <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <!-- ListFilter Icon -->
+                <svg
+                  class="w-[18px] h-[18px] text-blue-600"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M3 6h18M7 12h10M11 18h2"></path>
+                </svg>
+                管理模型列表
+              </h2>
+              <p class="text-xs text-gray-500 mt-0.5">从 API 获取模型，点击 + 按钮添加模型或整组</p>
+            </div>
+            <button
+              class="text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full p-2 transition-colors"
+              @click="store.isManageModelsModalOpen = false"
+            >
+              <!-- X Icon -->
               <svg
-                class="w-[18px] h-[18px] text-blue-600"
+                class="w-5 h-5"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
               >
-                <path d="M3 6h18M7 12h10M11 18h2"></path>
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
-              管理模型列表
-            </h2>
-            <p class="text-xs text-gray-500 mt-0.5">从 API 获取模型，点击 + 按钮添加模型或整组</p>
+            </button>
           </div>
-          <button
-            class="text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full p-2 transition-colors"
-            @click="store.isManageModelsModalOpen = false"
-          >
-            <!-- X Icon -->
-            <svg
-              class="w-5 h-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
+          
+          <!-- Search Bar -->
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <!-- Search Icon -->
+              <svg
+                class="w-4 h-4 text-gray-400"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+            </div>
+            <input
+              v-model="modelSearchQuery"
+              type="text"
+              placeholder="搜索模型 ID 或分组名称..."
+              class="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              @input="handleSearchInput"
+            />
+            <button
+              v-if="modelSearchQuery"
+              class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+              @click="clearSearch"
             >
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
+              <!-- X Icon -->
+              <svg
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          
+          <!-- Search Stats -->
+          <div v-if="modelSearchQuery" class="flex items-center justify-between text-xs">
+            <span class="text-gray-500">
+              找到 <span class="font-semibold text-blue-600">{{ filteredModelCount }}</span> 个模型
+              <span v-if="filteredGroupCount < totalGroupCount">
+                在 <span class="font-semibold text-blue-600">{{ filteredGroupCount }}</span> 个分组中
+              </span>
+            </span>
+            <button
+              class="text-blue-600 hover:text-blue-700 font-medium"
+              @click="clearSearch"
+            >
+              清除搜索
+            </button>
+          </div>
         </div>
 
         <!-- Body -->
@@ -485,8 +544,27 @@
             <p class="text-sm text-gray-500 font-medium">正在连接 API 获取模型列表...</p>
           </div>
           <div v-else class="space-y-6">
+            <!-- No Results Message -->
             <div
-              v-for="[groupName, models] in Object.entries(store.remoteModelGroups)"
+              v-if="modelSearchQuery && filteredModelGroups.length === 0"
+              class="flex flex-col items-center justify-center py-16 text-gray-400"
+            >
+              <svg
+                class="w-16 h-16 mb-4 text-gray-300"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+              <p class="text-sm font-medium text-gray-500">未找到匹配的模型</p>
+              <p class="text-xs text-gray-400 mt-1">尝试使用其他关键词搜索</p>
+            </div>
+            
+            <div
+              v-for="[groupName, models] in filteredModelGroups"
               :key="groupName"
               class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
             >
@@ -598,7 +676,7 @@
             </div>
 
             <div
-              v-if="Object.keys(store.remoteModelGroups).length === 0"
+              v-if="!modelSearchQuery && Object.keys(store.remoteModelGroups).length === 0"
               class="text-center py-10 text-gray-400"
             >
               未能获取到模型数据
@@ -787,6 +865,9 @@ const store = useUserModelConfigStore()
 const apiKeyDraft = ref('')
 const baseUrlDraft = ref('')
 
+// 模型搜索状态
+const modelSearchQuery = ref('')
+
 // 计算端点 URL
 const computedModelsEndpoint = computed(() => {
   if (!baseUrlDraft.value) return ''
@@ -901,6 +982,56 @@ async function handleAddGroupModels(groupName: string, models: any[]): Promise<v
 async function handleRemoveGroupModels(groupName: string, models: any[]): Promise<void> {
   if (!store.selectedProviderId) return
   await store.removeGroupModels(groupName, models)
+}
+
+// 过滤模型分组（基于搜索）
+const filteredModelGroups = computed(() => {
+  if (!modelSearchQuery.value.trim()) {
+    return Object.entries(store.remoteModelGroups)
+  }
+
+  const query = modelSearchQuery.value.toLowerCase().trim()
+  const filtered: [string, any[]][] = []
+
+  Object.entries(store.remoteModelGroups).forEach(([groupName, models]) => {
+    // 检查分组名是否匹配
+    const groupMatches = groupName.toLowerCase().includes(query)
+    
+    // 过滤模型列表
+    const matchedModels = models.filter((model) => {
+      const modelIdMatches = model.id.toLowerCase().includes(query)
+      return groupMatches || modelIdMatches
+    })
+
+    if (matchedModels.length > 0) {
+      filtered.push([groupName, matchedModels])
+    }
+  })
+
+  return filtered
+})
+
+// 搜索统计
+const filteredModelCount = computed(() => {
+  return filteredModelGroups.value.reduce((sum, [, models]) => sum + models.length, 0)
+})
+
+const filteredGroupCount = computed(() => {
+  return filteredModelGroups.value.length
+})
+
+const totalGroupCount = computed(() => {
+  return Object.keys(store.remoteModelGroups).length
+})
+
+// 处理搜索输入
+function handleSearchInput(): void {
+  // 可以在这里添加防抖逻辑，但对于本地过滤来说通常不需要
+}
+
+// 清除搜索
+function clearSearch(): void {
+  modelSearchQuery.value = ''
 }
 </script>
 
