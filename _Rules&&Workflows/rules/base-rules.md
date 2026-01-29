@@ -158,7 +158,7 @@ trigger: always_on
 
 - **必须**：每个 Vue 组件的**根容器**（template 最外层元素）包含一个"定位类"。
 - **命名规范**：
-  - 前缀：`根分页简写 类似于kb 就是knowledege分页的根分页简写 如果后面有usersetting 那么可以用us-`
+  - 前缀：根页面简写（例如 Knowledge 页面用 `kb-`；UserSetting 可用 `us-`）。
   - 主体：功能区域（如 `doc-list`、`editor-toolbar`）
 
 - **定位类定义**：

@@ -1,0 +1,19 @@
+{
+  "name": "surrealdb-hnsw-test",
+  "version": "1.0.0",
+  "description": "测试 SurrealDB 嵌入向量分离存储与 HNSW 索引延迟构建",
+  "scripts": {
+    "start-db": "ts-node start-db.ts",
+    "phase1": "ts-node test-phase1-insert.ts",
+    "phase2": "ts-node test-phase2-build-index.ts",
+    "test:all": "npm run phase1 && npm run phase2"
+  },
+  "dependencies": {
+    "surrealdb": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
