@@ -1,0 +1,140 @@
+Debugger attached.
+vite v7.3.1 building ssr environment for development...
+(node:43332) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/code/Large-scale-integrated-project/HNULS-LabHub/HNULS-KnowledgeDatabase/KnowledgeDatabase-src/postcss.config.js?t=1769704250344 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+transforming...
+✓ 70 modules transformed.
+rendering chunks...
+out/main/utility/global-monitor.js    7.54 kB
+out/main/utility/embedding.js        24.45 kB
+out/main/index.js                   211.82 kB
+✓ built in 866ms
+
+electron main process built successfully
+
+-----
+
+vite v7.3.1 building ssr environment for development...
+(node:43332) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/code/Large-scale-integrated-project/HNULS-LabHub/HNULS-KnowledgeDatabase/KnowledgeDatabase-src/postcss.config.js?t=1769704251194 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+transforming...
+✓ 14 modules transformed.
+rendering chunks...
+out/preload/index.js  14.74 kB
+✓ built in 29ms
+
+electron preload scripts built successfully
+
+-----
+
+dev server running for the electron renderer process at:
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+starting electron app...
+
+
+Debugger attached.
+[2026-01-30 00:30:51] [warn]  log.catchErrors is deprecated. Use log.errorHandler instead
+[2026-01-30 00:30:51] [info]  Logger initialized with level: info
+[2026-01-30 00:30:51] [info]  SurrealDBService created with config {
+  namespace: 'knowledge',
+  database: 'system',
+  portRange: { min: 8000, max: 8100 }
+}
+[2026-01-30 00:30:52] [info]  Initializing documents directory...
+[2026-01-30 00:30:52] [info]  Initialized documents directory: C:\Users\zhaowendao\AppData\Roaming\knowledgedatabase-src\data\documents
+[2026-01-30 00:30:52] [info]  Documents directory initialized successfully
+[2026-01-30 00:30:52] [info]  Initializing SurrealDB service...
+[2026-01-30 00:30:52] [info]  Initializing SurrealDB service
+[2026-01-30 00:30:52] [info]  Port 8000 allocated successfully
+[2026-01-30 00:30:52] [info]  SurrealDB service initialized on port 8000
+[2026-01-30 00:30:53] [info]  Initializing database schema
+[2026-01-30 00:30:53] [info]  Schema exists: false
+[2026-01-30 00:30:53] [info]  Schema does not exist, importing...
+[2026-01-30 00:30:53] [info]  Importing 3 schema definitions
+[2026-01-30 00:30:54] [info]  Schema 1/3 executed successfully
+[2026-01-30 00:30:55] [info]  Schema 2/3 executed successfully
+[2026-01-30 00:30:56] [info]  Schema 3/3 executed successfully
+[2026-01-30 00:30:56] [info]  Schema import completed
+[2026-01-30 00:30:56] [info]  Schema initialization completed
+[2026-01-30 00:30:56] [info]  SurrealDB server is ready
+[2026-01-30 00:30:56] [info]  QueryService connected to SurrealDB { namespace: 'knowledge', database: 'system', instanceId: '9fc7gm' }
+[2026-01-30 00:30:56] [info]  QueryService initialized
+[2026-01-30 00:30:56] [info]  SurrealDB service started successfully
+[2026-01-30 00:30:56] [info]  ✅ [ServiceTracker] KnowledgeLibraryService[1vd06n] <- QueryService injected { dependencyInstanceId: '9fc7gm', isConnected: true }
+[2026-01-30 00:30:56] [info]  QueryService injected into KnowledgeLibraryService
+[2026-01-30 00:30:56] [info]  QueryService injected into EmbeddingEngineBridge
+[2026-01-30 00:30:56] [info]  Cleaning up orphaned knowledge base directories...
+[2026-01-30 00:30:56] [info]  Directory cleanup completed: scanned 2 directories, removed 0
+[GlobalMonitorBridge] Starting utility process: D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\global-monitor.js
+[GlobalMonitorBridge] Ready
+[EmbeddingEngineBridge] Starting utility process: D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\embedding.js
+[EmbeddingEngineBridge] Ready
+[2026-01-30 00:30:57] [warn]  ⚠️ [ServiceTracker] Multiple instances detected for KnowledgeLibraryService {
+  totalInstances: 2,
+  instances: [
+    { instanceId: '1vd06n', createdAt: '2026-01-29T16:30:51.804Z' },
+    { instanceId: '6dzqv4', createdAt: '2026-01-29T16:30:57.184Z' }
+  ]
+}
+[2026-01-30 00:30:57] [info]  [ChunkingService] Registered strategy: recursive
+[2026-01-30 00:30:57] [warn]  ⚠️ [ServiceTracker] Multiple instances detected for KnowledgeLibraryService {
+  totalInstances: 3,
+  instances: [
+    { instanceId: '1vd06n', createdAt: '2026-01-29T16:30:51.804Z' },
+    { instanceId: '6dzqv4', createdAt: '2026-01-29T16:30:57.184Z' },
+    { instanceId: 'jc60jf', createdAt: '2026-01-29T16:30:57.186Z' }
+  ]
+}
+[EmbeddingIPCHandler] Registered embedding IPC handlers
+Registered 12 IPC handlers
+[2026-01-30 00:30:57] [info]  📊 [ServiceTracker] Service Diagnostics Report {
+  QueryService: [
+    {
+      instanceId: '9fc7gm',
+      createdAt: '2026-01-29T16:30:51.801Z',
+      dependencies: {}
+    }
+  ],
+  KnowledgeLibraryService: [
+    {
+      instanceId: '1vd06n',
+      createdAt: '2026-01-29T16:30:51.804Z',
+      dependencies: [Object]
+    },
+    {
+      instanceId: '6dzqv4',
+      createdAt: '2026-01-29T16:30:57.184Z',
+      dependencies: {}
+    },
+    {
+      instanceId: 'jc60jf',
+      createdAt: '2026-01-29T16:30:57.186Z',
+      dependencies: {}
+    }
+  ]
+}
+[2026-01-30 00:30:57] [warn]  ⚠️ [ServiceTracker] KnowledgeLibraryService has 3 instances!
+Application started successfully
+[2026-01-30 00:30:57] [info]  [MinerUParserService] restored tasks { count: 3 }
+[2026-01-30 00:31:23] [info]  Scanned 3 files from directory: C:\Users\zhaowendao\AppData\Roaming\knowledgedatabase-src\data\documents\temp-0001
+[2026-01-30 00:31:23] [info]  Scanned 3 files from directory: C:\Users\zhaowendao\AppData\Roaming\knowledgedatabase-src\data\documents\temp-0001
+[2026-01-30 00:31:31] [info]  App is quitting, shutting down SurrealDB service...
+[2026-01-30 00:31:31] [info]  Shutting down SurrealDB server
+[2026-01-30 00:31:31] [info]  QueryService disconnected
+[2026-01-30 00:31:31] [info]  SurrealDB process exited with code null, signal SIGINT
+[2026-01-30 00:31:31] [info]  Releasing port 8000
+[2026-01-30 00:31:31] [info]  SurrealDB service cleanup completed
+[2026-01-30 00:31:31] [info]  SurrealDB service shut down successfully
+[GlobalMonitorBridge] Process exited with code: 0
+[EmbeddingEngineBridge] Process exited with code: 0
+Waiting for the debugger to disconnect...
+Waiting for the debugger to disconnect...
+
+[logger] process finished: code=0 signal=null

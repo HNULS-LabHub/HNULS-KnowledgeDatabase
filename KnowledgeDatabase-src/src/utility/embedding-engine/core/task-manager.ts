@@ -8,7 +8,7 @@ import type {
   ChunkTask,
   DocumentTaskStatus,
   ChunkTaskStatus
-} from '../types'
+} from '@shared/embedding.types'
 
 // ============================================================================
 // 创建任务参数

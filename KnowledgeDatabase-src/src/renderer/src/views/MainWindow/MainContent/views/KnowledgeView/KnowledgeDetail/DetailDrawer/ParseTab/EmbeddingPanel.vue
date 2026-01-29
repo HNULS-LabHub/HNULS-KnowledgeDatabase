@@ -169,7 +169,7 @@ import { useEmbeddingStore } from '@renderer/stores/embedding/embedding.store'
 import { useChunkingStore } from '@renderer/stores/chunking/chunking.store'
 import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
 import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
-import type { EmbeddingConfig } from '@renderer/stores/embedding/embedding.types'
+import type { EmbeddingViewConfig } from '@renderer/stores/embedding/embedding.types'
 import type { FileNode } from '../../../types'
 
 const props = defineProps<{
@@ -244,7 +244,7 @@ const selectedConfig = computed(() => {
 })
 
 // 构建 EmbeddingConfig
-const embeddingConfig = computed<EmbeddingConfig | null>(() => {
+const embeddingConfig = computed<EmbeddingViewConfig | null>(() => {
   if (!selectedConfig.value) return null
   const firstCandidate = selectedConfig.value.candidates[0]
   if (!firstCandidate) return null

@@ -3,10 +3,13 @@
  * @description 多源级联 + 熔断机制
  */
 
-import type { ChannelConfig, ChannelStatusType } from '../types'
-import type { EmbeddingChannelInfo } from '../../../preload/types/embedding.types'
+import type {
+  ChannelConfig,
+  ChannelStatusType,
+  EmbeddingChannelInfo
+} from '@shared/embedding.types'
 import { OpenAIClient, OpenAIClientError } from './openai-client'
-import { DEFAULT_CIRCUIT_BREAKER_CONFIG } from '../types'
+import { DEFAULT_CIRCUIT_BREAKER_CONFIG } from '@shared/embedding.types'
 
 // ============================================================================
 // ChannelManager

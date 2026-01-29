@@ -1,17 +1,12 @@
 /**
- * çŸ¥è¯†åº“é…ç½®ç±»å‹å®šä¹‰
- * æ”¯æŒå…¨å±€é…ç½®å’Œæ–‡æ¡£ç‹¬ç«‹é…ç½®
+ * ÖªÊ¶¿âÅäÖÃÀàĞÍ¶¨Òå
+ * Ö§³ÖÈ«¾ÖÅäÖÃºÍÎÄµµ¶ÀÁ¢ÅäÖÃ
  */
 
 import type { APIResponse } from './base.types'
+import type { ChunkingConfig } from '@shared/chunking.types'
 
-/**
- * åˆ†å—é…ç½®
- */
-export interface ChunkingConfig {
-  mode: 'recursive' // å›ºå®šå€¼ï¼šæ®µè½åˆ†å—æ¨¡å¼
-  maxChars?: number // undefined = è·Ÿéšå…¨å±€
-}
+export type KnowledgeChunkingConfig = Partial<ChunkingConfig>
 
 export interface EmbeddingModelCandidate {
   providerId: string
@@ -27,43 +22,43 @@ export interface EmbeddingModelConfig {
 }
 
 /**
- * åµŒå…¥é…ç½®
+ * ÖªÊ¶¿â²ãÃæµÄÇ¶ÈëÅäÖÃ
  */
-export interface EmbeddingConfig {
+export interface KnowledgeEmbeddingConfig {
   configs: EmbeddingModelConfig[]
-  /** é»˜è®¤åµŒå…¥é…ç½®IDï¼ˆç”¨äºæ‰¹é‡åµŒå…¥ç­‰åœºæ™¯ï¼‰ */
+  /** Ä¬ÈÏÇ¶ÈëÅäÖÃID£¨ÓÃÓÚÅúÁ¿Ç¶ÈëµÈ³¡¾°£© */
   defaultConfigId?: string
 }
 
 /**
- * æ–‡æ¡£é…ç½®ï¼ˆå¯è¦†ç›–å…¨å±€ï¼‰
+ * ÎÄµµÅäÖÃ£¨¿É¸²¸ÇÈ«¾Ö£©
  */
 export interface DocumentConfig {
-  chunking?: ChunkingConfig
-  /** æ–‡æ¡£ç‹¬ç«‹çš„åµŒå…¥é…ç½®IDï¼ˆå¯é€‰ï¼Œä¸è®¾ç½®åˆ™è·Ÿéšå…¨å±€é»˜è®¤ï¼‰ */
+  chunking?: KnowledgeChunkingConfig
+  /** ÎÄµµ¶ÀÁ¢µÄÇ¶ÈëÅäÖÃID£¨¿ÉÑ¡£¬²»ÉèÖÃÔò¸úËæÈ«¾ÖÄ¬ÈÏ£© */
   embeddingConfigId?: string
 }
 
 /**
- * çŸ¥è¯†åº“å…¨å±€é…ç½®
+ * ÖªÊ¶¿âÈ«¾ÖÅäÖÃ
  */
 export interface KnowledgeGlobalConfig {
-  chunking: Required<ChunkingConfig> // å…¨å±€å¿…é¡»æœ‰å®Œæ•´é…ç½®
-  embedding?: EmbeddingConfig // åµŒå…¥é…ç½®ï¼ˆå¯é€‰ï¼‰
-  // é¢„ç•™å…¶ä»–é…ç½®
+  chunking: Required<ChunkingConfig> // È«¾Ö±ØĞëÓĞÍêÕûÅäÖÃ
+  embedding?: KnowledgeEmbeddingConfig // Ç¶ÈëÅäÖÃ£¨¿ÉÑ¡£©
+  // Ô¤ÁôÆäËûÅäÖÃ
 }
 
 /**
- * çŸ¥è¯†åº“é…ç½®æ–‡ä»¶ç»“æ„
+ * ÖªÊ¶¿âÅäÖÃÎÄ¼ş½á¹¹
  */
 export interface KnowledgeConfig {
   version: string
   global: KnowledgeGlobalConfig
-  documents: Record<string, DocumentConfig> // key = fileKeyï¼ˆæ–‡ä»¶ç›¸å¯¹è·¯å¾„ï¼‰
+  documents: Record<string, DocumentConfig> // key = fileKey£¨ÎÄ¼şÏà¶ÔÂ·¾¶£©
 }
 
 /**
- * çŸ¥è¯†åº“é…ç½® API æ¥å£å®šä¹‰
+ * ÖªÊ¶¿âÅäÖÃ API ½Ó¿Ú¶¨Òå
  */
 export interface KnowledgeConfigAPI {
   getConfig(knowledgeBaseId: number): Promise<APIResponse<KnowledgeConfig>>

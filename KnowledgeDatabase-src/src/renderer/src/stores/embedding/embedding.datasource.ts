@@ -3,7 +3,7 @@
  * 调用真实 IPC 与后端通信
  */
 
-import type { FileEmbeddingState, EmbeddingConfig } from './embedding.types'
+import type { FileEmbeddingState, EmbeddingViewConfig } from './embedding.types'
 import type {
   SubmitEmbeddingTaskParams,
   ChunkInput,
@@ -20,7 +20,7 @@ const progressListeners = new Map<string, (progress: number, processed: number) 
 interface PendingTask {
   resolve: (result: EmbeddingTaskResult) => void
   reject: (error: Error) => void
-  config: EmbeddingConfig
+  config: EmbeddingViewConfig
   fileKey: string
 }
 const pendingTasks = new Map<string, PendingTask>()
@@ -84,7 +84,7 @@ export const EmbeddingDataSource = {
    */
   async getFileEmbeddingState(
     fileKey: string,
-    config: EmbeddingConfig,
+    config: EmbeddingViewConfig,
     _options?: { knowledgeBaseId?: number }
   ): Promise<FileEmbeddingState> {
     // 目前返回空状态，嵌入结果存储在 SurrealDB 中
@@ -108,7 +108,7 @@ export const EmbeddingDataSource = {
    */
   async startEmbedding(
     fileKey: string,
-    config: EmbeddingConfig,
+    config: EmbeddingViewConfig,
     options: {
       knowledgeBaseId: number
       fileRelativePath: string

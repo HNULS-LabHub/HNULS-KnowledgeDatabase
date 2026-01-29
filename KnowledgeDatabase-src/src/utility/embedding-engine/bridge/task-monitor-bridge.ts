@@ -9,7 +9,7 @@
  * EmbeddingEngine -> Main Process -> GlobalMonitor
  */
 
-import type { EngineToMainMessage } from '../ipc-protocol'
+import type { EngineToMainMessage } from '@shared/embedding-ipc.types'
 
 // ============================================================================
 // TaskMonitorBridge

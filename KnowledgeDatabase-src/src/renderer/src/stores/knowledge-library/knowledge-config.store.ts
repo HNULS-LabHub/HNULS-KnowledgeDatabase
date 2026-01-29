@@ -5,7 +5,7 @@ import type {
   KnowledgeConfig,
   KnowledgeGlobalConfig,
   DocumentConfig,
-  EmbeddingConfig,
+  KnowledgeEmbeddingConfig,
   EmbeddingModelConfig,
   EmbeddingModelCandidate
 } from '@preload/types'
@@ -159,7 +159,7 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
     }
 
     const currentConfigs = getEmbeddingConfigs.value(kbId)
-    const updatedEmbedding: EmbeddingConfig = {
+    const updatedEmbedding: KnowledgeEmbeddingConfig = {
       configs: JSON.parse(JSON.stringify([...currentConfigs, newConfig]))
     }
 

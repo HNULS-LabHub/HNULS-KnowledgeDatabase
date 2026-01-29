@@ -6,7 +6,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { EmbeddingDataSource } from './embedding.datasource'
-import type { FileEmbeddingState, EmbeddingConfig } from './embedding.types'
+import type { FileEmbeddingState, EmbeddingViewConfig } from './embedding.types'
 
 export const useEmbeddingStore = defineStore('embedding', () => {
   const fileStates = ref<Map<string, FileEmbeddingState>>(new Map())
@@ -26,7 +26,7 @@ export const useEmbeddingStore = defineStore('embedding', () => {
   /**
    * 检查文件是否有嵌入结果
    */
-  const hasEmbeddings = computed(() => (fileKey: string, config: EmbeddingConfig): boolean => {
+  const hasEmbeddings = computed(() => (fileKey: string, config: EmbeddingViewConfig): boolean => {
     const state = fileStates.value.get(fileKey)
     if (!state) return false
     return state.config.configId === config.configId && state.vectors.length > 0
@@ -41,7 +41,7 @@ export const useEmbeddingStore = defineStore('embedding', () => {
    */
   async function ensureState(
     fileKey: string,
-    config: EmbeddingConfig,
+    config: EmbeddingViewConfig,
     options?: { knowledgeBaseId?: number }
   ): Promise<FileEmbeddingState> {
     // 如果已有状态且配置相同且有向量，直接返回
@@ -72,7 +72,7 @@ export const useEmbeddingStore = defineStore('embedding', () => {
    */
   async function startEmbedding(
     fileKey: string,
-    config: EmbeddingConfig,
+    config: EmbeddingViewConfig,
     options: {
       knowledgeBaseId: number
       fileRelativePath: string

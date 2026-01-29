@@ -1,283 +1,49 @@
 /**
  * @file 嵌入服务类型定义
- * @description 跨进程通用的嵌入任务契约
+ * @description 从 @shared/embedding.types 重新导出，保持 preload 层兼容性
+ * 注意：排除 EmbeddingConfig 以避免与 knowledge-config.types 冲突
  */
 
-// ============================================================================
-// 嵌入任务提交参数
-// ============================================================================
+// 重新导出类型，排除与 knowledge-config.types 冲突的 EmbeddingConfig
+export type {
+  // 任务状态类型
+  DocumentTaskStatus,
+  ChunkTaskStatus,
+  EmbeddingTaskStatus,
+  ChannelStatusType,
+  // Chunk 相关类型
+  ChunkInput,
+  ChunkEmbeddingResult,
+  ChunkTask,
+  // 文档级任务
+  DocumentTask,
+  // 嵌入任务提交与结果
+  SubmitEmbeddingTaskParams,
+  EmbeddingTaskResult,
+  EmbeddingTaskInfo,
+  EmbeddingProgress,
+  // 向量检索
+  EmbeddingVectorSearchParams,
+  EmbeddingVectorSearchResult,
+  // Channel 配置
+  EmbeddingChannelInfo,
+  EmbeddingChannelConfig,
+  ChannelConfig,
+  // 请求参数
+  EmbeddingRequestParams,
+  // 调度器与熔断配置
+  SchedulerConfig,
+  CircuitBreakerConfig,
+  // API 契约
+  EmbeddingAPI
+} from '@shared/embedding.types'
 
-/**
- * 单个 Chunk 数据
- */
-export interface ChunkInput {
-  /** chunk 在文档中的顺序索引 */
-  index: number
-  /** chunk 文本内容 */
-  text: string
-}
+// 默认配置（值）
+export {
+  DEFAULT_SCHEDULER_CONFIG,
+  DEFAULT_CIRCUIT_BREAKER_CONFIG,
+  DEFAULT_CHANNEL_CONFIG
+} from '@shared/embedding.types'
 
-/**
- * 嵌入配置
- */
-export interface EmbeddingConfig {
-  /** 配置 ID（来自 KnowledgeConfig.json 的 embedding.configs[].id） */
-  id: string
-  /** 模型 ID (e.g. text-embedding-3-large) */
-  modelId: string
-  /** 向量维度 */
-  dimensions: number
-  /** 可选: Provider ID */
-  providerId?: string
-}
-
-/**
- * 提交嵌入任务的参数
- */
-export interface SubmitEmbeddingTaskParams {
-  /** 文档 ID */
-  documentId: string
-  /** 待嵌入的 chunks */
-  chunks: ChunkInput[]
-  /** 嵌入配置 */
-  embeddingConfig: EmbeddingConfig
-  /** 可选元数据 */
-  meta?: {
-    fileName?: string
-    knowledgeBaseId?: string
-  }
-}
-
-// ============================================================================
-// 嵌入任务结果
-// ============================================================================
-
-/**
- * 单个 Chunk 的嵌入结果
- */
-export interface ChunkEmbeddingResult {
-  /** chunk 索引 */
-  index: number
-  /** 生成的向量 */
-  embedding: number[]
-}
-
-/**
- * 文档嵌入完成结果
- */
-export interface EmbeddingTaskResult {
-  /** 文档 ID */
-  documentId: string
-  /** 所有 chunk 的嵌入结果 */
-  embeddings: ChunkEmbeddingResult[]
-  /** 完成时间 */
-  completedAt: number
-}
-
-// ============================================================================
-// 向量检索
-// ============================================================================
-
-/**
- * 向量检索参数
- */
-export interface EmbeddingVectorSearchParams {
-  /** 知识库 ID */
-  knowledgeBaseId: number
-  /** 查询向量 */
-  queryVector: number[]
-  /** 返回数量 */
-  k?: number
-}
-
-/**
- * 向量检索结果
- */
-export interface EmbeddingVectorSearchResult {
-  /** chunk 记录 ID */
-  id: string
-  /** chunk 内容 */
-  content: string
-  /** chunk 索引 */
-  chunk_index?: number
-  /** 文件标识 */
-  file_key?: string
-  /** 文件名称 */
-  file_name?: string
-  /** 距离（越小越相似） */
-  distance?: number
-}
-
-// ============================================================================
-// 嵌入任务进度
-// ============================================================================
-
-/**
- * 嵌入任务进度信息
- */
-export interface EmbeddingProgress {
-  /** 文档 ID */
-  documentId: string
-  /** 进度百分比 (0-100) */
-  progress: number
-  /** 已完成的 chunk 数 */
-  completedChunks: number
-  /** 总 chunk 数 */
-  totalChunks: number
-  /** 当前 RPM (可选) */
-  currentRPM?: number
-}
-
-// ============================================================================
-// 嵌入任务状态
-// ============================================================================
-
-export type EmbeddingTaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'paused'
-
-/**
- * 嵌入任务信息
- */
-export interface EmbeddingTaskInfo {
-  /** 任务 ID (与 TaskMonitor 关联) */
-  taskId: string
-  /** 文档 ID */
-  documentId: string
-  /** 任务状态 */
-  status: EmbeddingTaskStatus
-  /** 进度百分比 */
-  progress: number
-  /** 已完成的 chunk 数 */
-  completedChunks: number
-  /** 总 chunk 数 */
-  totalChunks: number
-  /** 错误信息 (失败时) */
-  error?: string
-  /** 创建时间 */
-  createdAt: number
-  /** 更新时间 */
-  updatedAt: number
-}
-
-// ============================================================================
-// Channel 配置 (用户可见部分)
-// ============================================================================
-
-/**
- * 嵌入通道状态
- */
-export type ChannelStatus = 'active' | 'degraded' | 'blacklisted'
-
-/**
- * 嵌入通道信息 (用户可见)
- */
-export interface EmbeddingChannelInfo {
-  /** 通道 ID */
-  id: string
-  /** Provider ID */
-  providerId: string
-  /** Provider 名称 */
-  providerName: string
-  /** 优先级 (0 最高) */
-  priority: number
-  /** 状态 */
-  status: ChannelStatus
-  /** 连续失败次数 */
-  failureCount: number
-}
-
-/**
- * 嵌入通道配置 (用于同步到后端)
- */
-export interface EmbeddingChannelConfig {
-  /** 通道 ID */
-  id: string
-  /** Provider ID */
-  providerId: string
-  /** Provider 名称 */
-  providerName: string
-  /** 优先级 (0 最高) */
-  priority: number
-  /** API 基地址 */
-  baseUrl: string
-  /** API 密钥 */
-  apiKey: string
-  /** 模型名称 */
-  model: string
-}
-
-// ============================================================================
-// Preload API 契约
-// ============================================================================
-
-/**
- * 嵌入服务 API
- */
-export interface EmbeddingAPI {
-  /**
-   * 提交嵌入任务
-   * @param params 任务参数
-   * @returns 任务 ID
-   */
-  submitTask(params: SubmitEmbeddingTaskParams): Promise<string>
-
-  /**
-   * 暂停任务
-   * @param documentId 文档 ID
-   */
-  pauseTask(documentId: string): Promise<void>
-
-  /**
-   * 恢复任务
-   * @param documentId 文档 ID
-   */
-  resumeTask(documentId: string): Promise<void>
-
-  /**
-   * 取消任务
-   * @param documentId 文档 ID
-   */
-  cancelTask(documentId: string): Promise<void>
-
-  /**
-   * 获取任务信息
-   * @param documentId 文档 ID
-   */
-  getTaskInfo(documentId: string): Promise<EmbeddingTaskInfo | null>
-
-  /**
-   * 设置并发数
-   * @param concurrency 并发数
-   */
-  setConcurrency(concurrency: number): Promise<void>
-
-  /**
-   * 获取通道列表
-   */
-  getChannels(): Promise<EmbeddingChannelInfo[]>
-
-  /**
-   * 更新通道配置
-   * @param channels 通道配置列表
-   */
-  updateChannels(channels: EmbeddingChannelConfig[]): Promise<void>
-
-  /**
-   * 向量检索
-   * @param params 检索参数
-   */
-  search(params: EmbeddingVectorSearchParams): Promise<EmbeddingVectorSearchResult[]>
-
-  /**
-   * 监听嵌入完成事件
-   * @param callback 回调函数
-   * @returns 取消监听函数
-   */
-  onEmbeddingCompleted(callback: (result: EmbeddingTaskResult) => void): () => void
-
-  /**
-   * 监听嵌入失败事件
-   * @param callback 回调函数
-   * @returns 取消监听函数
-   */
-  onEmbeddingFailed(callback: (error: { documentId: string; error: string }) => void): () => void
-}
+// 为了兼容性，也导出 ChannelStatus 作为 ChannelStatusType 的别名
+export type { ChannelStatusType as ChannelStatus } from '@shared/embedding.types'

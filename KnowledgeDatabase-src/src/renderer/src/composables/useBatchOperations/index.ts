@@ -12,7 +12,7 @@ import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/know
 import { canChunkFile, isPlainTextFile } from '@renderer/stores/chunking/chunking.util'
 import type { FileNode } from '@renderer/stores/knowledge-library/file.types'
 import type { ChunkingConfig } from '@renderer/stores/chunking/chunking.types'
-import type { EmbeddingConfig } from '@renderer/stores/embedding/embedding.types'
+import type { EmbeddingViewConfig } from '@renderer/stores/embedding/embedding.types'
 import type { TaskHandle } from '@preload/types'
 
 // ========== 批量操作并发控制配置 ==========
@@ -372,7 +372,7 @@ export function useBatchOperations() {
         return { success: 0, failed: 0 }
       }
 
-      const embeddingConfig: EmbeddingConfig = {
+      const embeddingConfig: EmbeddingViewConfig = {
         configId: selectedConfig.id,
         providerId: firstCandidate.providerId,
         modelId: firstCandidate.modelId,

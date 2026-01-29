@@ -9,13 +9,13 @@ import type {
   SubmitEmbeddingTaskParams,
   EmbeddingTaskResult,
   EmbeddingTaskInfo,
-  EmbeddingChannelInfo
-} from '../../../preload/types/embedding.types'
+  EmbeddingChannelInfo,
+  ChannelConfig
+} from '@shared/embedding.types'
 import type {
   MainToEngineMessage,
   EngineToMainMessage
-} from '../../../utility/embedding-engine/ipc-protocol'
-import type { ChannelConfig } from '../../../utility/embedding-engine/types'
+} from '@shared/embedding-ipc.types'
 import { globalMonitorBridge } from '../global-monitor-bridge'
 import { ChunkMetaStore } from '../chunking/chunk-meta-store'
 import { DocumentService } from '../knowledgeBase-library/document-service'

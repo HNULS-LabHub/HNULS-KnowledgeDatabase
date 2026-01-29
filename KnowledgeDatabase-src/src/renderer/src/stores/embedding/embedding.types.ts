@@ -1,38 +1,29 @@
 /**
- * åµŒå…¥çŠ¶æ€ç±»å‹å®šä¹‰
+ * Ç¶Èë×´Ì¬ÀàĞÍ¶¨Òå£¨renderer£©
  */
 
-/**
- * åµŒå…¥é…ç½®
- */
-export interface EmbeddingConfig {
-  configId: string // åµŒå…¥é…ç½® IDï¼ˆæ¥è‡ªçŸ¥è¯†åº“é…ç½®ï¼‰
-  providerId: string // æä¾›å•† ID
-  modelId: string // æ¨¡å‹ ID
-  dimensions?: number // å‘é‡ç»´åº¦
+export interface EmbeddingViewConfig {
+  configId: string // Ç¶ÈëÅäÖÃ ID£¨À´×ÔÖªÊ¶¿âÅäÖÃ£©
+  providerId: string // Ìá¹©ÉÌ ID
+  modelId: string // Ä£ĞÍ ID
+  dimensions?: number // ÏòÁ¿Î¬¶È
 }
 
-/**
- * å•ä¸ªåµŒå…¥å‘é‡
- */
 export interface EmbeddingVector {
-  id: string // å‘é‡ ID
-  content: string // åŸå§‹å†…å®¹
-  vector: number[] // å‘é‡æ•°æ®
-  chunkId: string // å…³è”çš„åˆ†å— ID
+  id: string // ÏòÁ¿ ID
+  content: string // Ô­Ê¼ÄÚÈİ
+  vector: number[] // ÏòÁ¿Êı¾İ
+  chunkId: string // ¹ØÁªµÄ·Ö¿é ID
 }
 
-/**
- * æ–‡ä»¶åµŒå…¥çŠ¶æ€
- */
 export interface FileEmbeddingState {
-  fileKey: string // æ–‡ä»¶æ ‡è¯†ï¼ˆè·¯å¾„æˆ–åç§°ï¼‰
-  config: EmbeddingConfig // ä½¿ç”¨çš„é…ç½®
-  vectors: EmbeddingVector[] // å‘é‡åˆ—è¡¨
-  status: 'idle' | 'running' | 'completed' | 'failed' // çŠ¶æ€
-  progress?: number // è¿›åº¦ 0-100
-  totalVectors?: number // æ€»å‘é‡æ•°
-  processedVectors?: number // å·²å¤„ç†å‘é‡æ•°
-  lastUpdated?: string // æœ€åæ›´æ–°æ—¶é—´
-  error?: string // é”™è¯¯ä¿¡æ¯
+  fileKey: string // ÎÄ¼ş±êÊ¶£¨Â·¾¶»òÃû³Æ£©
+  config: EmbeddingViewConfig // Ê¹ÓÃµÄÅäÖÃ
+  vectors: EmbeddingVector[] // ÏòÁ¿ÁĞ±í
+  status: 'idle' | 'running' | 'completed' | 'failed' // ×´Ì¬
+  progress?: number // ½ø¶È 0-100
+  totalVectors?: number // ×ÜÏòÁ¿Êı
+  processedVectors?: number // ÒÑ´¦ÀíÏòÁ¿Êı
+  lastUpdated?: string // ×îºó¸üĞÂÊ±¼ä
+  error?: string // ´íÎóĞÅÏ¢
 }

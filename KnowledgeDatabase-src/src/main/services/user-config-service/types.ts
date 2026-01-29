@@ -1,17 +1,6 @@
-export interface MinerUConfig {
-  apiKey: string
-}
+import type { MinerUConfig, UserEmbeddingConfig, UserConfig } from '@shared/user-config.types'
 
-export interface EmbeddingConfig {
-  concurrency: number
-}
-
-export interface UserConfig {
-  version: number
-  updatedAt: string
-  minerU: MinerUConfig
-  embedding: EmbeddingConfig
-}
+export type { MinerUConfig, UserEmbeddingConfig, UserConfig }
 
 export const DEFAULT_USER_CONFIG: UserConfig = {
   version: 1,

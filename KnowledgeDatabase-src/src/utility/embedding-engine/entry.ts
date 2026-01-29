@@ -8,8 +8,8 @@ import { Scheduler } from './core/scheduler'
 import { ProgressTracker } from './core/progress-tracker'
 import { ChannelManager } from './channel/channel-manager'
 import { TaskMonitorBridge } from './bridge/task-monitor-bridge'
-import type { MainToEngineMessage, EngineToMainMessage } from './ipc-protocol'
-import type { ChannelConfig } from './types'
+import type { MainToEngineMessage, EngineToMainMessage } from '@shared/embedding-ipc.types'
+import type { ChannelConfig } from '@shared/embedding.types'
 
 // ============================================================================
 // 日志

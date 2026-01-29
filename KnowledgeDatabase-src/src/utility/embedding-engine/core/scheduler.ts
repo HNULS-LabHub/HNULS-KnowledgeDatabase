@@ -3,12 +3,12 @@
  * @description 并发控制 + FIFO 队列调度
  */
 
-import type { ChunkTask } from '../types'
+import type { ChunkTask } from '@shared/embedding.types'
 import type { TaskManager } from './task-manager'
 import type { ChannelManager } from '../channel/channel-manager'
 import type { ProgressTracker } from './progress-tracker'
-import type { EngineToMainMessage } from '../ipc-protocol'
-import { DEFAULT_SCHEDULER_CONFIG } from '../types'
+import type { EngineToMainMessage } from '@shared/embedding-ipc.types'
+import { DEFAULT_SCHEDULER_CONFIG } from '@shared/embedding.types'
 
 // ============================================================================
 // Scheduler

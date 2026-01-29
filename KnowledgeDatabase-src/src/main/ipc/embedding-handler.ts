@@ -8,9 +8,9 @@ import { embeddingEngineBridge } from '../services/embedding-engine-bridge'
 import type {
   SubmitEmbeddingTaskParams,
   EmbeddingVectorSearchParams,
-  EmbeddingChannelConfig
-} from '../../preload/types/embedding.types'
-import type { ChannelConfig } from '../../utility/embedding-engine/types'
+  EmbeddingChannelConfig,
+  ChannelConfig
+} from '@shared/embedding.types'
 
 // ============================================================================
 // IPC Channel 常量

@@ -3,7 +3,7 @@
  * @description OpenAI 兼容 API 的嵌入请求封装
  */
 
-import type { EmbeddingRequestParams } from '../types'
+import type { EmbeddingRequestParams } from '@shared/embedding.types'
 
 // ============================================================================
 // 类型定义

@@ -6,9 +6,9 @@
 import type {
   SubmitEmbeddingTaskParams,
   ChunkEmbeddingResult,
-  EmbeddingChannelInfo
-} from '../../preload/types/embedding.types'
-import type { ChannelConfig } from './types'
+  EmbeddingChannelInfo,
+  ChannelConfig
+} from './embedding.types'
 
 // ============================================================================
 // Main → Embedding Engine 消息
