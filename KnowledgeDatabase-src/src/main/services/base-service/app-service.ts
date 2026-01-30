@@ -58,6 +58,28 @@ export class AppService {
       embeddingEngineBridge.setKnowledgeLibraryService(this.knowledgeLibraryService)
       embeddingEngineBridge.setDocumentService(this.documentService)
       logger.info('QueryService injected into EmbeddingEngineBridge')
+
+      // 🎯 恢复知识库数据库（用于数据库删除后的重建场景）
+      try {
+        logger.info('Restoring knowledge base databases...')
+        const restoreResult = await this.knowledgeLibraryService.restoreKnowledgeBaseDatabases()
+
+        if (restoreResult.restored.length > 0) {
+          logger.info(
+            `Restored ${restoreResult.restored.length} knowledge base databases: ${restoreResult.restored.join(', ')}`
+          )
+        }
+
+        if (restoreResult.failed.length > 0) {
+          logger.error(
+            `Failed to restore ${restoreResult.failed.length} knowledge base databases`,
+            restoreResult.failed
+          )
+        }
+      } catch (error) {
+        logger.error('Knowledge base database restoration failed:', error)
+        // Continue app initialization even if restoration fails
+      }
     } catch (error) {
       logger.error('Failed to start SurrealDB service', error)
       // Continue app initialization even if DB fails

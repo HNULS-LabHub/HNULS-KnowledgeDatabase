@@ -538,6 +538,96 @@ export class KnowledgeLibraryService {
   }
 
   /**
+   * 恢复知识库数据库
+   * 从元数据文件中读取知识库列表,为每个知识库重建 SurrealDB 数据库和 schema
+   * 用于数据库删除后的恢复场景
+   */
+  async restoreKnowledgeBaseDatabases(): Promise<{
+    restored: string[]
+    failed: Array<{ name: string; error: string }>
+  }> {
+    const result = {
+      restored: [] as string[],
+      failed: [] as Array<{ name: string; error: string }>
+    }
+
+    if (!this.queryService || !this.queryService.isConnected()) {
+      logger.warn('QueryService not available, skipping knowledge base database restoration')
+      return result
+    }
+
+    try {
+      // 1. 读取所有知识库元数据
+      const knowledgeBases = await this.getAll()
+
+      if (knowledgeBases.length === 0) {
+        logger.info('No knowledge bases to restore')
+        return result
+      }
+
+      logger.info(`Restoring ${knowledgeBases.length} knowledge base databases...`)
+
+      // 2. 获取当前已存在的数据库列表
+      const infoResult = await this.queryService.query<any[]>('INFO FOR NS;')
+      const nsInfo = infoResult?.[0]
+      const existingDatabases = new Set<string>()
+
+      if (nsInfo && nsInfo.databases) {
+        for (const dbName in nsInfo.databases) {
+          existingDatabases.add(dbName)
+        }
+        logger.debug('Existing databases:', { databases: Array.from(existingDatabases) })
+      }
+
+      // 3. 为每个知识库恢复数据库
+      for (const kb of knowledgeBases) {
+        if (!kb.databaseName) {
+          logger.warn(`Knowledge base ${kb.id} (${kb.name}) has no databaseName, skipping`)
+          continue
+        }
+
+        try {
+          const dbName = kb.databaseName
+
+          // 检查数据库是否已存在
+          if (existingDatabases.has(dbName)) {
+            logger.debug(`Database ${dbName} already exists, skipping creation`)
+            result.restored.push(dbName)
+            continue
+          }
+
+          // 创建数据库
+          logger.info(`Creating database: ${dbName} for knowledge base ${kb.id} (${kb.name})`)
+          await this.queryService.query(`DEFINE DATABASE \`${dbName}\`;`)
+
+          // 初始化数据库的 schema (kb_document 表)
+          const namespace = this.queryService.getNamespace() || 'knowledge'
+          const schemaSql = kbDocumentTable.sql
+
+          logger.debug(`Initializing schema for database: ${dbName}`)
+          await this.queryService.queryInDatabase(namespace, dbName, schemaSql)
+
+          result.restored.push(dbName)
+          logger.info(`Successfully restored database: ${dbName}`)
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          logger.error(`Failed to restore database for KB ${kb.id} (${kb.name}):`, error)
+          result.failed.push({ name: kb.name, error: errorMessage })
+        }
+      }
+
+      logger.info(
+        `Knowledge base database restoration completed: ${result.restored.length} restored, ${result.failed.length} failed`
+      )
+
+      return result
+    } catch (error) {
+      logger.error('Failed to restore knowledge base databases:', error)
+      throw error
+    }
+  }
+
+  /**
    * 清理孤立的知识库目录和数据库
    * 扫描 documents/ 目录和 SurrealDB，删除没有对应元数据记录的资源
    */
