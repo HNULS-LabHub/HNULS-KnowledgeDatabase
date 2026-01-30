@@ -427,7 +427,7 @@ export class VectorIndexerBridge {
     const namespace = this.queryService.getNamespace() || 'knowledge'
     logger.warn('[VectorIndexerBridge] Using fallback DB config')
     return {
-      serverUrl: 'ws://127.0.0.1:8001',
+      serverUrl: 'ws://127.0.0.1:8000',
       username: 'root',
       password: 'root',
       namespace,

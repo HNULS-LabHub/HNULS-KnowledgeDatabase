@@ -73,9 +73,16 @@ export class SurrealDBService implements ISurrealDBService {
   }
 
   /**
-   * 获取服务器 URL
+   * 获取服务器 URL (WebSocket)
    */
   getServerUrl(): string {
+    return `ws://127.0.0.1:${this.config.port}`
+  }
+
+  /**
+   * 获取服务器 HTTP URL (用于 is-ready 检查等)
+   */
+  getHttpUrl(): string {
     return `http://127.0.0.1:${this.config.port}`
   }
 
@@ -230,10 +237,11 @@ export class SurrealDBService implements ISurrealDBService {
 
     logger.debug(`Starting SurrealDB: ${exePath} ${args.join(' ')}`)
 
-    // 设置环境变量以配置 HTTP 请求体大小限制
+    // 设置环境变量以配置 WebSocket 消息大小限制
     const env = {
       ...process.env,
-      SURREAL_HTTP_MAX_RPC_BODY_SIZE: '100MB' // 设置 RPC 端点最大请求体为 100MB
+      SURREAL_WEBSOCKET_MAX_FRAME_SIZE: '104857600',   // 100MB frame size
+      SURREAL_WEBSOCKET_MAX_MESSAGE_SIZE: '104857600'  // 100MB message size
     }
 
     this.process = spawn(exePath, args, {
@@ -298,7 +306,7 @@ export class SurrealDBService implements ISurrealDBService {
     const exePath = this.getSurrealExePath()
 
     return new Promise((resolve) => {
-      const proc = spawn(exePath, ['is-ready', '--endpoint', this.getServerUrl()])
+      const proc = spawn(exePath, ['is-ready', '--endpoint', this.getHttpUrl()])
 
       proc.on('exit', (code) => {
         resolve(code === 0)

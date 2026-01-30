@@ -76,8 +76,8 @@ class Application {
       const surrealDBService = this.appService.getSurrealDBService()
       const queryService = surrealDBService.getQueryService()
 
-      // 获取数据库连接配置
-      const serverUrl = surrealDBService.getServerUrl().replace('http://', 'ws://')
+      // 获取数据库连接配置（getServerUrl 已返回 WebSocket URL）
+      const serverUrl = surrealDBService.getServerUrl()
       const credentials = surrealDBService.getCredentials()
 
       // 启动 utility process
