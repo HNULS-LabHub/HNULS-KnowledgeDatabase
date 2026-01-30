@@ -10,6 +10,7 @@ import { ModelConfigIPCHandler } from './model-config-handler'
 import { KnowledgeConfigIPCHandler } from './knowledge-config-handler'
 import { TaskMonitorIPCHandler } from './task-monitor-handler'
 import { EmbeddingIPCHandler } from './embedding-handler'
+import { registerVectorIndexerHandlers, unregisterVectorIndexerHandlers } from './vector-indexer-handler'
 import { SurrealDBService } from '../services/surrealdb-service'
 import { KnowledgeLibraryService } from '../services/knowledgeBase-library'
 import { UserConfigService } from '../services/user-config-service'
@@ -67,10 +68,15 @@ export class IPCManager {
     // 注册嵌入服务处理器
     this.handlers.push(new EmbeddingIPCHandler())
 
+    // 注册向量索引器处理器
+    registerVectorIndexerHandlers()
+
     console.log(`Registered ${this.handlers.length} IPC handlers`)
   }
 
   cleanup(): void {
+    // 清理向量索引器 handlers
+    unregisterVectorIndexerHandlers()
     // 清理资源（如果需要）
     this.handlers.length = 0
   }

@@ -51,6 +51,19 @@
         </div>
       </div>
 
+      <!-- 常驻系统任务栏 -->
+      <div
+        class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between"
+      >
+        <div class="flex items-center gap-6">
+          <!-- 向量索引器状态 -->
+          <VectorIndexerRing :size="40" :stroke-width="4" :poll-interval="3000" />
+        </div>
+        <div class="text-xs text-slate-400">
+          系统后台任务
+        </div>
+      </div>
+
       <!-- Filter Bar -->
       <div
         class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between"
@@ -281,6 +294,7 @@ import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 import type { WhiteSelectOption } from '@renderer/components/select/WhiteSelect.vue'
 import StatusBadge from './StatusBadge.vue'
 import ProgressBar from './ProgressBar.vue'
+import VectorIndexerRing from './VectorIndexerRing.vue'
 import type { TaskRecord } from '@preload/types'
 
 const store = useTaskMonitorStore()

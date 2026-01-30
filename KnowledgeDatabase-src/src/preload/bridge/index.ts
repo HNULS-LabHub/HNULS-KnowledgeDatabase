@@ -12,6 +12,7 @@ import { modelConfigAPI } from '../api/model-config-api'
 import { knowledgeConfigAPI } from '../api/knowledge-config-api'
 import { taskMonitorAPI } from '../api/task-monitor-api'
 import { embeddingAPI } from '../api/embedding-api'
+import { vectorIndexerAPI } from '../api/vector-indexer-api'
 
 // 自定义 API 集合
 const customAPI = {
@@ -26,6 +27,7 @@ const customAPI = {
   knowledgeConfig: knowledgeConfigAPI,
   taskMonitor: taskMonitorAPI,
   embedding: embeddingAPI,
+  vectorIndexer: vectorIndexerAPI,
   // Electron 文件路径工具
   utils: utilsAPI
 }
