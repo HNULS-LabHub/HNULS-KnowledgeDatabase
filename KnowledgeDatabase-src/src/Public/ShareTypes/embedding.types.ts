@@ -339,6 +339,35 @@ export interface EmbeddingRequestParams {
 }
 
 // ============================================================================
+// 文档嵌入关联表（一对多）
+// ============================================================================
+
+/**
+ * 文档嵌入关联记录
+ * 支持同一文档对应多个嵌入配置 (file_key + embedding_config_id + dimensions 唯一)
+ */
+export interface KbDocumentEmbedding {
+  /** 记录 ID (SurrealDB 自动生成) */
+  id?: string
+  /** 文件标识（相对路径） */
+  file_key: string
+  /** 嵌入配置 ID */
+  embedding_config_id: string
+  /** 向量维度 */
+  dimensions: number
+  /** 嵌入状态 */
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  /** chunk 总数 */
+  chunk_count: number
+  /** 关联的任务 ID */
+  task_id?: string
+  /** 创建时间 */
+  created_at: string | Date
+  /** 更新时间 */
+  updated_at: string | Date
+}
+
+// ============================================================================
 // 向量暂存表
 // ============================================================================
 

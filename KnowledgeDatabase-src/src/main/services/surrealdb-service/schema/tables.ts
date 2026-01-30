@@ -89,6 +89,26 @@ DEFINE INDEX idx_file_key ON kb_document COLUMNS file_key UNIQUE;`
 }
 
 /**
+ * 文档嵌入状态关联表（一对多）
+ * 支持同一文档对应多个嵌入配置
+ * 唯一索引：(file_key, embedding_config_id, dimensions)
+ */
+export const kbDocumentEmbeddingTable: TableDefinition = {
+  name: 'kb_document_embedding',
+  sql: `DEFINE TABLE kb_document_embedding SCHEMAFULL;
+DEFINE FIELD file_key ON kb_document_embedding TYPE string ASSERT $value != NONE;
+DEFINE FIELD embedding_config_id ON kb_document_embedding TYPE string ASSERT $value != NONE;
+DEFINE FIELD dimensions ON kb_document_embedding TYPE int ASSERT $value != NONE;
+DEFINE FIELD status ON kb_document_embedding TYPE string DEFAULT 'pending';
+DEFINE FIELD chunk_count ON kb_document_embedding TYPE int DEFAULT 0;
+DEFINE FIELD task_id ON kb_document_embedding TYPE option<string>;
+DEFINE FIELD created_at ON kb_document_embedding TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated_at ON kb_document_embedding TYPE datetime DEFAULT time::now() VALUE time::now();
+DEFINE INDEX uniq_doc_embed ON kb_document_embedding COLUMNS file_key, embedding_config_id, dimensions UNIQUE;
+DEFINE INDEX idx_file_key ON kb_document_embedding COLUMNS file_key;`
+}
+
+/**
  * 向量暂存表定义
  * 位于 system 数据库，用于流式写入嵌入向量，待后台进程搬运到目标向量表
  * 这是普通表（非向量表），不需要 HNSW 索引

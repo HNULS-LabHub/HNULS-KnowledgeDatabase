@@ -155,10 +155,13 @@ export class TransferWorker {
       // Step 2: 确保目标表存在
       await this.ensureTargetTable(namespace, database, tableName, dimensions)
 
-      // Step 3: 分批插入目标表（使用 UPSERT 保证幂等）
+      // Step 3: 删除可能冲突的旧向量（按 document+chunk_index 精确删除）
+      await this.deleteConflictingVectors(namespace, database, tableName, records)
+
+      // Step 4: 分批插入目标表
       await this.insertToTargetTable(namespace, database, tableName, records)
 
-      // Step 4: 清理暂存表（先标记已处理，再删除）
+      // Step 5: 清理暂存表（先标记已处理，再删除）
       const recordIds = records.map((r) => r.id)
       await this.markProcessed(recordIds)
       await this.deleteProcessedRecords(recordIds)
@@ -272,6 +275,53 @@ export class TransferWorker {
   // ==========================================================================
 
   /**
+   * 删除可能冲突的旧向量
+   * 精确按 (document, chunk_index) 组合删除，避免误删其他批次已插入的数据
+   */
+  private async deleteConflictingVectors(
+    namespace: string,
+    database: string,
+    tableName: string,
+    records: StagingRecord[]
+  ): Promise<void> {
+    if (records.length === 0) return
+
+    // 构建待删除的 (document, chunk_index) 组合
+    const pairs = records.map((r) => [r.document_id, r.chunk_index])
+
+    log(`Deleting ${pairs.length} potentially conflicting vectors in ${tableName}`)
+
+    // 批量删除：使用 OR 条件匹配每个 (document, chunk_index) 组合
+    // 分批处理以避免 SQL 过长
+    const BATCH_SIZE = 100
+    for (let i = 0; i < pairs.length; i += BATCH_SIZE) {
+      const batch = pairs.slice(i, i + BATCH_SIZE)
+      const conditions = batch
+        .map((_, idx) => `(document = $doc${idx} AND chunk_index = $idx${idx})`)
+        .join(' OR ')
+
+      const params: Record<string, any> = {}
+      batch.forEach(([doc, idx], i) => {
+        params[`doc${i}`] = doc
+        params[`idx${i}`] = idx
+      })
+
+      const sql = `DELETE FROM \`${tableName}\` WHERE ${conditions};`
+
+      try {
+        await this.client.queryInDatabase(namespace, database, sql, params)
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error)
+        // 如果表不存在（首次创建），忽略删除错误
+        if (!msg.includes('not found') && !msg.includes('does not exist')) {
+          logError(`Failed to delete conflicting vectors from ${tableName}`, msg)
+          // 不抛出错误，继续尝试插入
+        }
+      }
+    }
+  }
+
+  /**
    * 确保目标表存在（含 HNSW 索引）
    */
   private async ensureTargetTable(
@@ -338,20 +388,9 @@ export class TransferWorker {
         file_name: record.file_name
       }))
 
-      // 使用 INSERT 配合 UNIQUE 索引保证幂等
-      // 如果记录已存在会报错，但不影响数据完整性
-      const sql = `INSERT IGNORE INTO \`${tableName}\` $chunks;`
-
-      try {
-        await this.client.queryInDatabase(namespace, database, sql, { chunks: chunkData })
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error)
-        // 如果是重复键错误，忽略（幂等处理）
-        if (!msg.includes('already exists') && !msg.includes('unique')) {
-          throw error
-        }
-        log(`Some records already exist in ${tableName}, continuing...`)
-      }
+      // 使用 INSERT（已删除冲突数据）
+      const sql = `INSERT INTO \`${tableName}\` $chunks;`
+      await this.client.queryInDatabase(namespace, database, sql, { chunks: chunkData })
     }
   }
 

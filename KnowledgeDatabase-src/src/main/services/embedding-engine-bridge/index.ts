@@ -186,10 +186,9 @@ export class EmbeddingEngineBridge {
       }
 
       case 'chunk:completed': {
-        // 🔥 流式写入暂存表（单个 chunk）
-        this.handleChunkCompleted(msg).catch((err) => {
-          logger.error('[EmbeddingEngineBridge] Failed to handle chunk completed:', err)
-        })
+        // 💡 不再流式写入 staging，等任务完成后批量写入
+        // 这里可以发送进度事件到渲染进程（如果需要更细粒度的进度）
+        // 当前已由 task:progress 消息覆盖，此处不处理
         break
       }
 
@@ -210,12 +209,13 @@ export class EmbeddingEngineBridge {
             console.error('[EmbeddingEngineBridge] Completed listener error:', err)
           }
         }
-        // 🔥 不再批量同步，已经流式写入暂存表
-        // const params = this.taskParamsByDocument.get(result.documentId)
-        this.taskParamsByDocument.delete(result.documentId)
-        // this.enqueueSync(result, params) // 删除批量同步
 
-        logger.info('[EmbeddingEngineBridge] Task completed (all chunks streamed)', {
+        // 🔥 恢复批量写入暂存表（等任务完成后一次性写入）
+        const params = this.taskParamsByDocument.get(result.documentId)
+        this.enqueueSync(result, params)
+        this.taskParamsByDocument.delete(result.documentId)
+
+        logger.info('[EmbeddingEngineBridge] Task completed, enqueued batch sync', {
           documentId: msg.documentId,
           totalChunks: msg.embeddings.length
         })

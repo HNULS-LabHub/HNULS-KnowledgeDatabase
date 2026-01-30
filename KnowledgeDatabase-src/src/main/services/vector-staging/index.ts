@@ -17,8 +17,12 @@ const STAGING_NAMESPACE = 'knowledge'
 const STAGING_DATABASE = 'system'
 /** 暂存表名 */
 const STAGING_TABLE = 'vector_staging'
-/** 批量插入大小 */
-const BATCH_INSERT_SIZE = 500
+/** 批量插入大小 - 向量数据较大，需要小批量避免连接超时 */
+const BATCH_INSERT_SIZE = 100
+/** 重试次数 */
+const MAX_RETRIES = 3
+/** 重试间隔(ms) */
+const RETRY_DELAY = 1000
 
 // ============================================================================
 // VectorStagingService
@@ -133,29 +137,46 @@ export class VectorStagingService {
       const end = Math.min(start + BATCH_INSERT_SIZE, totalRecords)
       const batch = records.slice(start, end)
 
-      try {
-        const startTime = Date.now()
-        await this.queryService.queryInDatabase(
-          STAGING_NAMESPACE,
-          STAGING_DATABASE,
-          `INSERT INTO ${STAGING_TABLE} $records;`,
-          { records: batch }
-        )
-        const duration = Date.now() - startTime
+      let lastError: Error | null = null
+      for (let retry = 0; retry < MAX_RETRIES; retry++) {
+        try {
+          const startTime = Date.now()
+          await this.queryService.queryInDatabase(
+            STAGING_NAMESPACE,
+            STAGING_DATABASE,
+            `INSERT INTO ${STAGING_TABLE} $records;`,
+            { records: batch }
+          )
+          const duration = Date.now() - startTime
 
-        logger.debug('[VectorStagingService] Batch inserted', {
+          logger.debug('[VectorStagingService] Batch inserted', {
+            batchNum: i + 1,
+            totalBatches,
+            batchSize: batch.length,
+            duration: `${duration}ms`,
+            retry: retry > 0 ? retry : undefined
+          })
+          lastError = null
+          break
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error(String(error))
+          if (retry < MAX_RETRIES - 1) {
+            logger.warn('[VectorStagingService] Batch insert failed, retrying...', {
+              batchNum: i + 1,
+              retry: retry + 1,
+              error: lastError.message
+            })
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retry + 1)))
+          }
+        }
+      }
+      if (lastError) {
+        logger.error('[VectorStagingService] Batch insert failed after retries', {
           batchNum: i + 1,
           totalBatches,
-          batchSize: batch.length,
-          duration: `${duration}ms`
+          error: lastError.message
         })
-      } catch (error) {
-        logger.error('[VectorStagingService] Batch insert failed', {
-          batchNum: i + 1,
-          totalBatches,
-          error: error instanceof Error ? error.message : String(error)
-        })
-        throw error
+        throw lastError
       }
     }
 

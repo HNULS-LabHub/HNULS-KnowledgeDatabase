@@ -391,7 +391,7 @@ export class KnowledgeLibraryService {
   }
 
   /**
-   * 文件移动/重命名后，同步更新 kb_document 的 file_key 等字段
+   * 文件移动/重命名后，同步更新 kb_document 和 kb_document_embedding 的 file_key
    */
   async syncMovedFileToSurrealDB(params: {
     knowledgeBaseId: number
@@ -427,6 +427,12 @@ export class KnowledgeLibraryService {
         embedding_dimensions = NONE,
         updated_at = time::now()
       WHERE file_key = $newFileKey;
+
+      -- 🔥 同步更新 kb_document_embedding 关联表的 file_key
+      UPDATE kb_document_embedding SET
+        file_key = $newFileKey,
+        updated_at = time::now()
+      WHERE file_key = $oldFileKey;
     `
 
     try {
@@ -448,7 +454,7 @@ export class KnowledgeLibraryService {
   }
 
   /**
-   * 目录移动后，同步更新 prefix 下所有 kb_document 的 file_key/file_path
+   * 目录移动后，同步更新 prefix 下所有 kb_document 和 kb_document_embedding 的 file_key
    */
   async syncMovedDirectoryToSurrealDB(params: {
     knowledgeBaseId: number
@@ -470,6 +476,12 @@ export class KnowledgeLibraryService {
         file_path = string::replace(file_path, $oldPrefix, $newPrefix),
         updated_at = time::now()
       WHERE string::starts_with(file_key, $oldPrefix);
+
+      -- 🔥 同步更新 kb_document_embedding 关联表
+      UPDATE kb_document_embedding SET
+        file_key = string::replace(file_key, $oldPrefix, $newPrefix),
+        updated_at = time::now()
+      WHERE string::starts_with(file_key, $oldPrefix);
     `
 
     try {
@@ -488,11 +500,11 @@ export class KnowledgeLibraryService {
   }
 
   /**
-   * 删除文件/目录后，同步删除 kb_document 以及关联 chunk
+   * 删除文件/目录后，同步删除 kb_document、kb_document_embedding 以及关联 chunk
    *
    * TODO: 新架构下 chunks 存储在动态分表中（如 emb_cfg_xxx_3072_chunks）
    * 当前 `DELETE chunk` 语句为旧代码兼容，新分表的 chunks 需要通过
-   * kb_document.embedding_config_id 和 embedding_dimensions 构造表名后删除
+   * kb_document_embedding 记录的 embedding_config_id 和 dimensions 构造表名后删除
    */
   async syncDeletedPathToSurrealDB(params: {
     knowledgeBaseId: number
@@ -509,18 +521,22 @@ export class KnowledgeLibraryService {
 
     const prefix = normalized.replace(/\/+$/, '') + '/'
 
-    // 注意: 新架构下 chunks 存储在 emb_{configId}_{dim}_chunks 分表中
+    // 注意: 新架构下 chunks 存储在 emb_cfg_{configId}_{dim}_chunks 分表中
     // 这里的 DELETE chunk 只能清理旧 chunk 表，新分表需要额外处理
     const sql = params.isDirectory
       ? `
         LET $docIds = (SELECT VALUE id FROM kb_document WHERE string::starts_with(file_key, $prefix));
         DELETE chunk WHERE document INSIDE $docIds;
         DELETE kb_document WHERE string::starts_with(file_key, $prefix);
+        -- 🔥 级联删除 kb_document_embedding 关联表
+        DELETE kb_document_embedding WHERE string::starts_with(file_key, $prefix);
       `
       : `
         LET $docIds = (SELECT VALUE id FROM kb_document WHERE file_key = $fileKey);
         DELETE chunk WHERE document INSIDE $docIds;
         DELETE kb_document WHERE file_key = $fileKey;
+        -- 🔥 级联删除 kb_document_embedding 关联表
+        DELETE kb_document_embedding WHERE file_key = $fileKey;
       `
 
     try {
