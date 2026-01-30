@@ -2,6 +2,7 @@ import { AppService } from './services'
 import { IPCManager } from './ipc'
 import { globalMonitorBridge } from './services/global-monitor-bridge'
 import { embeddingEngineBridge } from './services/embedding-engine-bridge'
+import { vectorIndexerBridge } from './services/vector-indexer-bridge'
 import { logServiceDiagnostics } from './services/logger'
 
 // Windows: 强制 Node 控制台使用 UTF-8，避免中文日志乱码
@@ -36,6 +37,9 @@ class Application {
       // 启动嵌入引擎（Utility Process）
       await embeddingEngineBridge.start()
 
+      // 启动向量索引器（Utility Process）
+      await this.startVectorIndexer()
+
       // 初始化 IPC 处理器（传入 SurrealDBService 和 KnowledgeLibraryService）
       this.ipcManager.initialize(
         this.appService.getSurrealDBService(),
@@ -55,11 +59,55 @@ class Application {
   async shutdown(): Promise<void> {
     try {
       this.ipcManager.cleanup()
+      vectorIndexerBridge.kill()
       embeddingEngineBridge.stop()
       globalMonitorBridge.stop()
       console.log('Application shutdown completed')
     } catch (error) {
       console.error('Error during shutdown:', error)
+    }
+  }
+
+  /**
+   * 启动向量索引器
+   */
+  private async startVectorIndexer(): Promise<void> {
+    try {
+      const surrealDBService = this.appService.getSurrealDBService()
+      const queryService = surrealDBService.getQueryService()
+
+      // 获取数据库连接配置
+      const serverUrl = surrealDBService.getServerUrl().replace('http://', 'ws://')
+      const credentials = surrealDBService.getCredentials()
+
+      // 启动 utility process
+      await vectorIndexerBridge.spawn()
+
+      // 设置依赖
+      vectorIndexerBridge.setQueryService(queryService)
+      vectorIndexerBridge.setDBConnectionConfig({
+        serverUrl,
+        username: credentials.username,
+        password: credentials.password,
+        namespace: 'knowledge'
+      })
+
+      // 启动索引循环
+      await vectorIndexerBridge.startIndexer()
+
+      // 监听事件（可选：用于日志记录）
+      vectorIndexerBridge.onBatchCompleted(({ tableName, count, duration }) => {
+        console.log(`[VectorIndexer] Transferred ${count} records to ${tableName} in ${duration}ms`)
+      })
+
+      vectorIndexerBridge.onError(({ message, details }) => {
+        console.error(`[VectorIndexer] Error: ${message}`, details)
+      })
+
+      console.log('Vector Indexer started successfully')
+    } catch (error) {
+      console.error('Failed to start Vector Indexer:', error)
+      // 不阻止应用启动，索引器是可选功能
     }
   }
 }

@@ -383,6 +383,8 @@ export interface VectorStagingRecord {
   // === 处理状态 ===
   /** 是否已被搬运到目标表 */
   processed: boolean
+  /** 开始处理时间戳（用于超时检测，防止重复处理） */
+  processing_started_at?: number | null
   /** 创建时间戳 */
   created_at: number
 }

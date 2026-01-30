@@ -9,6 +9,9 @@ export * from './embedding.types'
 // 嵌入引擎 IPC 协议
 export * from './embedding-ipc.types'
 
+// 向量索引器 IPC 协议
+export * from './vector-indexer-ipc.types'
+
 // 分块类型
 export * from './chunking.types'
 
