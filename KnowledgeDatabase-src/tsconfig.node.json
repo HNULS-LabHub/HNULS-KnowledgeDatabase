@@ -12,7 +12,11 @@
     "types": ["electron-vite/node"],
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["src/Public/ShareTypes/*"]
+      "@shared/*": ["src/Public/ShareTypes/*"],
+      "@shared-utils": ["src/Public/SharedUtils"],
+      "@shared-utils/*": ["src/Public/SharedUtils/*"]
+    }
+      "@shared-utils/*": ["src/Public/SharedUtils/*"]
     }
   }
 }

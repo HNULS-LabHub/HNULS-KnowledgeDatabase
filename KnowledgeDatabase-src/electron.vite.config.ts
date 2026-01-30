@@ -1,10 +1,12 @@
 import { resolve } from 'path'
 import { defineConfig } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
-
 // 共享路径别名
 const sharedAlias = {
-  '@shared': resolve(__dirname, 'src/Public/ShareTypes')
+  '@shared': resolve(__dirname, 'src/Public/ShareTypes'),
+  '@shared-utils': resolve(__dirname, 'src/Public/SharedUtils')
+}
+  '@shared-utils': resolve(__dirname, 'src/Public/SharedUtils')
 }
 
 export default defineConfig({
