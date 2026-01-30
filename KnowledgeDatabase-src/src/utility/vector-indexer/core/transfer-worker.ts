@@ -158,8 +158,10 @@ export class TransferWorker {
       // Step 3: 分批插入目标表（使用 UPSERT 保证幂等）
       await this.insertToTargetTable(namespace, database, tableName, records)
 
-      // Step 4: 标记 processed = true
-      await this.markProcessed(records.map((r) => r.id))
+      // Step 4: 清理暂存表（先标记已处理，再删除）
+      const recordIds = records.map((r) => r.id)
+      await this.markProcessed(recordIds)
+      await this.deleteProcessedRecords(recordIds)
 
       const duration = Date.now() - startTime
       this.totalTransferred += records.length
@@ -218,6 +220,7 @@ export class TransferWorker {
 
   /**
    * 标记记录已处理
+   * 先标记再删除，确保删除失败时不会重复处理
    */
   private async markProcessed(ids: string[]): Promise<void> {
     if (ids.length === 0) return
@@ -234,6 +237,34 @@ export class TransferWorker {
       sql,
       { ids }
     )
+  }
+
+  /**
+   * 删除已处理的暂存记录
+   * 索引成功后清理暂存表，释放存储空间
+   */
+  private async deleteProcessedRecords(ids: string[]): Promise<void> {
+    if (ids.length === 0) return
+
+    const sql = `
+      DELETE FROM ${STAGING_TABLE}
+      WHERE id IN $ids;
+    `
+
+    try {
+      await this.client.queryInDatabase(
+        STAGING_NAMESPACE,
+        STAGING_DATABASE,
+        sql,
+        { ids }
+      )
+      log(`Cleaned up ${ids.length} staging records`)
+    } catch (error) {
+      // 删除失败不影响主流程，记录警告即可
+      // 因为已经标记 processed=true，下次轮询不会重复处理
+      const msg = error instanceof Error ? error.message : String(error)
+      console.warn(`[TransferWorker] Failed to cleanup staging records: ${msg}`)
+    }
   }
 
   // ==========================================================================

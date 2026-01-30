@@ -67,6 +67,24 @@ export interface IndexerStats {
   isActive: boolean
 }
 
+/**
+ * 暂存表状态
+ */
+export interface StagingStatus {
+  /** 状态: 'active' 有待处理数据 | 'idle' 静息 */
+  state: 'active' | 'idle'
+  /** 总记录数 */
+  total: number
+  /** 已处理记录数 (processed=true) */
+  processed: number
+  /** 待处理记录数 (processed=false) */
+  pending: number
+  /** 处理进度比例 (0-1)，无数据时为 null */
+  progress: number | null
+  /** 正在处理中的记录数 (processing_started_at 不为空) */
+  processing: number
+}
+
 // ============================================================================
 // Main → Indexer 消息
 // ============================================================================
@@ -80,6 +98,7 @@ export type MainToIndexerMessage =
   | { type: 'indexer:stop' }
   | { type: 'indexer:config'; config: Partial<IndexerConfig> }
   | { type: 'indexer:query-stats'; requestId: string }
+  | { type: 'indexer:query-staging-status'; requestId: string }
 
 // ============================================================================
 // Indexer → Main 消息
@@ -114,6 +133,11 @@ export type IndexerToMainMessage =
       type: 'indexer:stats'
       requestId: string
       stats: IndexerStats
+    }
+  | {
+      type: 'indexer:staging-status'
+      requestId: string
+      status: StagingStatus
     }
   | {
       /** 文档嵌入完成通知（用于更新 kb_document） */

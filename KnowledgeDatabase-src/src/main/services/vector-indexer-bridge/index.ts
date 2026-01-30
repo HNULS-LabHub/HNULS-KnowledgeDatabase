@@ -11,7 +11,8 @@ import type {
   IndexerToMainMessage,
   IndexerConfig,
   IndexerDBConfig,
-  IndexerStats
+  IndexerStats,
+  StagingStatus
 } from '@shared/vector-indexer-ipc.types'
 import type { QueryService } from '../surrealdb-service'
 import { logger } from '../logger'
@@ -188,6 +189,20 @@ export class VectorIndexerBridge {
   }
 
   /**
+   * 查询暂存表状态
+   * @returns 暂存表状态信息，包含 active/idle 状态和处理进度
+   */
+  async getStagingStatus(): Promise<StagingStatus | null> {
+    if (!this.process || !this.isReady) return null
+
+    const requestId = this.generateRequestId()
+    return this.sendWithResponse<StagingStatus>({
+      type: 'indexer:query-staging-status',
+      requestId
+    })
+  }
+
+  /**
    * 检查是否正在运行
    */
   getIsRunning(): boolean {
@@ -323,6 +338,16 @@ export class VectorIndexerBridge {
           clearTimeout(pending.timeoutId)
           this.pendingRequests.delete(msg.requestId)
           pending.resolve(msg.stats)
+        }
+        break
+      }
+
+      case 'indexer:staging-status': {
+        const pending = this.pendingRequests.get(msg.requestId)
+        if (pending) {
+          clearTimeout(pending.timeoutId)
+          this.pendingRequests.delete(msg.requestId)
+          pending.resolve(msg.status)
         }
         break
       }

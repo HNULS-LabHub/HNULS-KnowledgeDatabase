@@ -5,7 +5,7 @@
 
 import type { SurrealClient } from '../db/surreal-client'
 import type { VectorStagingRecord } from '@shared/embedding.types'
-import type { IndexerConfig } from '@shared/vector-indexer-ipc.types'
+import type { IndexerConfig, StagingStatus } from '@shared/vector-indexer-ipc.types'
 
 // ============================================================================
 // 日志
@@ -226,5 +226,73 @@ export class StagingPoller {
   private getChunksTableName(configId: string, dimensions: number): string {
     const safeId = configId.replace(/[^a-zA-Z0-9_]/g, '_')
     return `emb_cfg_${safeId}_${dimensions}_chunks`
+  }
+
+  // ==========================================================================
+  // 暂存表状态查询
+  // ==========================================================================
+
+  /**
+   * 查询暂存表状态
+   * @returns 暂存表状态信息
+   */
+  async getStagingStatus(): Promise<StagingStatus> {
+    try {
+      // 使用单条 SQL 查询所有统计信息
+      const sql = `
+        SELECT
+          count() AS total,
+          count(processed = true) AS processed_count,
+          count(processed = false) AS pending_count,
+          count(processing_started_at != NULL AND processed = false) AS processing_count
+        FROM ${STAGING_TABLE}
+        GROUP ALL;
+      `
+
+      const result = await this.client.queryInDatabase(
+        STAGING_NAMESPACE,
+        STAGING_DATABASE,
+        sql
+      )
+
+      const records = this.client.extractRecords(result)
+      const row = records[0] || {}
+
+      const total = Number(row.total) || 0
+      const processed = Number(row.processed_count) || 0
+      const pending = Number(row.pending_count) || 0
+      const processing = Number(row.processing_count) || 0
+
+      // 计算进度比例
+      let progress: number | null = null
+      if (total > 0) {
+        progress = processed / total
+      }
+
+      // 确定状态: 有待处理数据则为 active，否则为 idle
+      const state: 'active' | 'idle' = pending > 0 ? 'active' : 'idle'
+
+      return {
+        state,
+        total,
+        processed,
+        pending,
+        progress,
+        processing
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      console.error('[StagingPoller] Failed to get staging status:', msg)
+
+      // 返回默认静息状态
+      return {
+        state: 'idle',
+        total: 0,
+        processed: 0,
+        pending: 0,
+        progress: null,
+        processing: 0
+      }
+    }
   }
 }

@@ -9,7 +9,8 @@ import { TransferWorker } from './core/transfer-worker'
 import type {
   MainToIndexerMessage,
   IndexerToMainMessage,
-  IndexerConfig
+  IndexerConfig,
+  IndexerStats
 } from '@shared/vector-indexer-ipc.types'
 
 // ============================================================================
@@ -212,6 +213,26 @@ parentPort.on('message', async (event: { data: MainToIndexerMessage }) => {
           type: 'indexer:stats',
           requestId: msg.requestId,
           stats: getStats()
+        })
+        break
+      }
+
+      case 'indexer:query-staging-status': {
+        // 查询暂存表状态
+        const status = stagingPoller
+          ? await stagingPoller.getStagingStatus()
+          : {
+              state: 'idle' as const,
+              total: 0,
+              processed: 0,
+              pending: 0,
+              progress: null,
+              processing: 0
+            }
+        sendMessage({
+          type: 'indexer:staging-status',
+          requestId: msg.requestId,
+          status
         })
         break
       }
