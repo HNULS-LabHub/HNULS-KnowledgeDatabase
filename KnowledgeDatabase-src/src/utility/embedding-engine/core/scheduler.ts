@@ -151,6 +151,15 @@ export class Scheduler {
       // 标记完成
       this.taskManager.markChunkCompleted(chunkId, embedding)
 
+      // 🔥 流式发送 chunk 完成通知（立即写入暂存表）
+      this.sendMessage({
+        type: 'chunk:completed',
+        documentId,
+        taskId: docTask.taskId,
+        chunkIndex: chunk.index,
+        embedding
+      })
+
       // 更新进度
       this.progressTracker.onChunkCompleted(documentId)
 

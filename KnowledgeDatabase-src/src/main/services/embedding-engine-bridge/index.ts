@@ -185,6 +185,14 @@ export class EmbeddingEngineBridge {
         break
       }
 
+      case 'chunk:completed': {
+        // 🔥 流式写入暂存表（单个 chunk）
+        this.handleChunkCompleted(msg).catch((err) => {
+          logger.error('[EmbeddingEngineBridge] Failed to handle chunk completed:', err)
+        })
+        break
+      }
+
       case 'task:completed': {
         // 通知 GlobalMonitor 完成
         globalMonitorBridge.complete(msg.taskId)
@@ -202,10 +210,15 @@ export class EmbeddingEngineBridge {
             console.error('[EmbeddingEngineBridge] Completed listener error:', err)
           }
         }
-        // 同步向量到 SurrealDB（异步队列，不阻塞主流程）
-        const params = this.taskParamsByDocument.get(result.documentId)
+        // 🔥 不再批量同步，已经流式写入暂存表
+        // const params = this.taskParamsByDocument.get(result.documentId)
         this.taskParamsByDocument.delete(result.documentId)
-        this.enqueueSync(result, params)
+        // this.enqueueSync(result, params) // 删除批量同步
+
+        logger.info('[EmbeddingEngineBridge] Task completed (all chunks streamed)', {
+          documentId: msg.documentId,
+          totalChunks: msg.embeddings.length
+        })
 
         // 广播到渲染进程
         this.broadcastToRenderers('embedding:completed', result)
@@ -499,6 +512,115 @@ export class EmbeddingEngineBridge {
       this.documentService = new DocumentService()
     }
     return this.documentService
+  }
+
+  // ==========================================================================
+  // 内部：流式单个 chunk 写入暂存表
+  // ==========================================================================
+
+  /**
+   * 处理单个 chunk 完成，立即写入暂存表
+   */
+  private async handleChunkCompleted(msg: {
+    documentId: string
+    taskId: string
+    chunkIndex: number
+    embedding: number[]
+  }): Promise<void> {
+    const params = this.taskParamsByDocument.get(msg.documentId)
+    if (!params) {
+      logger.warn('[EmbeddingEngineBridge] Task params not found for chunk', {
+        documentId: msg.documentId,
+        chunkIndex: msg.chunkIndex
+      })
+      return
+    }
+
+    // 校验基础参数
+    const knowledgeBaseIdRaw = params.meta?.knowledgeBaseId
+    const knowledgeBaseId = knowledgeBaseIdRaw ? Number(knowledgeBaseIdRaw) : NaN
+    if (!knowledgeBaseId || Number.isNaN(knowledgeBaseId)) {
+      return
+    }
+
+    const embeddingConfigId = params.embeddingConfig?.id
+    const embeddingDimensions = msg.embedding.length
+
+    if (!embeddingConfigId || !embeddingDimensions) {
+      return
+    }
+
+    // 获取知识库信息
+    const kbService = this.getKnowledgeLibraryService()
+    const kb = await kbService.getById(knowledgeBaseId)
+    if (!kb?.databaseName || !kb.documentPath) {
+      return
+    }
+
+    // 获取 chunk 元数据
+    const documentService = this.getDocumentService()
+    const kbRoot = documentService.getFullDirectoryPath(kb.documentPath)
+    const fallbackFileName = params.meta?.fileName || path.basename(params.documentId)
+
+    const chunkingResult = await this.loadChunkingResult(kbRoot, fallbackFileName)
+    const fileKey = chunkingResult?.fileKey || params.documentId
+    const fileName = chunkingResult ? path.basename(chunkingResult.fileKey) : fallbackFileName
+
+    // 获取当前 chunk 的文本内容
+    const chunks = chunkingResult?.chunks?.length
+      ? chunkingResult.chunks
+      : this.fallbackChunksFromParams(params)
+
+    const currentChunk = chunks?.find((c) => c.index === msg.chunkIndex)
+    if (!currentChunk) {
+      logger.warn('[EmbeddingEngineBridge] Chunk not found', {
+        documentId: msg.documentId,
+        chunkIndex: msg.chunkIndex
+      })
+      return
+    }
+
+    const namespace = this.queryService?.getNamespace() || 'knowledge'
+    const now = Date.now()
+
+    // 构建单条暂存记录
+    const stagingRecord: VectorStagingRecord = {
+      embedding: msg.embedding,
+      embedding_config_id: embeddingConfigId,
+      dimensions: embeddingDimensions,
+      target_namespace: namespace,
+      target_database: kb.databaseName,
+      document_id: msg.documentId,
+      chunk_index: msg.chunkIndex,
+      content: currentChunk.content,
+      char_count: currentChunk.size ?? currentChunk.content.length,
+      start_char: currentChunk.startChar ?? null,
+      end_char: currentChunk.endChar ?? null,
+      file_key: fileKey,
+      file_name: fileName,
+      processed: false,
+      created_at: now
+    }
+
+    try {
+      // 🔥 立即写入暂存表（单条）
+      await vectorStagingService.insert(stagingRecord)
+
+      logger.debug('[EmbeddingEngineBridge] Chunk streamed to staging table', {
+        documentId: msg.documentId,
+        chunkIndex: msg.chunkIndex,
+        fileKey
+      })
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      logger.error('[EmbeddingEngineBridge] Failed to stream chunk to staging table', {
+        documentId: msg.documentId,
+        chunkIndex: msg.chunkIndex,
+        fileKey,
+        error: errorMsg
+      })
+      // 不中断任务，继续处理后续 chunk
+    }
   }
 
   // ==========================================================================

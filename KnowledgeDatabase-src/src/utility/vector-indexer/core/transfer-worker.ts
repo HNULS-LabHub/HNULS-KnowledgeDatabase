@@ -34,7 +34,7 @@ const STAGING_DATABASE = 'system'
 /** 暂存表名 */
 const STAGING_TABLE = 'vector_staging'
 /** 每批插入的记录数 */
-const INSERT_BATCH_SIZE = 100
+const INSERT_BATCH_SIZE = 500
 
 // ============================================================================
 // 回调类型

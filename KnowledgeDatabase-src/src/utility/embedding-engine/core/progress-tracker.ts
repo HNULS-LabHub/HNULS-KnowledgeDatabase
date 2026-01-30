@@ -63,7 +63,7 @@ export class ProgressTracker {
     const docTask = this.taskManager.getDocumentTask(documentId)
     if (!docTask) return
 
-    const progress = (docTask.completedChunks / docTask.totalChunks) * 100
+    const progress = Number(((docTask.completedChunks / docTask.totalChunks) * 100).toFixed(2))
     const currentRPM = this.rpmCalculator.getRPM()
 
     // 回调到全局监控
@@ -81,7 +81,7 @@ export class ProgressTracker {
   getDocumentProgress(documentId: string): number {
     const docTask = this.taskManager.getDocumentTask(documentId)
     if (!docTask || docTask.totalChunks === 0) return 0
-    return (docTask.completedChunks / docTask.totalChunks) * 100
+    return Number(((docTask.completedChunks / docTask.totalChunks) * 100).toFixed(2))
   }
 
   /**

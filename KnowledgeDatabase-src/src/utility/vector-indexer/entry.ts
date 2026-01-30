@@ -57,7 +57,7 @@ let isRunning = false
 const defaultConfig: IndexerConfig = {
   batchSize: 4000,
   maxConcurrentTables: 5,
-  pollIntervalActive: 1000,
+  pollIntervalActive: 1000,   // 降低到 500ms，更快响应
   pollIntervalIdle: 5000,
   processingTimeout: 5 * 60 * 1000
 }

@@ -26,20 +26,18 @@
           class="transition-all duration-500"
         />
       </svg>
-      <!-- 中心图标 -->
+      <!-- 中心进度文本或图标 -->
       <div class="absolute inset-0 flex items-center justify-center">
-        <svg
-          v-if="isActive"
-          class="w-4 h-4 text-blue-600 animate-pulse"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
+        <!-- 活跃状态：显示百分比 -->
+        <span
+          v-if="isActive && progressText"
+          class="text-[10px] font-bold text-blue-600"
         >
-          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-        </svg>
+          {{ progressText }}
+        </span>
+        <!-- 静息状态：显示图标 -->
         <svg
-          v-else
+          v-else-if="!isActive"
           class="w-4 h-4 text-slate-400"
           viewBox="0 0 24 24"
           fill="none"
@@ -60,9 +58,9 @@
       <span class="text-xs text-slate-400 truncate">
         <template v-if="loading">加载中...</template>
         <template v-else-if="isActive">
-          {{ pendingCount }} 条待处理
-          <span v-if="processingCount > 0" class="text-blue-500">
-            ({{ processingCount }} 处理中)
+          {{ processedCount }}/{{ totalCount }} 已索引
+          <span v-if="processingCount > 0" class="text-blue-500 ml-1">
+            (处理中 {{ processingCount }})
           </span>
         </template>
         <template v-else>静息</template>
@@ -85,7 +83,7 @@ const props = withDefaults(
   {
     size: 40,
     strokeWidth: 4,
-    pollInterval: 3000
+    pollInterval: 500  // 0.5秒更新一次，更及时
   }
 )
 
@@ -100,18 +98,27 @@ const radius = computed(() => (props.size - props.strokeWidth) / 2)
 const circumference = computed(() => 2 * Math.PI * radius.value)
 
 const isActive = computed(() => status.value?.state === 'active')
+const totalCount = computed(() => status.value?.total ?? 0)
+const processedCount = computed(() => status.value?.processed ?? 0)
 const pendingCount = computed(() => status.value?.pending ?? 0)
 const processingCount = computed(() => status.value?.processing ?? 0)
 
-// 进度计算：有数据时显示进度，无数据时显示满圆或空圆
+// 进度计算：已处理/总数
 const progress = computed(() => {
   if (!status.value) return 0
   if (status.value.state === 'idle') return 0
-  // active 状态下显示处理进度（pending/total 的反比，即已完成的比例）
+  // active 状态下显示处理进度（processed/total）
   if (status.value.progress !== null) {
     return status.value.progress
   }
   return 0
+})
+
+// 进度百分比文本
+const progressText = computed(() => {
+  if (!status.value || status.value.state === 'idle') return ''
+  const percent = Math.round(progress.value * 100)
+  return `${percent}%`
 })
 
 const dashOffset = computed(() => {

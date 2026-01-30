@@ -18,7 +18,7 @@ const STAGING_DATABASE = 'system'
 /** 暂存表名 */
 const STAGING_TABLE = 'vector_staging'
 /** 批量插入大小 */
-const BATCH_INSERT_SIZE = 100
+const BATCH_INSERT_SIZE = 500
 
 // ============================================================================
 // VectorStagingService

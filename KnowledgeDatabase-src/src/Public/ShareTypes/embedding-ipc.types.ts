@@ -50,6 +50,14 @@ export type EngineToMainMessage =
       currentRPM?: number
     }
   | {
+      /** 单个 chunk 完成，流式通知 */
+      type: 'chunk:completed'
+      documentId: string
+      taskId: string
+      chunkIndex: number
+      embedding: number[]
+    }
+  | {
       type: 'task:completed'
       documentId: string
       taskId: string
