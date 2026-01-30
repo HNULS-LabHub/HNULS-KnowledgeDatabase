@@ -35,13 +35,6 @@ interface PendingRequest<T> {
 }
 
 // ============================================================================
-// 批次插入配置
-// ============================================================================
-
-/** 每批插入的 chunk 数量（防止单次请求过大） */
-const BATCH_INSERT_SIZE = 100
-
-// ============================================================================
 // 工具函数：分表命名
 // ============================================================================
 
@@ -60,6 +53,7 @@ function getChunksTableName(configId: string, dimensions: number): string {
   const safeId = sanitizeTableName(configId)
   return `emb_${safeId}_${dimensions}_chunks`
 }
+
 
 // ============================================================================
 // EmbeddingEngineBridge
@@ -85,9 +79,6 @@ export class EmbeddingEngineBridge {
 
   /** 数据库同步队列 */
   private syncQueue: Promise<void> = Promise.resolve()
-
-  /** 模型分表缓存（避免重复创建表/索引） */
-  private modelTableCache: Set<string> = new Set()
 
   /** 完成事件监听器 */
   private completedListeners: Set<(result: EmbeddingTaskResult) => void> = new Set()
@@ -385,6 +376,13 @@ export class EmbeddingEngineBridge {
     })
   }
 
+  /**
+   * 检查进程是否就绪
+   */
+  getIsReady(): boolean {
+    return this.isReady
+  }
+
   // ==========================================================================
   // 向量检索
   // ==========================================================================
@@ -580,7 +578,7 @@ export class EmbeddingEngineBridge {
     const now = Date.now()
 
     // 构建暂存记录
-    const stagingRecords: VectorStagingRecord[] = chunks
+    const stagingRecords = chunks
       .map((chunk) => {
         const embedding = embeddingsMap.get(chunk.index)
         if (!embedding) return null // 跳过没有向量的 chunk
@@ -603,7 +601,7 @@ export class EmbeddingEngineBridge {
           created_at: now
         } satisfies VectorStagingRecord
       })
-      .filter((r): r is VectorStagingRecord => r !== null)
+      .filter((r): r is NonNullable<typeof r> => r !== null)
 
     if (stagingRecords.length === 0) {
       logger.warn('[EmbeddingEngineBridge] No valid embeddings to stage', { fileKey })
@@ -642,152 +640,8 @@ export class EmbeddingEngineBridge {
   }
 
   // ==========================================================================
-  // 内部：向量同步（原有逻辑，保留备用）
+  // 辅助方法
   // ==========================================================================
-
-  /**
-   * @deprecated 已改为写入暂存表，此方法保留用于后续搬运逻辑复用
-   */
-  private async syncEmbeddingResult(
-    result: EmbeddingTaskResult,
-    params?: SubmitEmbeddingTaskParams
-  ): Promise<void> {
-    if (!this.queryService || !this.queryService.isConnected()) {
-      console.warn('[EmbeddingEngineBridge] QueryService not available, skip sync')
-      return
-    }
-
-    const knowledgeBaseIdRaw = params?.meta?.knowledgeBaseId
-    const knowledgeBaseId = knowledgeBaseIdRaw ? Number(knowledgeBaseIdRaw) : NaN
-    if (!knowledgeBaseId || Number.isNaN(knowledgeBaseId)) {
-      console.warn('[EmbeddingEngineBridge] Missing knowledgeBaseId, skip sync', knowledgeBaseIdRaw)
-      return
-    }
-
-    const kbService = this.getKnowledgeLibraryService()
-    const kb = await kbService.getById(knowledgeBaseId)
-    if (!kb?.databaseName || !kb.documentPath) {
-      console.warn('[EmbeddingEngineBridge] Knowledge base not found or invalid', knowledgeBaseId)
-      return
-    }
-
-    const documentService = this.getDocumentService()
-    const kbRoot = documentService.getFullDirectoryPath(kb.documentPath)
-
-    const fallbackFileKey = params?.documentId || result.documentId
-    const fallbackFileName = params?.meta?.fileName || path.basename(fallbackFileKey)
-
-    const chunkingResult = await this.loadChunkingResult(kbRoot, fallbackFileName)
-    const fileKey = chunkingResult?.fileKey || fallbackFileKey
-    const fileName = chunkingResult ? path.basename(chunkingResult.fileKey) : fallbackFileName
-    const filePath = fileKey
-    const fileType = path.extname(fileName).slice(1)
-
-    const chunks = chunkingResult?.chunks?.length
-      ? chunkingResult.chunks
-      : this.fallbackChunksFromParams(params)
-
-    if (!chunks || chunks.length === 0) {
-      console.warn('[EmbeddingEngineBridge] No chunks found for sync', { fileKey })
-      return
-    }
-
-    const embeddingsMap = new Map<number, number[]>(
-      result.embeddings.map((item) => [item.index, item.embedding])
-    )
-
-    const chunkRecords = chunks.map((chunk) => ({
-      chunk_index: chunk.index,
-      content: chunk.content,
-      char_count: chunk.size ?? chunk.content.length,
-      start_char: chunk.startChar ?? null,
-      end_char: chunk.endChar ?? null,
-      embedding: embeddingsMap.get(chunk.index) ?? null
-    }))
-
-    // 获取嵌入配置信息
-    const embeddingConfigId = params?.embeddingConfig?.id
-    const embeddingDimensions =
-      result.embeddings[0]?.embedding?.length ?? params?.embeddingConfig?.dimensions ?? null
-
-    // 校验必要的配置信息
-    if (!embeddingConfigId || !embeddingDimensions) {
-      logger.warn('[EmbeddingEngineBridge] Missing embedding config, skip sync', {
-        embeddingConfigId,
-        embeddingDimensions
-      })
-      return
-    }
-
-    const namespace = this.queryService.getNamespace() || 'knowledge'
-
-    try {
-      // Step 1: 确保模型分表存在（含 HNSW 索引）
-      const tableName = await this.ensureModelChunksTable(
-        namespace,
-        kb.databaseName,
-        embeddingConfigId,
-        embeddingDimensions
-      )
-
-      // Step 2: upsert kb_document（新增 embedding_config_id 字段）
-      const docRecord = await this.upsertKbDocument({
-        namespace,
-        database: kb.databaseName,
-        fileKey,
-        fileName,
-        filePath,
-        fileType,
-        chunkCount: chunkRecords.length,
-        embeddingModel: params?.embeddingConfig?.modelId ?? null,
-        embeddingDimensions,
-        embeddingConfigId
-      })
-
-      if (!docRecord?.id) {
-        logger.warn('[EmbeddingEngineBridge] Failed to upsert kb_document - no id returned', {
-          fileKey,
-          docRecord
-        })
-        return
-      }
-
-      logger.debug('[EmbeddingEngineBridge] Successfully upserted kb_document', {
-        documentId: docRecord.id,
-        fileKey,
-        tableName
-      })
-
-      // Step 3: 写入 chunks 到模型分表
-      await this.replaceChunks(namespace, kb.databaseName, tableName, docRecord.id, chunkRecords)
-
-      logger.info('[EmbeddingEngineBridge] Successfully synced embeddings', {
-        documentId: docRecord.id,
-        fileKey,
-        tableName,
-        chunkCount: chunkRecords.length
-      })
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error)
-
-      logger.error('[EmbeddingEngineBridge] Failed to sync embeddings', {
-        documentId: result.documentId,
-        fileKey,
-        error: errorMsg,
-        stack: error instanceof Error ? error.stack : undefined
-      })
-
-      // 通知前端同步失败
-      this.broadcastToRenderers('embedding:sync-failed', {
-        documentId: result.documentId,
-        fileKey,
-        error: errorMsg
-      })
-
-      // 重新抛出错误，让调用方知道同步失败
-      throw error
-    }
-  }
 
   private async loadChunkingResult(kbRoot: string, fileName: string) {
     try {
@@ -817,255 +671,6 @@ export class EmbeddingEngineBridge {
       content: chunk.text,
       size: chunk.text.length
     }))
-  }
-
-  private async upsertKbDocument(params: {
-    namespace: string
-    database: string
-    fileKey: string
-    fileName: string
-    filePath: string
-    fileType: string
-    chunkCount: number
-    embeddingModel: string | null
-    embeddingDimensions: number | null
-    embeddingConfigId: string
-  }): Promise<any | null> {
-    if (!this.queryService) return null
-
-    const sql = `
-      UPSERT kb_document SET
-        file_key = $fileKey,
-        file_name = $fileName,
-        file_path = $filePath,
-        file_type = $fileType,
-        chunk_count = $chunkCount,
-        embedding_status = 'completed',
-        embedding_model = $embeddingModel,
-        embedding_dimensions = $embeddingDimensions,
-        embedding_config_id = $embeddingConfigId,
-        updated_at = time::now()
-      WHERE file_key = $fileKey
-      RETURN AFTER;
-    `
-
-    const result = await this.queryService.queryInDatabase(
-      params.namespace,
-      params.database,
-      sql,
-      {
-        fileKey: params.fileKey,
-        fileName: params.fileName,
-        filePath: params.filePath,
-        fileType: params.fileType,
-        chunkCount: params.chunkCount,
-        embeddingModel: params.embeddingModel,
-        embeddingDimensions: params.embeddingDimensions,
-        embeddingConfigId: params.embeddingConfigId
-      }
-    )
-
-    logger.debug('[EmbeddingEngineBridge] UPSERT kb_document raw result', {
-      resultType: typeof result,
-      isArray: Array.isArray(result),
-      result: result
-    })
-
-    const records = this.extractQueryRecords(result)
-    logger.debug('[EmbeddingEngineBridge] Extracted records', {
-      recordsCount: records.length,
-      firstRecord: records[0]
-    })
-
-    return records[0] || null
-  }
-
-  /**
-   * 确保模型专属 chunks 分表存在（含 HNSW 索引）
-   * 使用 IF NOT EXISTS 保证幂等性
-   * @returns 分表名
-   */
-  private async ensureModelChunksTable(
-    namespace: string,
-    database: string,
-    configId: string,
-    dimensions: number
-  ): Promise<string> {
-    if (!this.queryService) {
-      throw new Error('QueryService not available')
-    }
-
-    const tableName = getChunksTableName(configId, dimensions)
-    const cacheKey = `${namespace}.${database}.${tableName}`
-
-    // 检查缓存，避免重复创建
-    if (this.modelTableCache.has(cacheKey)) {
-      return tableName
-    }
-
-    // 创建表和索引（幂等）
-    const sql = `
-      DEFINE TABLE IF NOT EXISTS \`${tableName}\`;
-      DEFINE INDEX IF NOT EXISTS uniq_doc_chunk
-        ON TABLE \`${tableName}\` FIELDS document, chunk_index UNIQUE;
-      DEFINE INDEX IF NOT EXISTS hnsw_embedding
-        ON TABLE \`${tableName}\` FIELDS embedding
-        HNSW DIMENSION ${dimensions} DIST COSINE TYPE F32 EFC 200 M 16;
-    `
-
-    try {
-      await this.queryService.queryInDatabase(namespace, database, sql)
-      this.modelTableCache.add(cacheKey)
-      logger.info('[EmbeddingEngineBridge] Created model chunks table', {
-        tableName,
-        dimensions,
-        database
-      })
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      // 如果表/索引已存在，视为成功
-      if (!message.includes('already exists')) {
-        logger.error('[EmbeddingEngineBridge] Failed to create model chunks table', {
-          tableName,
-          error: message
-        })
-        throw error
-      }
-      this.modelTableCache.add(cacheKey)
-    }
-
-    return tableName
-  }
-
-  /**
-   * 替换文档的 chunks（删除旧的，分批插入新的）
-   * @param tableName 目标分表名
-   */
-  private async replaceChunks(
-    namespace: string,
-    database: string,
-    tableName: string,
-    documentId: string,
-    chunkRecords: Array<{
-      chunk_index: number
-      content: string
-      char_count: number
-      start_char: number | null
-      end_char: number | null
-      embedding: number[] | null
-    }>
-  ): Promise<void> {
-    if (!this.queryService) return
-
-    // Step 1: 删除旧 chunks
-    await this.queryService.queryInDatabase(
-      namespace,
-      database,
-      `DELETE FROM \`${tableName}\` WHERE document = $documentId;`,
-      { documentId }
-    )
-
-    // Step 2: 准备批次数据
-    const payload = chunkRecords.map((record) => ({
-      ...record,
-      document: documentId
-    }))
-
-    logger.debug('[EmbeddingEngineBridge] Inserting chunks', {
-      tableName,
-      documentId,
-      chunkCount: payload.length
-    })
-
-    // Step 3: 分批插入
-    await this.insertChunksInBatches(namespace, database, tableName, payload)
-  }
-
-  /**
-   * 分批插入 chunks（固定批次大小）
-   */
-  private async insertChunksInBatches(
-    namespace: string,
-    database: string,
-    tableName: string,
-    chunks: Array<any>
-  ): Promise<void> {
-    if (!this.queryService) {
-      throw new Error('QueryService not available')
-    }
-
-    const totalChunks = chunks.length
-    const totalBatches = Math.ceil(totalChunks / BATCH_INSERT_SIZE)
-
-    logger.info('[EmbeddingEngineBridge] Starting batch insert', {
-      tableName,
-      totalChunks,
-      totalBatches,
-      batchSize: BATCH_INSERT_SIZE
-    })
-
-    // 分批处理
-    for (let i = 0; i < totalBatches; i++) {
-      const start = i * BATCH_INSERT_SIZE
-      const end = Math.min(start + BATCH_INSERT_SIZE, totalChunks)
-      const batch = chunks.slice(start, end)
-
-      const batchNum = i + 1
-      const progress = Math.round((end / totalChunks) * 100)
-
-      logger.debug('[EmbeddingEngineBridge] Inserting batch', {
-        tableName,
-        batchNum,
-        totalBatches,
-        batchSize: batch.length,
-        progress: `${end}/${totalChunks} (${progress}%)`,
-        startIndex: start,
-        endIndex: end - 1
-      })
-
-      try {
-        const startTime = Date.now()
-
-        await this.queryService.queryInDatabase(
-          namespace,
-          database,
-          `INSERT INTO \`${tableName}\` $chunks;`,
-          { chunks: batch }
-        )
-
-        const duration = Date.now() - startTime
-
-        logger.debug('[EmbeddingEngineBridge] Batch inserted successfully', {
-          tableName,
-          batchNum,
-          batchSize: batch.length,
-          duration: `${duration}ms`,
-          avgPerChunk: `${(duration / batch.length).toFixed(2)}ms`
-        })
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error)
-
-        logger.error('[EmbeddingEngineBridge] Batch insert failed', {
-          tableName,
-          batchNum,
-          totalBatches,
-          batchSize: batch.length,
-          error: errorMsg
-        })
-
-        // 批次失败时抛出错误，停止后续批次
-        throw new Error(
-          `Failed to insert batch ${batchNum}/${totalBatches}: ${errorMsg}`
-        )
-      }
-    }
-
-    logger.info('[EmbeddingEngineBridge] All batches inserted successfully', {
-      tableName,
-      totalChunks,
-      totalBatches,
-      batchSize: BATCH_INSERT_SIZE
-    })
   }
 
   private extractQueryRecords(result: any): any[] {
