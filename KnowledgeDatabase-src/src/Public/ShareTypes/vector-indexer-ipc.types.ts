@@ -115,3 +115,14 @@ export type IndexerToMainMessage =
       requestId: string
       stats: IndexerStats
     }
+  | {
+      /** 文档嵌入完成通知（用于更新 kb_document） */
+      type: 'indexer:document-embedded'
+      targetNamespace: string
+      targetDatabase: string
+      documentId: string
+      fileKey: string
+      embeddingConfigId: string
+      dimensions: number
+      chunkCount: number
+    }

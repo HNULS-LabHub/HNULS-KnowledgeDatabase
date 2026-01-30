@@ -40,10 +40,23 @@ const INSERT_BATCH_SIZE = 100
 // 回调类型
 // ============================================================================
 
+/** 文档嵌入完成信息 */
+export interface DocumentEmbeddedInfo {
+  targetNamespace: string
+  targetDatabase: string
+  documentId: string
+  fileKey: string
+  embeddingConfigId: string
+  dimensions: number
+  chunkCount: number
+}
+
 export interface TransferCallbacks {
   onBatchCompleted?: (tableName: string, count: number, duration: number) => void
   onError?: (message: string, details?: string) => void
   onProgress?: (transferred: number, pending: number, activeTableCount: number) => void
+  /** 文档嵌入完成回调（每个文档完成后触发） */
+  onDocumentEmbedded?: (info: DocumentEmbeddedInfo) => void
 }
 
 // ============================================================================
@@ -163,6 +176,9 @@ export class TransferWorker {
         0, // 待处理数需要从 poller 获取
         this.activeTransfers.size
       )
+
+      // 🎯 统计每个文档的 chunk 数量并发送嵌入完成通知
+      this.notifyDocumentsEmbedded(group)
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error)
       logError(`Group failed: ${tableName}`, msg)
@@ -305,6 +321,48 @@ export class TransferWorker {
         }
         log(`Some records already exist in ${tableName}, continuing...`)
       }
+    }
+  }
+
+  // ==========================================================================
+  // 文档嵌入完成通知
+  // ==========================================================================
+
+  /**
+   * 统计每个文档的 chunk 数量并发送嵌入完成通知
+   */
+  private notifyDocumentsEmbedded(group: GroupedRecords): void {
+    if (!this.callbacks.onDocumentEmbedded) return
+
+    // 按文档分组统计 chunk 数量
+    const documentChunkCounts = new Map<string, {
+      fileKey: string
+      chunkCount: number
+    }>()
+
+    for (const record of group.records) {
+      const existing = documentChunkCounts.get(record.document_id)
+      if (existing) {
+        existing.chunkCount++
+      } else {
+        documentChunkCounts.set(record.document_id, {
+          fileKey: record.file_key,
+          chunkCount: 1
+        })
+      }
+    }
+
+    // 为每个文档发送嵌入完成通知
+    for (const [documentId, info] of documentChunkCounts) {
+      this.callbacks.onDocumentEmbedded({
+        targetNamespace: group.namespace,
+        targetDatabase: group.database,
+        documentId,
+        fileKey: info.fileKey,
+        embeddingConfigId: group.embeddingConfigId,
+        dimensions: group.dimensions,
+        chunkCount: info.chunkCount
+      })
     }
   }
 }

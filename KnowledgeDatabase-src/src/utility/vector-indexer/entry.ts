@@ -122,6 +122,18 @@ async function startIndexer(
           pending,
           activeTableCount
         })
+      },
+      onDocumentEmbedded: (info) => {
+        sendMessage({
+          type: 'indexer:document-embedded',
+          targetNamespace: info.targetNamespace,
+          targetDatabase: info.targetDatabase,
+          documentId: info.documentId,
+          fileKey: info.fileKey,
+          embeddingConfigId: info.embeddingConfigId,
+          dimensions: info.dimensions,
+          chunkCount: info.chunkCount
+        })
       }
     })
 

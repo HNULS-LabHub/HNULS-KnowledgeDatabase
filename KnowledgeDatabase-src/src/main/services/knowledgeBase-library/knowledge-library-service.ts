@@ -4,6 +4,7 @@ import * as fs from 'fs/promises'
 import { logger } from '../logger'
 import { ServiceTracker } from '../logger/service-tracker'
 import { DocumentService } from './document-service'
+import { FileScannerService } from './file-scanner-service'
 import type { QueryService } from '../surrealdb-service'
 import { kbDocumentTable } from '../surrealdb-service'
 import type {
@@ -609,6 +610,9 @@ export class KnowledgeLibraryService {
 
           result.restored.push(dbName)
           logger.info(`Successfully restored database: ${dbName}`)
+
+          // 🎯 扫描本地文档并同步到 kb_document
+          await this.syncLocalDocumentsToKbDocument(kb)
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error)
           logger.error(`Failed to restore database for KB ${kb.id} (${kb.name}):`, error)
@@ -747,6 +751,97 @@ export class KnowledgeLibraryService {
     } catch (error) {
       logger.error('Failed to cleanup orphaned resources:', error)
       throw error
+    }
+  }
+
+  // ==========================================================================
+  // 本地文档同步到 kb_document
+  // ==========================================================================
+
+  /**
+   * 扫描本地知识库文档目录，将文档元数据同步到 kb_document 表
+   * 用于数据库恢复或初始化场景
+   */
+  private async syncLocalDocumentsToKbDocument(kb: KnowledgeBaseMeta): Promise<void> {
+    if (!this.queryService || !this.queryService.isConnected()) {
+      logger.warn('[KnowledgeLibraryService] QueryService not available, skip document sync')
+      return
+    }
+
+    if (!kb.documentPath || !kb.databaseName) {
+      logger.warn('[KnowledgeLibraryService] Knowledge base missing documentPath or databaseName', {
+        kbId: kb.id,
+        kbName: kb.name
+      })
+      return
+    }
+
+    try {
+      // 获取知识库根目录
+      const kbRoot = this.documentService.getFullDirectoryPath(kb.documentPath)
+
+      // 使用 FileScannerService 扫描文档
+      const scanner = new FileScannerService()
+      const files = await scanner.scanDirectory(kbRoot)
+
+      if (files.length === 0) {
+        logger.debug('[KnowledgeLibraryService] No documents found in knowledge base', {
+          kbId: kb.id,
+          kbName: kb.name,
+          kbRoot
+        })
+        return
+      }
+
+      logger.info(`[KnowledgeLibraryService] Syncing ${files.length} documents to kb_document`, {
+        kbId: kb.id,
+        kbName: kb.name
+      })
+
+      const namespace = this.getNamespace()
+
+      // 批量 UPSERT 文档记录
+      for (const file of files) {
+        const hints = this.buildFileHints(file.path)
+
+        const sql = `
+          UPSERT kb_document SET
+            file_key = $fileKey,
+            file_name = $fileName,
+            file_path = $filePath,
+            file_type = $fileType,
+            updated_at = time::now()
+          WHERE file_key = $fileKey;
+        `
+
+        try {
+          await this.queryService.queryInDatabase(namespace, kb.databaseName, sql, {
+            fileKey: hints.fileKey,
+            fileName: hints.fileName,
+            filePath: hints.filePath,
+            fileType: hints.fileType
+          })
+        } catch (error) {
+          logger.warn('[KnowledgeLibraryService] Failed to sync document to kb_document', {
+            kbId: kb.id,
+            fileKey: hints.fileKey,
+            error: error instanceof Error ? error.message : String(error)
+          })
+          // 继续处理其他文档
+        }
+      }
+
+      logger.info(`[KnowledgeLibraryService] Successfully synced ${files.length} documents`, {
+        kbId: kb.id,
+        kbName: kb.name
+      })
+    } catch (error) {
+      logger.error('[KnowledgeLibraryService] Failed to sync local documents to kb_document', {
+        kbId: kb.id,
+        kbName: kb.name,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      // 不抛出错误，不阻止数据库恢复流程
     }
   }
 }

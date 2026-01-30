@@ -326,6 +326,14 @@ export class VectorIndexerBridge {
         }
         break
       }
+
+      case 'indexer:document-embedded': {
+        // 🎯 更新 kb_document 的嵌入信息
+        this.updateKbDocumentEmbeddingStatus(msg).catch((err) => {
+          logger.error('[VectorIndexerBridge] Failed to update kb_document:', err)
+        })
+        break
+      }
     }
   }
 
@@ -399,6 +407,65 @@ export class VectorIndexerBridge {
       password: 'root',
       namespace,
       database: 'system'
+    }
+  }
+  // ==========================================================================
+  // 更新 kb_document 嵌入状态
+  // ==========================================================================
+
+  /**
+   * 更新 kb_document 的嵌入状态
+   * 当文档的向量数据被成功搜运到目标表后调用
+   */
+  private async updateKbDocumentEmbeddingStatus(params: {
+    targetNamespace: string
+    targetDatabase: string
+    documentId: string
+    fileKey: string
+    embeddingConfigId: string
+    dimensions: number
+    chunkCount: number
+  }): Promise<void> {
+    if (!this.queryService || !this.queryService.isConnected()) {
+      logger.warn('[VectorIndexerBridge] QueryService not available, skip kb_document update')
+      return
+    }
+
+    const sql = `
+      UPDATE kb_document SET
+        chunk_count = $chunkCount,
+        embedding_status = 'completed',
+        embedding_config_id = $embeddingConfigId,
+        embedding_dimensions = $dimensions,
+        updated_at = time::now()
+      WHERE file_key = $fileKey;
+    `
+
+    try {
+      await this.queryService.queryInDatabase(
+        params.targetNamespace,
+        params.targetDatabase,
+        sql,
+        {
+          fileKey: params.fileKey,
+          chunkCount: params.chunkCount,
+          embeddingConfigId: params.embeddingConfigId,
+          dimensions: params.dimensions
+        }
+      )
+
+      logger.debug('[VectorIndexerBridge] Updated kb_document embedding status', {
+        fileKey: params.fileKey,
+        chunkCount: params.chunkCount,
+        embeddingConfigId: params.embeddingConfigId,
+        dimensions: params.dimensions
+      })
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      logger.error('[VectorIndexerBridge] Failed to update kb_document embedding status', {
+        fileKey: params.fileKey,
+        error: errorMsg
+      })
     }
   }
 }

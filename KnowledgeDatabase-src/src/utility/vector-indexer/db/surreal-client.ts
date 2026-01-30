@@ -1,9 +1,9 @@
 /**
  * @file SurrealDB 客户端
- * @description Utility Process 中使用的 SurrealDB 客户端
+ * @description Utility Process 中使用的 SurrealDB 客户端（封装 SurrealDBQueryService）
  */
 
-import { Surreal } from 'surrealdb'
+import { SurrealDBQueryService } from '@shared-utils/surrealdb-query'
 import type { IndexerDBConfig } from '@shared/vector-indexer-ipc.types'
 
 // ============================================================================
@@ -27,12 +27,12 @@ const logError = (msg: string, error?: any): void => {
 // ============================================================================
 
 export class SurrealClient {
-  private db: Surreal
+  private queryService: SurrealDBQueryService
   private connected = false
   private config?: IndexerDBConfig
 
   constructor() {
-    this.db = new Surreal()
+    this.queryService = new SurrealDBQueryService()
   }
 
   // ==========================================================================
@@ -47,12 +47,9 @@ export class SurrealClient {
     this.config = config
 
     try {
-      await this.db.connect(config.serverUrl)
-      await this.db.signin({
+      await this.queryService.connect(config.serverUrl, {
         username: config.username,
-        password: config.password
-      })
-      await this.db.use({
+        password: config.password,
         namespace: config.namespace,
         database: config.database
       })
@@ -71,7 +68,7 @@ export class SurrealClient {
 
   async disconnect(): Promise<void> {
     if (this.connected) {
-      await this.db.close()
+      await this.queryService.disconnect()
       this.connected = false
       log('Disconnected')
     }
@@ -92,7 +89,7 @@ export class SurrealClient {
     if (!this.connected) {
       throw new Error('Not connected to database')
     }
-    return (await this.db.query(sql, params)) as T
+    return await this.queryService.query<T>(sql, params)
   }
 
   /**
@@ -108,17 +105,7 @@ export class SurrealClient {
       throw new Error('Not connected to database')
     }
 
-    const prevNamespace = this.config.namespace
-    const prevDatabase = this.config.database
-
-    try {
-      await this.db.use({ namespace, database })
-      const result = (await this.db.query(sql, params)) as T
-      return result
-    } finally {
-      // 恢复原来的数据库上下文
-      await this.db.use({ namespace: prevNamespace, database: prevDatabase })
-    }
+    return await this.queryService.queryInDatabase<T>(namespace, database, sql, params)
   }
 
   // ==========================================================================
