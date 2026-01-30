@@ -88,3 +88,14 @@ DEFINE FIELD updated_at ON kb_document TYPE datetime DEFAULT time::now() VALUE t
 DEFINE INDEX idx_file_key ON kb_document COLUMNS file_key UNIQUE;`
 }
 
+/**
+ * 向量暂存表定义
+ * 位于 system 数据库，用于流式写入嵌入向量，待后台进程搬运到目标向量表
+ * 这是普通表（非向量表），不需要 HNSW 索引
+ */
+export const vectorStagingTable: TableDefinition = {
+  name: 'vector_staging',
+  sql: `DEFINE TABLE IF NOT EXISTS vector_staging SCHEMALESS;
+DEFINE INDEX IF NOT EXISTS idx_staging_processed ON vector_staging FIELDS processed;`
+}
+

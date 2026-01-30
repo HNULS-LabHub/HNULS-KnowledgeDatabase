@@ -339,6 +339,55 @@ export interface EmbeddingRequestParams {
 }
 
 // ============================================================================
+// 向量暂存表
+// ============================================================================
+
+/**
+ * 向量暂存记录
+ * 用于流式写入 system.vector_staging 表，字段扁平化以便直接写入 SurrealDB
+ * 后台进程根据 embedding_config_id + dimensions 路由到目标向量表
+ */
+export interface VectorStagingRecord {
+  // === 向量数据 ===
+  /** 嵌入向量 */
+  embedding: number[]
+
+  // === 路由信息（指向目标表）===
+  /** 嵌入配置 ID，用于生成目标表名 emb_cfg_{id}_{dimensions}_chunks */
+  embedding_config_id: string
+  /** 向量维度 */
+  dimensions: number
+  /** 目标 namespace */
+  target_namespace: string
+  /** 目标 database（知识库数据库名） */
+  target_database: string
+
+  // === Chunk 元数据 ===
+  /** 文档 ID（用于关联 kb_document） */
+  document_id: string
+  /** Chunk 索引 */
+  chunk_index: number
+  /** Chunk 文本内容 */
+  content: string
+  /** 字符数 */
+  char_count: number
+  /** 起始字符位置 */
+  start_char: number | null
+  /** 结束字符位置 */
+  end_char: number | null
+  /** 文件标识（相对路径） */
+  file_key: string
+  /** 文件名 */
+  file_name: string
+
+  // === 处理状态 ===
+  /** 是否已被搬运到目标表 */
+  processed: boolean
+  /** 创建时间戳 */
+  created_at: number
+}
+
+// ============================================================================
 // 调度器与熔断配置
 // ============================================================================
 

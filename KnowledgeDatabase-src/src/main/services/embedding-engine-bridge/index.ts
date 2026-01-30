@@ -10,7 +10,8 @@ import type {
   EmbeddingTaskResult,
   EmbeddingTaskInfo,
   EmbeddingChannelInfo,
-  ChannelConfig
+  ChannelConfig,
+  VectorStagingRecord
 } from '@shared/embedding.types'
 import type {
   MainToEngineMessage,
@@ -22,6 +23,7 @@ import { DocumentService } from '../knowledgeBase-library/document-service'
 import { KnowledgeLibraryService } from '../knowledgeBase-library/knowledge-library-service'
 import type { QueryService } from '../surrealdb-service'
 import { logger } from '../logger'
+import { vectorStagingService } from '../vector-staging'
 
 // ============================================================================
 // 类型定义
@@ -139,6 +141,7 @@ export class EmbeddingEngineBridge {
 
   setQueryService(queryService: QueryService): void {
     this.queryService = queryService
+    vectorStagingService.setQueryService(queryService)
   }
 
   setKnowledgeLibraryService(service: KnowledgeLibraryService): void {
@@ -501,17 +504,150 @@ export class EmbeddingEngineBridge {
   }
 
   // ==========================================================================
-  // 内部：向量同步
+  // 内部：向量同步（写入暂存表）
   // ==========================================================================
 
   private enqueueSync(result: EmbeddingTaskResult, params?: SubmitEmbeddingTaskParams): void {
     this.syncQueue = this.syncQueue
-      .then(() => this.syncEmbeddingResult(result, params))
+      .then(() => this.syncToStagingTable(result, params))
       .catch((err) => {
-        console.error('[EmbeddingEngineBridge] Failed to sync embeddings:', err)
+        console.error('[EmbeddingEngineBridge] Failed to write to staging table:', err)
       })
   }
 
+  /**
+   * 将嵌入结果写入暂存表（替代原有的直接写入目标向量表）
+   * 后台进程会从暂存表读取并搬运到目标向量表
+   */
+  private async syncToStagingTable(
+    result: EmbeddingTaskResult,
+    params?: SubmitEmbeddingTaskParams
+  ): Promise<void> {
+    // 校验基础参数
+    const knowledgeBaseIdRaw = params?.meta?.knowledgeBaseId
+    const knowledgeBaseId = knowledgeBaseIdRaw ? Number(knowledgeBaseIdRaw) : NaN
+    if (!knowledgeBaseId || Number.isNaN(knowledgeBaseId)) {
+      logger.warn('[EmbeddingEngineBridge] Missing knowledgeBaseId, skip staging', knowledgeBaseIdRaw)
+      return
+    }
+
+    // 获取嵌入配置信息
+    const embeddingConfigId = params?.embeddingConfig?.id
+    const embeddingDimensions =
+      result.embeddings[0]?.embedding?.length ?? params?.embeddingConfig?.dimensions ?? null
+
+    if (!embeddingConfigId || !embeddingDimensions) {
+      logger.warn('[EmbeddingEngineBridge] Missing embedding config, skip staging', {
+        embeddingConfigId,
+        embeddingDimensions
+      })
+      return
+    }
+
+    // 获取知识库信息
+    const kbService = this.getKnowledgeLibraryService()
+    const kb = await kbService.getById(knowledgeBaseId)
+    if (!kb?.databaseName || !kb.documentPath) {
+      logger.warn('[EmbeddingEngineBridge] Knowledge base not found or invalid', knowledgeBaseId)
+      return
+    }
+
+    // 获取 chunk 元数据
+    const documentService = this.getDocumentService()
+    const kbRoot = documentService.getFullDirectoryPath(kb.documentPath)
+    const fallbackFileKey = params?.documentId || result.documentId
+    const fallbackFileName = params?.meta?.fileName || path.basename(fallbackFileKey)
+
+    const chunkingResult = await this.loadChunkingResult(kbRoot, fallbackFileName)
+    const fileKey = chunkingResult?.fileKey || fallbackFileKey
+    const fileName = chunkingResult ? path.basename(chunkingResult.fileKey) : fallbackFileName
+
+    const chunks = chunkingResult?.chunks?.length
+      ? chunkingResult.chunks
+      : this.fallbackChunksFromParams(params)
+
+    if (!chunks || chunks.length === 0) {
+      logger.warn('[EmbeddingEngineBridge] No chunks found for staging', { fileKey })
+      return
+    }
+
+    // 构建向量索引映射
+    const embeddingsMap = new Map<number, number[]>(
+      result.embeddings.map((item) => [item.index, item.embedding])
+    )
+
+    const namespace = this.queryService?.getNamespace() || 'knowledge'
+    const now = Date.now()
+
+    // 构建暂存记录
+    const stagingRecords: VectorStagingRecord[] = chunks
+      .map((chunk) => {
+        const embedding = embeddingsMap.get(chunk.index)
+        if (!embedding) return null // 跳过没有向量的 chunk
+
+        return {
+          embedding,
+          embedding_config_id: embeddingConfigId,
+          dimensions: embeddingDimensions,
+          target_namespace: namespace,
+          target_database: kb.databaseName,
+          document_id: result.documentId,
+          chunk_index: chunk.index,
+          content: chunk.content,
+          char_count: chunk.size ?? chunk.content.length,
+          start_char: chunk.startChar ?? null,
+          end_char: chunk.endChar ?? null,
+          file_key: fileKey,
+          file_name: fileName,
+          processed: false,
+          created_at: now
+        } satisfies VectorStagingRecord
+      })
+      .filter((r): r is VectorStagingRecord => r !== null)
+
+    if (stagingRecords.length === 0) {
+      logger.warn('[EmbeddingEngineBridge] No valid embeddings to stage', { fileKey })
+      return
+    }
+
+    try {
+      await vectorStagingService.insertBatch(stagingRecords)
+
+      logger.info('[EmbeddingEngineBridge] Successfully wrote to staging table', {
+        documentId: result.documentId,
+        fileKey,
+        embeddingConfigId,
+        dimensions: embeddingDimensions,
+        chunkCount: stagingRecords.length
+      })
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+
+      logger.error('[EmbeddingEngineBridge] Failed to write to staging table', {
+        documentId: result.documentId,
+        fileKey,
+        error: errorMsg,
+        stack: error instanceof Error ? error.stack : undefined
+      })
+
+      // 通知前端同步失败
+      this.broadcastToRenderers('embedding:sync-failed', {
+        documentId: result.documentId,
+        fileKey,
+        error: errorMsg
+      })
+
+      throw error
+    }
+  }
+
+  // ==========================================================================
+  // 内部：向量同步（原有逻辑，保留备用）
+  // ==========================================================================
+
+  /**
+   * @deprecated 已改为写入暂存表，此方法保留用于后续搬运逻辑复用
+   */
   private async syncEmbeddingResult(
     result: EmbeddingTaskResult,
     params?: SubmitEmbeddingTaskParams
