@@ -6,8 +6,6 @@ const sharedAlias = {
   '@shared': resolve(__dirname, 'src/Public/ShareTypes'),
   '@shared-utils': resolve(__dirname, 'src/Public/SharedUtils')
 }
-  '@shared-utils': resolve(__dirname, 'src/Public/SharedUtils')
-}
 
 export default defineConfig({
   main: {

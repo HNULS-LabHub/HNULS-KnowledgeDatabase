@@ -16,7 +16,5 @@
       "@shared-utils": ["src/Public/SharedUtils"],
       "@shared-utils/*": ["src/Public/SharedUtils/*"]
     }
-      "@shared-utils/*": ["src/Public/SharedUtils/*"]
-    }
   }
 }
