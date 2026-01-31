@@ -377,6 +377,7 @@ const handleSelectAll = (event: Event): void => {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
+  table-layout: fixed;
 }
 
 .KnowledgeView_KnowledgeDetail_Views_FileListView_th {
@@ -390,11 +391,41 @@ const handleSelectAll = (event: Event): void => {
   top: 0;
   z-index: 5;
   backdrop-filter: blur(8px);
+  height: 3.5rem;
+  box-sizing: border-box;
+}
+
+/* 列宽比例设置 - 使用 colgroup 会更好，但这里用 CSS */
+.KnowledgeView_KnowledgeDetail_Views_FileListView_th.checkbox-col {
+  width: 50px;
+}
+
+.KnowledgeView_KnowledgeDetail_Views_FileListView_th.name-col {
+  width: 30%;
+}
+
+.KnowledgeView_KnowledgeDetail_Views_FileListView_th:nth-child(2):not(.name-col),
+.KnowledgeView_KnowledgeDetail_Views_FileListView_th:nth-child(3) {
+  width: 12%;
+}
+
+.KnowledgeView_KnowledgeDetail_Views_FileListView_th:nth-child(4),
+.KnowledgeView_KnowledgeDetail_Views_FileListView_th:nth-child(5) {
+  width: 10%;
+}
+
+.KnowledgeView_KnowledgeDetail_Views_FileListView_th:nth-child(6) {
+  width: 15%;
+}
+
+.KnowledgeView_KnowledgeDetail_Views_FileListView_th.action-col {
+  width: 100px;
 }
 
 .KnowledgeView_KnowledgeDetail_Views_FileListView_tr {
   transition: background 150ms;
   border-bottom: 1px solid #f1f5f9;
+  height: 3.5rem;
 }
 
 .KnowledgeView_KnowledgeDetail_Views_FileListView_tr:hover {
@@ -404,6 +435,34 @@ const handleSelectAll = (event: Event): void => {
 .KnowledgeView_KnowledgeDetail_Views_FileListView_td {
   padding: 0.875rem 1rem;
   color: #334155;
+  height: 3.5rem;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.KnowledgeView_KnowledgeDetail_Views_FileListView_td:hover {
+  overflow-x: auto;
+  text-overflow: clip;
+}
+
+/* 自定义滚动条样式 */
+.KnowledgeView_KnowledgeDetail_Views_FileListView_td::-webkit-scrollbar {
+  height: 4px;
+}
+
+.KnowledgeView_KnowledgeDetail_Views_FileListView_td::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.KnowledgeView_KnowledgeDetail_Views_FileListView_td::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+.KnowledgeView_KnowledgeDetail_Views_FileListView_td::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .name-cell {
@@ -412,17 +471,51 @@ const handleSelectAll = (event: Event): void => {
   gap: 0.75rem;
   font-weight: 500;
   color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.name-cell:hover {
+  overflow-x: auto;
+  text-overflow: clip;
+}
+
+.name-cell::-webkit-scrollbar {
+  height: 4px;
+}
+
+.name-cell::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.name-cell::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+.name-cell::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .file-icon {
   color: #94a3b8;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .file-icon svg {
   width: 1.25rem;
   height: 1.25rem;
+}
+
+.file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .status-badge {
@@ -648,14 +741,14 @@ const handleSelectAll = (event: Event): void => {
 
 /* Checkbox styles */
 .checkbox-col {
-  width: 3rem;
+  width: 50px;
   text-align: center;
 }
 
 .checkbox-cell {
-  width: 3rem;
   text-align: center;
   padding: 0.875rem 0.5rem;
+  overflow: visible !important;
 }
 
 .checkbox-input {
@@ -663,5 +756,10 @@ const handleSelectAll = (event: Event): void => {
   height: 1rem;
   cursor: pointer;
   accent-color: #4f46e5;
+}
+
+/* 操作列样式调整 */
+.action-cell {
+  overflow: visible !important;
 }
 </style>
