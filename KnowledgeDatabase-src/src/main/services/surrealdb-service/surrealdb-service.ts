@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { ChildProcess, spawn } from 'child_process'
+import { app } from 'electron'
 import { ISurrealDBService, ServerStatus, ServerEvent, EventHandler } from './types'
 import {
   SurrealDBConfig,
@@ -64,10 +65,10 @@ export class SurrealDBService implements ISurrealDBService {
    * 获取 SurrealDB 可执行文件路径
    */
   private getSurrealExePath(): string {
-    const isDev = process.env.NODE_ENV !== 'production'
-    const basePath = isDev
-      ? path.join(process.cwd(), 'vendor')
-      : path.join(process.resourcesPath, 'vendor')
+    // app.isPackaged 是 Electron 官方推荐的判断方式
+    const basePath = app.isPackaged
+      ? path.join(process.resourcesPath, 'vendor')
+      : path.join(process.cwd(), 'vendor')
 
     return path.join(basePath, 'surrealdb', 'surreal-v2.4.0.windows-amd64.exe')
   }

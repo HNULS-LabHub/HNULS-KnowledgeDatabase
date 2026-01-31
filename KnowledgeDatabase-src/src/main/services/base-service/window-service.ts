@@ -50,6 +50,15 @@ export class WindowService {
       shell.openExternal(details.url)
       return { action: 'deny' }
     })
+
+    // 允许生产环境也能打开 DevTools（用于调试）
+    this.mainWindow.webContents.on('before-input-event', (event, input) => {
+      // Ctrl+Shift+I 或 F12 打开 DevTools
+      if ((input.control && input.shift && input.key === 'I') || input.key === 'F12') {
+        this.mainWindow?.webContents.toggleDevTools()
+        event.preventDefault()
+      }
+    })
   }
 
   private loadContent(): void {

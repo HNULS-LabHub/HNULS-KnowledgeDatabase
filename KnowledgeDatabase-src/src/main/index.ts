@@ -31,6 +31,12 @@ class Application {
       // 初始化应用服务（包含 app.whenReady()）
       await this.appService.initialize()
 
+      // ❗ 关键：在窗口显示前先注册 IPC handlers，避免渲染进程请求时 handler 未就绪
+      this.ipcManager.initialize(
+        this.appService.getSurrealDBService(),
+        this.appService.getKnowledgeLibraryService()
+      )
+
       // 启动全局监控服务（Utility Process）- 必须在 app ready 之后
       await globalMonitorBridge.start()
 
@@ -39,12 +45,6 @@ class Application {
 
       // 启动向量索引器（Utility Process）
       await this.startVectorIndexer()
-
-      // 初始化 IPC 处理器（传入 SurrealDBService 和 KnowledgeLibraryService）
-      this.ipcManager.initialize(
-        this.appService.getSurrealDBService(),
-        this.appService.getKnowledgeLibraryService()
-      )
 
       // 打印服务诊断报告（用于调试依赖注入问题）
       logServiceDiagnostics()

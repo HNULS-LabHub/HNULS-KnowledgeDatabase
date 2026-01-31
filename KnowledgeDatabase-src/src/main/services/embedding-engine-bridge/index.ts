@@ -91,7 +91,7 @@ export class EmbeddingEngineBridge {
 
   async start(): Promise<void> {
     if (this.process) {
-      console.log('[EmbeddingEngineBridge] Already started')
+      logger.info('[EmbeddingEngineBridge] Already started')
       return
     }
 
@@ -100,7 +100,7 @@ export class EmbeddingEngineBridge {
     })
 
     const modulePath = path.join(__dirname, 'utility/embedding.js')
-    console.log('[EmbeddingEngineBridge] Starting utility process:', modulePath)
+    logger.info('[EmbeddingEngineBridge] Spawning utility process:', modulePath)
 
     this.process = utilityProcess.fork(modulePath)
 
@@ -109,13 +109,17 @@ export class EmbeddingEngineBridge {
     })
 
     this.process.on('exit', (code) => {
-      console.log('[EmbeddingEngineBridge] Process exited with code:', code)
+      logger.info('[EmbeddingEngineBridge] Process exited with code:', code)
       this.process = null
       this.isReady = false
     })
 
+    this.process.on('spawn', () => {
+      logger.info('[EmbeddingEngineBridge] Process spawned successfully')
+    })
+
     await this.readyPromise
-    console.log('[EmbeddingEngineBridge] Ready')
+    logger.info('[EmbeddingEngineBridge] Ready')
   }
 
   stop(): void {
