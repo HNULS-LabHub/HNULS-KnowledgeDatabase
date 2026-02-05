@@ -366,10 +366,6 @@ export class KnowledgeLibraryService {
         file_name = $fileName,
         file_path = $filePath,
         file_type = $fileType,
-        chunk_count = 0,
-        embedding_status = 'pending',
-        embedding_model = NONE,
-        embedding_dimensions = NONE,
         updated_at = time::now()
       WHERE file_key = $fileKey;
     `
@@ -421,10 +417,6 @@ export class KnowledgeLibraryService {
         file_name = $fileName,
         file_path = $filePath,
         file_type = $fileType,
-        chunk_count = 0,
-        embedding_status = 'pending',
-        embedding_model = NONE,
-        embedding_dimensions = NONE,
         updated_at = time::now()
       WHERE file_key = $newFileKey;
 

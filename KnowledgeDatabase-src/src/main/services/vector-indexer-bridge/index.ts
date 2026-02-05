@@ -16,6 +16,9 @@ import type {
 } from '@shared/vector-indexer-ipc.types'
 import type { QueryService } from '../surrealdb-service'
 import { logger } from '../logger'
+import { KnowledgeLibraryService } from '../knowledgeBase-library/knowledge-library-service'
+import { KnowledgeConfigService } from '../knowledgeBase-library/knowledge-config-service'
+import { DocumentService } from '../knowledgeBase-library/document-service'
 
 // ============================================================================
 // 类型定义
@@ -58,6 +61,9 @@ export class VectorIndexerBridge {
 
   /** 依赖注入 */
   private queryService?: QueryService
+  private knowledgeLibraryService?: KnowledgeLibraryService
+  private knowledgeConfigService = new KnowledgeConfigService()
+  private documentService = new DocumentService()
 
   /** 事件监听器 */
   private batchCompletedListeners: Set<(event: BatchCompletedEvent) => void> = new Set()
@@ -121,6 +127,10 @@ export class VectorIndexerBridge {
 
   setQueryService(queryService: QueryService): void {
     this.queryService = queryService
+  }
+
+  setKnowledgeLibraryService(service: KnowledgeLibraryService): void {
+    this.knowledgeLibraryService = service
   }
 
   // ==========================================================================
@@ -353,9 +363,9 @@ export class VectorIndexerBridge {
       }
 
       case 'indexer:document-embedded': {
-        // 🎯 更新 kb_document 的嵌入信息
+        // 🎯 更新 kb_document_embedding 的嵌入信息
         this.updateKbDocumentEmbeddingStatus(msg).catch((err) => {
-          logger.error('[VectorIndexerBridge] Failed to update kb_document:', err)
+          logger.error('[VectorIndexerBridge] Failed to update kb_document_embedding:', err)
         })
         break
       }
@@ -456,6 +466,10 @@ export class VectorIndexerBridge {
       logger.warn('[VectorIndexerBridge] QueryService not available, skip embedding status update')
       return
     }
+    const embeddingConfigName = await this.resolveEmbeddingConfigName(
+      params.targetDatabase,
+      params.embeddingConfigId
+    )
 
     // UPSERT 到 kb_document_embedding 关联表
     // 唯一索引: (file_key, embedding_config_id, dimensions)
@@ -463,6 +477,7 @@ export class VectorIndexerBridge {
       UPSERT kb_document_embedding SET
         file_key = $fileKey,
         embedding_config_id = $embeddingConfigId,
+        embedding_config_name = $embeddingConfigName,
         dimensions = $dimensions,
         status = 'completed',
         chunk_count = $chunkCount,
@@ -476,6 +491,7 @@ export class VectorIndexerBridge {
       await this.queryService.queryInDatabase(params.targetNamespace, params.targetDatabase, sql, {
         fileKey: params.fileKey,
         embeddingConfigId: params.embeddingConfigId,
+        embeddingConfigName: embeddingConfigName ?? null,
         dimensions: params.dimensions,
         chunkCount: params.chunkCount
       })
@@ -483,6 +499,7 @@ export class VectorIndexerBridge {
       logger.debug('[VectorIndexerBridge] Updated kb_document_embedding status', {
         fileKey: params.fileKey,
         embeddingConfigId: params.embeddingConfigId,
+        embeddingConfigName,
         dimensions: params.dimensions,
         chunkCount: params.chunkCount
       })
@@ -493,6 +510,31 @@ export class VectorIndexerBridge {
         embeddingConfigId: params.embeddingConfigId,
         error: errorMsg
       })
+    }
+  }
+
+  private async resolveEmbeddingConfigName(
+    targetDatabase: string,
+    embeddingConfigId: string
+  ): Promise<string | null> {
+    if (!this.knowledgeLibraryService) return null
+
+    try {
+      const knowledgeBases = await this.knowledgeLibraryService.getAll()
+      const kb = knowledgeBases.find((item) => item.databaseName === targetDatabase)
+      if (!kb?.documentPath) return null
+
+      const kbRoot = this.documentService.getFullDirectoryPath(kb.documentPath)
+      const config = await this.knowledgeConfigService.readConfig(kbRoot)
+      const name = config.global.embedding?.configs?.find((c) => c.id === embeddingConfigId)?.name
+      return name ?? null
+    } catch (error) {
+      logger.warn('[VectorIndexerBridge] Failed to resolve embedding config name', {
+        targetDatabase,
+        embeddingConfigId,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      return null
     }
   }
 }

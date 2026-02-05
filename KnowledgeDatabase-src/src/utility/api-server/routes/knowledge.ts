@@ -243,6 +243,7 @@ export function createKnowledgeRoutes(
           SELECT
             file_key,
             embedding_config_id,
+            embedding_config_name,
             dimensions,
             status,
             chunk_count,
@@ -266,6 +267,7 @@ export function createKnowledgeRoutes(
           }
           embeddingMap.get(key)!.push({
             embeddingConfigId: record.embedding_config_id,
+            embeddingConfigName: record.embedding_config_name || undefined,
             dimensions: record.dimensions,
             status: record.status || 'pending',
             chunkCount: record.chunk_count || 0,
@@ -355,6 +357,7 @@ export function createKnowledgeRoutes(
         SELECT
           file_key,
           embedding_config_id,
+          embedding_config_name,
           dimensions,
           status,
           chunk_count,
@@ -374,6 +377,7 @@ export function createKnowledgeRoutes(
           .map((r: any) => ({
             fileKey: r.file_key,
             embeddingConfigId: r.embedding_config_id,
+            embeddingConfigName: r.embedding_config_name || undefined,
             dimensions: r.dimensions,
             status: r.status || 'pending',
             chunkCount: r.chunk_count || 0,

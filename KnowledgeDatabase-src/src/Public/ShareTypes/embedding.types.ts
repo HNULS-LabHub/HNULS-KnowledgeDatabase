@@ -353,6 +353,8 @@ export interface KbDocumentEmbedding {
   file_key: string
   /** 嵌入配置 ID */
   embedding_config_id: string
+  /** 嵌入配置名称 */
+  embedding_config_name?: string
   /** 向量维度 */
   dimensions: number
   /** 嵌入状态 */

@@ -173,6 +173,8 @@ export interface DocumentInfo {
 export interface DocumentEmbeddingItem {
   /** 嵌入配置 ID */
   embeddingConfigId: string
+  /** 嵌入配置名称 */
+  embeddingConfigName?: string
   /** 向量维度 */
   dimensions: number
   /** 状态 */
@@ -191,6 +193,8 @@ export interface DocumentEmbeddingInfo {
   fileKey: string
   /** 嵌入配置 ID */
   embeddingConfigId: string
+  /** 嵌入配置名称 */
+  embeddingConfigName?: string
   /** 向量维度 */
   dimensions: number
   /** 状态 */

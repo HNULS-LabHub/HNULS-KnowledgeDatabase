@@ -90,6 +90,7 @@ class Application {
 
       // 设置依赖
       vectorIndexerBridge.setQueryService(queryService)
+      vectorIndexerBridge.setKnowledgeLibraryService(this.appService.getKnowledgeLibraryService())
       vectorIndexerBridge.setDBConnectionConfig({
         serverUrl,
         username: credentials.username,
