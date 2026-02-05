@@ -161,14 +161,24 @@ export interface DocumentInfo {
   fileName: string
   /** 文件类型 */
   fileType: string
+  /** 更新时间 */
+  updatedAt: string
+  /** 该文档的所有嵌入配置列表 */
+  embeddings: DocumentEmbeddingItem[]
+}
+
+/**
+ * 文档的单个嵌入配置信息
+ */
+export interface DocumentEmbeddingItem {
+  /** 嵌入配置 ID */
+  embeddingConfigId: string
+  /** 向量维度 */
+  dimensions: number
+  /** 状态 */
+  status: 'pending' | 'running' | 'completed' | 'failed'
   /** 分片数量 */
   chunkCount: number
-  /** 嵌入状态 */
-  embeddingStatus: 'pending' | 'running' | 'completed' | 'failed' | 'none'
-  /** 嵌入模型 */
-  embeddingModel?: string
-  /** 嵌入维度 */
-  embeddingDimensions?: number
   /** 更新时间 */
   updatedAt: string
 }

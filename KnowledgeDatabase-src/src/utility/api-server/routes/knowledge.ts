@@ -9,6 +9,7 @@ import type {
   KnowledgeBaseInfo,
   KnowledgeBaseDetail,
   DocumentInfo,
+  DocumentEmbeddingItem,
   ApiResponse,
   PaginationInfo
 } from '@shared/api-server.types'
@@ -210,7 +211,7 @@ export function createKnowledgeRoutes(
       const totalPages = Math.ceil(total / pageSize)
       const offset = (page - 1) * pageSize
 
-      // 查询文档列表
+      // 查询文档基本信息
       const docSql = `
         SELECT
           id,
@@ -218,10 +219,6 @@ export function createKnowledgeRoutes(
           file_name,
           file_path,
           file_type,
-          chunk_count,
-          embedding_status,
-          embedding_model,
-          embedding_dimensions,
           updated_at
         FROM kb_document
         ORDER BY updated_at DESC
@@ -236,18 +233,61 @@ export function createKnowledgeRoutes(
 
       const docRecords = dbClient.extractRecords(docResult)
 
+      // 获取所有文档的 file_key 列表
+      const fileKeys = docRecords.map((doc: any) => doc.file_key).filter(Boolean)
+
+      // 查询所有文档的嵌入状态（从 kb_document_embedding 表）
+      let embeddingMap: Map<string, DocumentEmbeddingItem[]> = new Map()
+      if (fileKeys.length > 0) {
+        const embeddingSql = `
+          SELECT
+            file_key,
+            embedding_config_id,
+            dimensions,
+            status,
+            chunk_count,
+            updated_at
+          FROM kb_document_embedding
+          WHERE file_key IN $fileKeys;
+        `
+        const embeddingResult = await dbClient.queryInDatabase(
+          namespace,
+          kb.databaseName,
+          embeddingSql,
+          { fileKeys }
+        )
+        const embeddingRecords = dbClient.extractRecords(embeddingResult)
+
+        // 按 file_key 分组
+        for (const record of embeddingRecords) {
+          const key = record.file_key
+          if (!embeddingMap.has(key)) {
+            embeddingMap.set(key, [])
+          }
+          embeddingMap.get(key)!.push({
+            embeddingConfigId: record.embedding_config_id,
+            dimensions: record.dimensions,
+            status: record.status || 'pending',
+            chunkCount: record.chunk_count || 0,
+            updatedAt: record.updated_at ? String(record.updated_at) : new Date().toISOString()
+          })
+        }
+      }
+
       // 转换为 API 响应格式
-      const documents: DocumentInfo[] = docRecords.map((doc: any) => ({
-        id: typeof doc.id === 'object' ? doc.id.id || String(doc.id) : String(doc.id),
-        fileKey: doc.file_key || '',
-        fileName: doc.file_name || '',
-        fileType: doc.file_type || '',
-        chunkCount: doc.chunk_count || 0,
-        embeddingStatus: doc.embedding_status || 'none',
-        embeddingModel: doc.embedding_model || undefined,
-        embeddingDimensions: doc.embedding_dimensions || undefined,
-        updatedAt: doc.updated_at ? String(doc.updated_at) : new Date().toISOString()
-      }))
+      const documents: DocumentInfo[] = docRecords.map((doc: any) => {
+        const fileKey = doc.file_key || ''
+        const embeddings = embeddingMap.get(fileKey) || []
+
+        return {
+          id: typeof doc.id === 'object' ? doc.id.id || String(doc.id) : String(doc.id),
+          fileKey,
+          fileName: doc.file_name || '',
+          fileType: doc.file_type || '',
+          updatedAt: doc.updated_at ? String(doc.updated_at) : new Date().toISOString(),
+          embeddings
+        }
+      })
 
       const pagination: PaginationInfo = {
         total,
