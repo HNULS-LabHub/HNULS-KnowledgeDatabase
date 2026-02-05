@@ -1,6 +1,7 @@
 <template>
-  <div class="tm-container min-h-screen bg-slate-50 text-slate-900 font-sans p-6 lg:p-10">
-    <div class="max-w-7xl mx-auto space-y-6">
+  <div class="h-full bg-slate-50 text-slate-900 font-sans flex flex-col overflow-hidden">
+    <div class="flex-1 overflow-y-auto">
+      <div class="max-w-7xl mx-auto p-6 lg:p-10 space-y-6">
       <!-- Page Header -->
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -134,8 +135,8 @@
       </div>
 
       <!-- Task Table -->
-      <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-        <div class="tm-table-scroll overflow-x-auto max-h-[calc(100vh-320px)] overflow-y-auto">
+      <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
+        <div class="overflow-x-auto overflow-y-auto flex-1" style="max-height: 500px;">
           <table class="w-full text-left border-collapse">
             <thead
               class="bg-slate-50 text-xs uppercase text-slate-500 font-semibold border-b border-slate-200 sticky top-0 z-10"
@@ -280,6 +281,7 @@
             </span>
           </div>
         </div>
+      </div>
       </div>
     </div>
   </div>
