@@ -329,14 +329,16 @@ export function createKnowledgeRoutes(
 
         const records = dbClient.extractRecords(result)
 
-        const embeddings = records.map((r: any) => ({
-          fileKey: r.file_key,
-          embeddingConfigId: r.embedding_config_id,
-          dimensions: r.dimensions,
-          status: r.status,
-          chunkCount: r.chunk_count || 0,
-          updatedAt: r.updated_at ? String(r.updated_at) : new Date().toISOString()
-        }))
+        const embeddings = records
+          .filter((r: any) => r.file_key && r.embedding_config_id && r.dimensions)
+          .map((r: any) => ({
+            fileKey: r.file_key,
+            embeddingConfigId: r.embedding_config_id,
+            dimensions: r.dimensions,
+            status: r.status || 'pending',
+            chunkCount: r.chunk_count || 0,
+            updatedAt: r.updated_at ? String(r.updated_at) : new Date().toISOString()
+          }))
 
         log(`Got ${embeddings.length} embeddings for file: ${fileKey}`)
         res.json(success(embeddings))
