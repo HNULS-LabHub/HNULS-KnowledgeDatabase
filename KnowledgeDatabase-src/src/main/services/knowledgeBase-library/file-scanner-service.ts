@@ -2,12 +2,18 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import { logger } from '../logger'
 import type { FileNode } from '../../../renderer/src/stores/knowledge-library/file.types'
+import { FileStatusService } from './file-status-service'
 
 /**
  * 文件扫描服务
  * 负责扫描指定目录下的所有文件
  */
 export class FileScannerService {
+  private fileStatusService: FileStatusService
+
+  constructor() {
+    this.fileStatusService = new FileStatusService()
+  }
   /**
    * 扫描指定目录下的所有文件
    * @param directoryPath 要扫描的目录路径
@@ -31,6 +37,9 @@ export class FileScannerService {
 
       // 递归扫描目录
       await this.scanDirectoryRecursive(directoryPath, directoryPath, files)
+
+      // 批量获取所有文件的状态信息
+      await this.enrichFilesWithStatus(directoryPath, files)
 
       logger.info(`Scanned ${files.length} files from directory: ${directoryPath}`)
     } catch (error) {
@@ -141,5 +150,32 @@ export class FileScannerService {
   private isSystemFile(fileName: string): boolean {
     const systemFiles = ['Thumbs.db', 'desktop.ini', '.DS_Store', '.gitkeep']
     return systemFiles.includes(fileName)
+  }
+
+  /**
+   * 为文件列表补充状态和分块数信息
+   * @param kbRoot 知识库根目录
+   * @param files 文件列表
+   */
+  private async enrichFilesWithStatus(kbRoot: string, files: FileNode[]): Promise<void> {
+    try {
+      // 提取所有文件名
+      const fileNames = files.map((file) => file.name)
+
+      // 批量获取状态信息
+      const statusMap = await this.fileStatusService.getBatchFileStatus(kbRoot, fileNames)
+
+      // 更新文件节点的状态信息
+      for (const file of files) {
+        const statusInfo = statusMap.get(file.name)
+        if (statusInfo) {
+          file.status = statusInfo.status
+          file.chunkCount = statusInfo.chunkCount
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to enrich files with status', error)
+      // 即使获取状态失败，也不影响文件列表的返回
+    }
   }
 }
