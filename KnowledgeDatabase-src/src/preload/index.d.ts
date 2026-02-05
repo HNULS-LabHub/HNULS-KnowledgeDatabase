@@ -4,8 +4,21 @@
  */
 
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { TestAPI, KnowledgeLibraryAPI, FileAPI, FileImportAPI, UserConfigAPI, MinerUAPI, ChunkingAPI, ModelConfigAPI, KnowledgeConfigAPI, TaskMonitorAPI, EmbeddingAPI, VectorIndexerAPI, // Electron 文件路径工具
-  utilsAPI } from './types'
+import type {
+  TestAPI,
+  KnowledgeLibraryAPI,
+  FileAPI,
+  FileImportAPI,
+  UserConfigAPI,
+  MinerUAPI,
+  ChunkingAPI,
+  ModelConfigAPI,
+  KnowledgeConfigAPI,
+  TaskMonitorAPI,
+  EmbeddingAPI,
+  VectorIndexerAPI, // Electron 文件路径工具
+  utilsAPI
+} from './types'
 
 declare global {
   interface Window {
@@ -24,8 +37,7 @@ declare global {
       embedding: EmbeddingAPI
       vectorIndexer: VectorIndexerAPI
       // Electron 文件路径工具
-  utils: // Electron 文件路径工具
-  utilsAPI
+      utils: utilsAPI // Electron 文件路径工具
     }
   }
 }
