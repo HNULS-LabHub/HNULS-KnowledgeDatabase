@@ -197,7 +197,9 @@ export function logServiceDiagnostics(): void {
   // 检查问题
   for (const [serviceName, instances] of Object.entries(diagnostics)) {
     if ((instances as object[]).length > 1) {
-      logger.warn(`⚠️ [ServiceTracker] ${serviceName} has ${(instances as object[]).length} instances!`)
+      logger.warn(
+        `⚠️ [ServiceTracker] ${serviceName} has ${(instances as object[]).length} instances!`
+      )
     }
   }
 }

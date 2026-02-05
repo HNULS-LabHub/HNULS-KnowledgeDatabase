@@ -166,7 +166,7 @@ export class VectorStagingService {
               retry: retry + 1,
               error: lastError.message
             })
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retry + 1)))
+            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY * (retry + 1)))
           }
         }
       }

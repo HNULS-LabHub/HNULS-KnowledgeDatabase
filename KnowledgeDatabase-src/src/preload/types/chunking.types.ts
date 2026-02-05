@@ -1,8 +1,12 @@
 /**
- * ·Ö¿é·þÎñÀàÐÍ¶¨Òå£¨Preload£©
+ * ï¿½Ö¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¶ï¿½ï¿½å£¨Preloadï¿½ï¿½
  */
 import type { APIResponse } from './index'
-import type { ChunkingRequest, GetChunkingResultRequest, ChunkingResult } from '@shared/chunking.types'
+import type {
+  ChunkingRequest,
+  GetChunkingResultRequest,
+  ChunkingResult
+} from '@shared/chunking.types'
 
 export interface ChunkingAPI {
   chunkDocument: (req: ChunkingRequest) => Promise<APIResponse<ChunkingResult>>

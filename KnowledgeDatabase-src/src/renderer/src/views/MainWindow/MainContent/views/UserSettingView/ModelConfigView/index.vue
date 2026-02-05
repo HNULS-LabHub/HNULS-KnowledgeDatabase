@@ -464,7 +464,7 @@
               </svg>
             </button>
           </div>
-          
+
           <!-- Search Bar -->
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -505,19 +505,17 @@
               </svg>
             </button>
           </div>
-          
+
           <!-- Search Stats -->
           <div v-if="modelSearchQuery" class="flex items-center justify-between text-xs">
             <span class="text-gray-500">
               找到 <span class="font-semibold text-blue-600">{{ filteredModelCount }}</span> 个模型
               <span v-if="filteredGroupCount < totalGroupCount">
-                在 <span class="font-semibold text-blue-600">{{ filteredGroupCount }}</span> 个分组中
+                在
+                <span class="font-semibold text-blue-600">{{ filteredGroupCount }}</span> 个分组中
               </span>
             </span>
-            <button
-              class="text-blue-600 hover:text-blue-700 font-medium"
-              @click="clearSearch"
-            >
+            <button class="text-blue-600 hover:text-blue-700 font-medium" @click="clearSearch">
               清除搜索
             </button>
           </div>
@@ -562,7 +560,7 @@
               <p class="text-sm font-medium text-gray-500">未找到匹配的模型</p>
               <p class="text-xs text-gray-400 mt-1">尝试使用其他关键词搜索</p>
             </div>
-            
+
             <div
               v-for="[groupName, models] in filteredModelGroups"
               :key="groupName"
@@ -996,7 +994,7 @@ const filteredModelGroups = computed(() => {
   Object.entries(store.remoteModelGroups).forEach(([groupName, models]) => {
     // 检查分组名是否匹配
     const groupMatches = groupName.toLowerCase().includes(query)
-    
+
     // 过滤模型列表
     const matchedModels = models.filter((model) => {
       const modelIdMatches = model.id.toLowerCase().includes(query)

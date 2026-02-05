@@ -3,6 +3,7 @@ import { IPCManager } from './ipc'
 import { globalMonitorBridge } from './services/global-monitor-bridge'
 import { embeddingEngineBridge } from './services/embedding-engine-bridge'
 import { vectorIndexerBridge } from './services/vector-indexer-bridge'
+import { apiServerBridge } from './services/api-server-bridge'
 import { logServiceDiagnostics } from './services/logger'
 
 // Windows: 强制 Node 控制台使用 UTF-8，避免中文日志乱码
@@ -46,6 +47,9 @@ class Application {
       // 启动向量索引器（Utility Process）
       await this.startVectorIndexer()
 
+      // 启动 API 服务器（Utility Process）
+      await this.startApiServer()
+
       // 打印服务诊断报告（用于调试依赖注入问题）
       logServiceDiagnostics()
 
@@ -59,6 +63,7 @@ class Application {
   async shutdown(): Promise<void> {
     try {
       this.ipcManager.cleanup()
+      apiServerBridge.kill()
       vectorIndexerBridge.kill()
       embeddingEngineBridge.stop()
       globalMonitorBridge.stop()
@@ -108,6 +113,52 @@ class Application {
     } catch (error) {
       console.error('Failed to start Vector Indexer:', error)
       // 不阻止应用启动，索引器是可选功能
+    }
+  }
+
+  /**
+   * 启动 API 服务器
+   */
+  private async startApiServer(): Promise<void> {
+    try {
+      const surrealDBService = this.appService.getSurrealDBService()
+      const knowledgeLibraryService = this.appService.getKnowledgeLibraryService()
+
+      // 获取数据库连接配置
+      const serverUrl = surrealDBService.getServerUrl()
+      const credentials = surrealDBService.getCredentials()
+
+      // 启动 utility process
+      await apiServerBridge.spawn()
+
+      // 启动 HTTP 服务器
+      await apiServerBridge.startServer({
+        config: {
+          port: 3721,
+          host: '0.0.0.0'
+        },
+        dbConfig: {
+          serverUrl,
+          username: credentials.username,
+          password: credentials.password,
+          namespace: 'knowledge'
+        },
+        metaFilePath: knowledgeLibraryService.getMetaFilePath()
+      })
+
+      // 监听事件
+      apiServerBridge.onStarted((port, host) => {
+        console.log(`[ApiServer] HTTP server started on http://${host}:${port}`)
+      })
+
+      apiServerBridge.onError((message, details) => {
+        console.error(`[ApiServer] Error: ${message}`, details)
+      })
+
+      console.log('API Server started successfully')
+    } catch (error) {
+      console.error('Failed to start API Server:', error)
+      // 不阻止应用启动，API 服务器是可选功能
     }
   }
 }

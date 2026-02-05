@@ -1,29 +1,29 @@
 /**
- * 嵌入状态类型定义（renderer）
+ * 嵌锟斤拷状态锟斤拷锟酵讹拷锟藉（renderer锟斤拷
  */
 
 export interface EmbeddingViewConfig {
-  configId: string // 嵌入配置 ID（来自知识库配置）
-  providerId: string // 提供商 ID
-  modelId: string // 模型 ID
-  dimensions?: number // 向量维度
+  configId: string // 嵌锟斤拷锟斤拷锟斤拷 ID锟斤拷锟斤拷锟斤拷知识锟斤拷锟斤拷锟矫ｏ拷
+  providerId: string // 锟结供锟斤拷 ID
+  modelId: string // 模锟斤拷 ID
+  dimensions?: number // 锟斤拷锟斤拷维锟斤拷
 }
 
 export interface EmbeddingVector {
-  id: string // 向量 ID
-  content: string // 原始内容
-  vector: number[] // 向量数据
-  chunkId: string // 关联的分块 ID
+  id: string // 锟斤拷锟斤拷 ID
+  content: string // 原始锟斤拷锟斤拷
+  vector: number[] // 锟斤拷锟斤拷锟斤拷锟斤拷
+  chunkId: string // 锟斤拷锟斤拷锟侥分匡拷 ID
 }
 
 export interface FileEmbeddingState {
-  fileKey: string // 文件标识（路径或名称）
-  config: EmbeddingViewConfig // 使用的配置
-  vectors: EmbeddingVector[] // 向量列表
+  fileKey: string // 锟侥硷拷锟斤拷识锟斤拷路锟斤拷锟斤拷锟斤拷锟狡ｏ拷
+  config: EmbeddingViewConfig // 使锟矫碉拷锟斤拷锟斤拷
+  vectors: EmbeddingVector[] // 锟斤拷锟斤拷锟叫憋拷
   status: 'idle' | 'running' | 'completed' | 'failed' // 状态
-  progress?: number // 进度 0-100
-  totalVectors?: number // 总向量数
-  processedVectors?: number // 已处理向量数
-  lastUpdated?: string // 最后更新时间
-  error?: string // 错误信息
+  progress?: number // 锟斤拷锟斤拷 0-100
+  totalVectors?: number // 锟斤拷锟斤拷锟斤拷锟斤拷
+  processedVectors?: number // 锟窖达拷锟斤拷锟斤拷锟斤拷锟斤拷
+  lastUpdated?: string // 锟斤拷锟斤拷锟斤拷时锟斤拷
+  error?: string // 锟斤拷锟斤拷锟斤拷息
 }

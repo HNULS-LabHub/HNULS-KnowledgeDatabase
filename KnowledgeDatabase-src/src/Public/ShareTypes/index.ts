@@ -17,3 +17,6 @@ export * from './chunking.types'
 
 // 用户配置类型
 export * from './user-config.types'
+
+// API 服务器类型
+export * from './api-server.types'

@@ -118,4 +118,3 @@ export const vectorStagingTable: TableDefinition = {
   sql: `DEFINE TABLE IF NOT EXISTS vector_staging SCHEMALESS;
 DEFINE INDEX IF NOT EXISTS idx_staging_processed ON vector_staging FIELDS processed;`
 }
-

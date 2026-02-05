@@ -1,6 +1,6 @@
 /**
  * IPC 错误处理工具
- * 
+ *
  * 提供统一的错误处理和响应格式化
  */
 
@@ -154,11 +154,7 @@ export class IPCErrorHandler {
  * 装饰器：自动处理 IPC 方法的错误
  */
 export function handleIPCError(operation: string) {
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor
-  ) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value
 
     descriptor.value = async function (...args: any[]) {

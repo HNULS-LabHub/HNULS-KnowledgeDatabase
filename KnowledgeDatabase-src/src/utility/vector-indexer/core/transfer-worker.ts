@@ -187,10 +187,7 @@ export class TransferWorker {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error)
       logError(`Group failed: ${tableName}`, msg)
-      this.callbacks.onError?.(
-        `Transfer failed for ${tableName}`,
-        msg
-      )
+      this.callbacks.onError?.(`Transfer failed for ${tableName}`, msg)
       // 不标记 processed，让超时机制重试
     } finally {
       this.activeTransfers.delete(targetKey)
@@ -213,12 +210,7 @@ export class TransferWorker {
       WHERE id IN $ids;
     `
 
-    await this.client.queryInDatabase(
-      STAGING_NAMESPACE,
-      STAGING_DATABASE,
-      sql,
-      { ids }
-    )
+    await this.client.queryInDatabase(STAGING_NAMESPACE, STAGING_DATABASE, sql, { ids })
   }
 
   /**
@@ -234,12 +226,7 @@ export class TransferWorker {
       WHERE id IN $ids;
     `
 
-    await this.client.queryInDatabase(
-      STAGING_NAMESPACE,
-      STAGING_DATABASE,
-      sql,
-      { ids }
-    )
+    await this.client.queryInDatabase(STAGING_NAMESPACE, STAGING_DATABASE, sql, { ids })
   }
 
   /**
@@ -255,12 +242,7 @@ export class TransferWorker {
     `
 
     try {
-      await this.client.queryInDatabase(
-        STAGING_NAMESPACE,
-        STAGING_DATABASE,
-        sql,
-        { ids }
-      )
+      await this.client.queryInDatabase(STAGING_NAMESPACE, STAGING_DATABASE, sql, { ids })
       log(`Cleaned up ${ids.length} staging records`)
     } catch (error) {
       // 删除失败不影响主流程，记录警告即可
@@ -405,10 +387,13 @@ export class TransferWorker {
     if (!this.callbacks.onDocumentEmbedded) return
 
     // 按文档分组统计 chunk 数量
-    const documentChunkCounts = new Map<string, {
-      fileKey: string
-      chunkCount: number
-    }>()
+    const documentChunkCounts = new Map<
+      string,
+      {
+        fileKey: string
+        chunkCount: number
+      }
+    >()
 
     for (const record of group.records) {
       const existing = documentChunkCounts.get(record.document_id)

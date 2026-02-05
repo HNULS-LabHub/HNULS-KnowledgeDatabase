@@ -29,10 +29,7 @@
       <!-- 中心进度文本或图标 -->
       <div class="absolute inset-0 flex items-center justify-center">
         <!-- 活跃状态：显示百分比 -->
-        <span
-          v-if="isActive && progressText"
-          class="text-[10px] font-bold text-blue-600"
-        >
+        <span v-if="isActive && progressText" class="text-[10px] font-bold text-blue-600">
           {{ progressText }}
         </span>
         <!-- 静息状态：显示图标 -->
@@ -83,7 +80,7 @@ const props = withDefaults(
   {
     size: 40,
     strokeWidth: 4,
-    pollInterval: 500  // 0.5秒更新一次，更及时
+    pollInterval: 500 // 0.5秒更新一次，更及时
   }
 )
 

@@ -1,6 +1,6 @@
 /**
  * 数据库操作错误类
- * 
+ *
  * 提供详细的错误上下文，便于调试和错误处理
  */
 
@@ -17,7 +17,7 @@ export class DatabaseOperationError extends Error {
   ) {
     super(message)
     this.name = 'DatabaseOperationError'
-    
+
     // 保持错误堆栈
     if (originalError instanceof Error && originalError.stack) {
       this.stack = originalError.stack
@@ -34,9 +34,10 @@ export class DatabaseOperationError extends Error {
       operation: this.operation,
       table: this.table,
       params: this.params,
-      originalError: this.originalError instanceof Error 
-        ? this.originalError.message 
-        : String(this.originalError)
+      originalError:
+        this.originalError instanceof Error
+          ? this.originalError.message
+          : String(this.originalError)
     }
   }
 }
@@ -45,7 +46,10 @@ export class DatabaseOperationError extends Error {
  * 连接错误
  */
 export class DatabaseConnectionError extends Error {
-  constructor(message: string, public originalError?: unknown) {
+  constructor(
+    message: string,
+    public originalError?: unknown
+  ) {
     super(message)
     this.name = 'DatabaseConnectionError'
   }
@@ -55,12 +59,7 @@ export class DatabaseConnectionError extends Error {
  * 查询语法错误
  */
 export class QuerySyntaxError extends DatabaseOperationError {
-  constructor(
-    message: string,
-    sql: string,
-    params: any,
-    originalError: unknown
-  ) {
+  constructor(message: string, sql: string, params: any, originalError: unknown) {
     super(message, 'QUERY', 'custom', { sql, params }, originalError)
     this.name = 'QuerySyntaxError'
   }
@@ -71,13 +70,7 @@ export class QuerySyntaxError extends DatabaseOperationError {
  */
 export class RecordNotFoundError extends DatabaseOperationError {
   constructor(table: string, id: string) {
-    super(
-      `Record not found: ${table}:${id}`,
-      'SELECT',
-      table,
-      { id },
-      null
-    )
+    super(`Record not found: ${table}:${id}`, 'SELECT', table, { id }, null)
     this.name = 'RecordNotFoundError'
   }
 }
@@ -115,7 +108,7 @@ export function parseSurrealDBError(error: unknown): {
 } {
   if (error instanceof Error) {
     const message = error.message
-    
+
     // 尝试解析常见的 SurrealDB 错误模式
     if (message.includes('already exists')) {
       return {
@@ -124,7 +117,7 @@ export function parseSurrealDBError(error: unknown): {
         details: message
       }
     }
-    
+
     if (message.includes('not found')) {
       return {
         message: '记录不存在',
@@ -132,7 +125,7 @@ export function parseSurrealDBError(error: unknown): {
         details: message
       }
     }
-    
+
     if (message.includes('syntax error') || message.includes('parse error')) {
       return {
         message: 'SQL 语法错误',
@@ -140,7 +133,7 @@ export function parseSurrealDBError(error: unknown): {
         details: message
       }
     }
-    
+
     if (message.includes('permission') || message.includes('access denied')) {
       return {
         message: '权限不足',
@@ -148,7 +141,7 @@ export function parseSurrealDBError(error: unknown): {
         details: message
       }
     }
-    
+
     if (message.includes('connection') || message.includes('connect')) {
       return {
         message: '数据库连接失败',
@@ -156,13 +149,13 @@ export function parseSurrealDBError(error: unknown): {
         details: message
       }
     }
-    
+
     return {
       message: message,
       details: message
     }
   }
-  
+
   return {
     message: String(error),
     details: String(error)

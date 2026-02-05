@@ -173,12 +173,9 @@ export class StagingPoller {
       LIMIT $limit;
     `
 
-    const result = await this.client.queryInDatabase(
-      STAGING_NAMESPACE,
-      STAGING_DATABASE,
-      sql,
-      { limit: this.config.batchSize }
-    )
+    const result = await this.client.queryInDatabase(STAGING_NAMESPACE, STAGING_DATABASE, sql, {
+      limit: this.config.batchSize
+    })
 
     return this.client.extractRecords(result) as StagingRecord[]
   }
@@ -194,10 +191,7 @@ export class StagingPoller {
     const groupMap = new Map<string, GroupedRecords>()
 
     for (const record of records) {
-      const tableName = this.getChunksTableName(
-        record.embedding_config_id,
-        record.dimensions
-      )
+      const tableName = this.getChunksTableName(record.embedding_config_id, record.dimensions)
       const targetKey = `${record.target_namespace}.${record.target_database}.${tableName}`
 
       let group = groupMap.get(targetKey)
@@ -249,11 +243,7 @@ export class StagingPoller {
         GROUP ALL;
       `
 
-      const result = await this.client.queryInDatabase(
-        STAGING_NAMESPACE,
-        STAGING_DATABASE,
-        sql
-      )
+      const result = await this.client.queryInDatabase(STAGING_NAMESPACE, STAGING_DATABASE, sql)
 
       const records = this.client.extractRecords(result)
       const row = records[0] || {}

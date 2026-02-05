@@ -59,9 +59,7 @@
           <!-- 向量索引器状态 -->
           <VectorIndexerRing :size="40" :stroke-width="4" :poll-interval="3000" />
         </div>
-        <div class="text-xs text-slate-400">
-          系统后台任务
-        </div>
+        <div class="text-xs text-slate-400">系统后台任务</div>
       </div>
 
       <!-- Filter Bar -->

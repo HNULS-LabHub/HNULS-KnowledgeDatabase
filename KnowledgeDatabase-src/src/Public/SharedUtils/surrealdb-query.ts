@@ -1,7 +1,7 @@
 /**
  * @file SurrealDB 查询工具类
  * @description 从 QueryService 提取的 CRUD 操作，供所有进程共享使用
- * 
+ *
  * 核心特性:
  * - 统一的错误处理，所有错误自动打印 error 级别日志
  * - 类型安全的 CRUD 操作
@@ -51,7 +51,7 @@ export class DatabaseOperationError extends Error {
   ) {
     super(message)
     this.name = 'DatabaseOperationError'
-    
+
     if (originalError instanceof Error && originalError.stack) {
       this.stack = originalError.stack
     }
@@ -64,9 +64,10 @@ export class DatabaseOperationError extends Error {
       operation: this.operation,
       table: this.table,
       params: this.params,
-      originalError: this.originalError instanceof Error 
-        ? this.originalError.message 
-        : String(this.originalError)
+      originalError:
+        this.originalError instanceof Error
+          ? this.originalError.message
+          : String(this.originalError)
     }
   }
 }
@@ -75,7 +76,10 @@ export class DatabaseOperationError extends Error {
  * 连接错误
  */
 export class DatabaseConnectionError extends Error {
-  constructor(message: string, public originalError?: unknown) {
+  constructor(
+    message: string,
+    public originalError?: unknown
+  ) {
     super(message)
     this.name = 'DatabaseConnectionError'
   }
@@ -85,12 +89,7 @@ export class DatabaseConnectionError extends Error {
  * 查询语法错误
  */
 export class QuerySyntaxError extends DatabaseOperationError {
-  constructor(
-    message: string,
-    sql: string,
-    params: any,
-    originalError: unknown
-  ) {
+  constructor(message: string, sql: string, params: any, originalError: unknown) {
     super(message, 'QUERY', 'custom', { sql, params }, originalError)
     this.name = 'QuerySyntaxError'
   }
@@ -101,13 +100,7 @@ export class QuerySyntaxError extends DatabaseOperationError {
  */
 export class RecordNotFoundError extends DatabaseOperationError {
   constructor(table: string, id: string) {
-    super(
-      `Record not found: ${table}:${id}`,
-      'SELECT',
-      table,
-      { id },
-      null
-    )
+    super(`Record not found: ${table}:${id}`, 'SELECT', table, { id }, null)
     this.name = 'RecordNotFoundError'
   }
 }
@@ -122,7 +115,7 @@ export class RecordNotFoundError extends DatabaseOperationError {
 export function parseSurrealDBError(error: unknown): ParsedError {
   if (error instanceof Error) {
     const message = error.message
-    
+
     // 解析常见的 SurrealDB 错误模式
     if (message.includes('already exists')) {
       return {
@@ -131,7 +124,7 @@ export function parseSurrealDBError(error: unknown): ParsedError {
         details: message
       }
     }
-    
+
     if (message.includes('not found')) {
       return {
         message: '记录不存在',
@@ -139,7 +132,7 @@ export function parseSurrealDBError(error: unknown): ParsedError {
         details: message
       }
     }
-    
+
     if (message.includes('syntax error') || message.includes('parse error')) {
       return {
         message: 'SQL 语法错误',
@@ -147,7 +140,7 @@ export function parseSurrealDBError(error: unknown): ParsedError {
         details: message
       }
     }
-    
+
     if (message.includes('permission') || message.includes('access denied')) {
       return {
         message: '权限不足',
@@ -155,7 +148,7 @@ export function parseSurrealDBError(error: unknown): ParsedError {
         details: message
       }
     }
-    
+
     if (message.includes('connection') || message.includes('connect')) {
       return {
         message: '数据库连接失败',
@@ -163,13 +156,13 @@ export function parseSurrealDBError(error: unknown): ParsedError {
         details: message
       }
     }
-    
+
     return {
       message: message,
       details: message
     }
   }
-  
+
   return {
     message: String(error),
     details: String(error)
@@ -182,11 +175,11 @@ export function parseSurrealDBError(error: unknown): ParsedError {
 
 /**
  * SurrealDB 查询服务 - 提供统一的 CRUD 操作
- * 
+ *
  * @example
  * ```typescript
  * const queryService = new SurrealDBQueryService()
- * 
+ *
  * // 连接数据库
  * await queryService.connect('ws://localhost:8000', {
  *   username: 'root',
@@ -194,20 +187,20 @@ export function parseSurrealDBError(error: unknown): ParsedError {
  *   namespace: 'test',
  *   database: 'test'
  * })
- * 
+ *
  * // 创建记录
  * const user = await queryService.create('user', { name: 'John', age: 30 })
- * 
+ *
  * // 查询记录
  * const users = await queryService.select('user')
  * const john = await queryService.select('user', 'user_id')
- * 
+ *
  * // 更新记录
  * await queryService.update('user', 'user_id', { age: 31 })
- * 
+ *
  * // 删除记录
  * await queryService.delete('user', 'user_id')
- * 
+ *
  * // 断开连接
  * await queryService.disconnect()
  * ```
@@ -244,7 +237,7 @@ export class SurrealDBQueryService {
       this.connected = true
       this.namespace = config.namespace
       this.database = config.database
-      
+
       console.info('[SurrealDBQueryService] Connected to SurrealDB', {
         namespace: config.namespace,
         database: config.database
@@ -257,10 +250,7 @@ export class SurrealDBQueryService {
         database: config.database,
         error: errorInfo
       })
-      throw new DatabaseConnectionError(
-        `无法连接到数据库: ${errorInfo.message}`,
-        error
-      )
+      throw new DatabaseConnectionError(`无法连接到数据库: ${errorInfo.message}`, error)
     }
   }
 
@@ -318,29 +308,29 @@ export class SurrealDBQueryService {
     params?: any
   ): Promise<T> {
     const startTime = Date.now()
-    
+
     try {
       // 执行操作
       const result = await executor()
-      
+
       // 记录成功的操作
       const duration = Date.now() - startTime
       const count = Array.isArray(result) ? result.length : 1
-      
+
       console.debug(`[SurrealDBQueryService] DB ${operation} succeeded`, {
         table,
         duration: `${duration}ms`,
         resultCount: count
       })
-      
+
       await this.log(operation, table, params, count)
-      
+
       return result
     } catch (error) {
       // 解析错误信息
       const errorInfo = parseSurrealDBError(error)
       const duration = Date.now() - startTime
-      
+
       // ⚠️ 重点：所有错误使用 error 级别日志
       console.error(`[SurrealDBQueryService] DB ${operation} failed`, {
         table,
@@ -350,7 +340,7 @@ export class SurrealDBQueryService {
         details: errorInfo.details,
         code: errorInfo.code
       })
-      
+
       // 包装错误信息，提供更多上下文
       throw new DatabaseOperationError(
         `数据库操作失败 [${operation}] ${table}: ${errorInfo.message}`,
@@ -367,18 +357,18 @@ export class SurrealDBQueryService {
    */
   async create<T = any>(table: string, data: any): Promise<T> {
     this.ensureConnected()
-    
+
     return this.executeWithErrorHandling(
       'CREATE',
       table,
       async () => {
         const result = (await this.db.create(table, data)) as T
-        
+
         // 验证结果
         if (!result) {
           throw new Error(`Create operation returned empty result`)
         }
-        
+
         return result
       },
       { data }
@@ -392,20 +382,18 @@ export class SurrealDBQueryService {
    */
   async select<T = any>(table: string, id?: string): Promise<T | T[]> {
     this.ensureConnected()
-    
+
     return this.executeWithErrorHandling(
       'SELECT',
       table,
       async () => {
-        const result = id 
-          ? await this.db.select(`${table}:${id}`) 
-          : await this.db.select(table)
-        
+        const result = id ? await this.db.select(`${table}:${id}`) : await this.db.select(table)
+
         // 如果查询单条记录但结果为空，抛出 RecordNotFoundError
         if (id && !result) {
           throw new RecordNotFoundError(table, id)
         }
-        
+
         return result as T | T[]
       },
       { id }
@@ -417,18 +405,18 @@ export class SurrealDBQueryService {
    */
   async update<T = any>(table: string, id: string, data: any): Promise<T> {
     this.ensureConnected()
-    
+
     return this.executeWithErrorHandling(
       'UPDATE',
       table,
       async () => {
         const result = (await this.db.update(`${table}:${id}`, data)) as T
-        
+
         // 验证结果
         if (!result) {
           throw new RecordNotFoundError(table, id)
         }
-        
+
         return result
       },
       { id, data }
@@ -440,7 +428,7 @@ export class SurrealDBQueryService {
    */
   async delete(table: string, id: string): Promise<void> {
     this.ensureConnected()
-    
+
     await this.executeWithErrorHandling(
       'DELETE',
       table,
@@ -456,7 +444,7 @@ export class SurrealDBQueryService {
    */
   async query<T = any>(sql: string, params?: Record<string, any>): Promise<T> {
     this.ensureConnected()
-    
+
     return this.executeWithErrorHandling(
       'QUERY',
       'custom',
@@ -483,22 +471,22 @@ export class SurrealDBQueryService {
 
     try {
       await this.db.use({ namespace, database })
-      
+
       const startTime = Date.now()
       const result = (await this.db.query(sql, params)) as any
       const duration = Date.now() - startTime
-      
+
       console.debug('[SurrealDBQueryService] DB QUERY_IN_DATABASE succeeded', {
         namespace,
         database,
         duration: `${duration}ms`,
         sql: sql.substring(0, 100) + (sql.length > 100 ? '...' : '')
       })
-      
+
       return result as T
     } catch (error) {
       const errorInfo = parseSurrealDBError(error)
-      
+
       console.error('[SurrealDBQueryService] DB QUERY_IN_DATABASE failed', {
         namespace,
         database,
@@ -507,7 +495,7 @@ export class SurrealDBQueryService {
         error: errorInfo.message,
         details: errorInfo.details
       })
-      
+
       throw new QuerySyntaxError(
         `跨数据库查询失败 [${namespace}.${database}]: ${errorInfo.message}`,
         sql,
@@ -543,7 +531,7 @@ export class SurrealDBQueryService {
       WHERE embedding <|${k},${ef}|> $queryVector
       ORDER BY distance ASC;
     `
-    
+
     try {
       return await this.queryInDatabase(namespace, database, sql, { queryVector })
     } catch (error) {

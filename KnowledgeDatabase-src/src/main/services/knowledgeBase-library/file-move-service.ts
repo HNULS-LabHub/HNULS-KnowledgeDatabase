@@ -141,7 +141,11 @@ export class FileMoveService {
       // 同步 KnowledgeConfig（不影响移动主流程）
       try {
         if (sourceStats?.isDirectory()) {
-          await this.knowledgeConfigService.moveDocumentKeysByPrefix(basePath, sourcePath, relativeNewPath)
+          await this.knowledgeConfigService.moveDocumentKeysByPrefix(
+            basePath,
+            sourcePath,
+            relativeNewPath
+          )
         } else {
           await this.knowledgeConfigService.moveDocumentKey(basePath, sourcePath, relativeNewPath)
         }

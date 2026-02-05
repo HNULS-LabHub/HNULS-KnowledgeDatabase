@@ -7,11 +7,13 @@
 ## 🎯 核心特性
 
 ### 1. 统一的错误处理
+
 - ✅ 所有数据库错误自动打印 **error 级别日志**
 - ✅ 详细的错误上下文（操作类型、表名、参数、执行时长）
 - ✅ 自定义错误类型（DatabaseOperationError、RecordNotFoundError 等）
 
 ### 2. 类型安全的 CRUD 操作
+
 - `create()` - 创建记录
 - `select()` - 查询记录（支持单条/全部）
 - `update()` - 更新记录
@@ -19,6 +21,7 @@
 - `query()` - 原始 SQL 查询
 
 ### 3. 高级功能
+
 - `queryInDatabase()` - 跨数据库查询
 - `vectorSearch()` - 向量检索（KNN）
 - `getOperationLogs()` - 查询操作日志
@@ -148,9 +151,9 @@ const database = queryService.getDatabase()
 
 ```typescript
 // 创建记录
-const user = await queryService.create<User>('user', { 
-  name: 'John', 
-  age: 30 
+const user = await queryService.create<User>('user', {
+  name: 'John',
+  age: 30
 })
 
 // 查询所有记录
@@ -160,8 +163,8 @@ const users = await queryService.select<User>('user')
 const john = await queryService.select<User>('user', 'user_123')
 
 // 更新记录
-const updated = await queryService.update<User>('user', 'user_123', { 
-  age: 31 
+const updated = await queryService.update<User>('user', 'user_123', {
+  age: 31
 })
 
 // 删除记录
@@ -225,10 +228,10 @@ console.error('[SurrealDBQueryService] DB CREATE failed', {
 
 ```typescript
 import {
-  DatabaseOperationError,     // 数据库操作错误基类
-  DatabaseConnectionError,     // 连接错误
-  QuerySyntaxError,           // SQL 语法错误
-  RecordNotFoundError         // 记录不存在
+  DatabaseOperationError, // 数据库操作错误基类
+  DatabaseConnectionError, // 连接错误
+  QuerySyntaxError, // SQL 语法错误
+  RecordNotFoundError // 记录不存在
 } from '@shared-utils'
 
 try {
@@ -272,19 +275,20 @@ import { SurrealDBQueryService } from '@shared-utils/surrealdb-query'
 
 ## 📊 与原 QueryService 的区别
 
-| 特性 | 原 QueryService (Main Process) | SurrealDBQueryService (Shared) |
-|------|-------------------------------|--------------------------------|
-| **运行位置** | 仅 Main Process | 所有进程（Main/Utility/Preload） |
-| **日志系统** | 使用 logger 服务 | 使用 console.error/debug |
-| **服务追踪** | 有 ServiceTracker | 无（轻量级） |
-| **日志来源** | `electron_backend` | `shared_utils` |
-| **依赖** | 依赖 logger 服务 | 无额外依赖 |
+| 特性         | 原 QueryService (Main Process) | SurrealDBQueryService (Shared)   |
+| ------------ | ------------------------------ | -------------------------------- |
+| **运行位置** | 仅 Main Process                | 所有进程（Main/Utility/Preload） |
+| **日志系统** | 使用 logger 服务               | 使用 console.error/debug         |
+| **服务追踪** | 有 ServiceTracker              | 无（轻量级）                     |
+| **日志来源** | `electron_backend`             | `shared_utils`                   |
+| **依赖**     | 依赖 logger 服务               | 无额外依赖                       |
 
 ## 🔄 迁移指南
 
 如果你已经在使用 Main Process 的 `QueryService`，可以这样迁移：
 
 ### Before (仅在 Main Process)
+
 ```typescript
 import { QueryService } from '@/services/surrealdb-service'
 
@@ -293,6 +297,7 @@ await queryService.connect(url, config)
 ```
 
 ### After (在任何进程)
+
 ```typescript
 import { SurrealDBQueryService } from '@shared-utils'
 
@@ -305,6 +310,7 @@ API 完全兼容，无需修改业务代码！
 ## ✅ 最佳实践
 
 1. **错误处理**: 所有错误已自动打印日志，业务代码只需 catch 后处理逻辑
+
    ```typescript
    try {
      await db.create('user', data)
@@ -315,10 +321,11 @@ API 完全兼容，无需修改业务代码！
    ```
 
 2. **连接复用**: 在进程生命周期内复用同一个实例
+
    ```typescript
    // ✅ 好 - 全局单例
    const globalDB = new SurrealDBQueryService()
-   
+
    // ❌ 差 - 每次创建新实例
    function doSomething() {
      const db = new SurrealDBQueryService()
@@ -327,13 +334,14 @@ API 完全兼容，无需修改业务代码！
    ```
 
 3. **类型安全**: 使用泛型指定返回类型
+
    ```typescript
    interface User {
      id: string
      name: string
      age: number
    }
-   
+
    const user = await db.select<User>('user', 'user_123')
    // user 的类型是 User
    ```
@@ -343,7 +351,6 @@ API 完全兼容，无需修改业务代码！
 1. **在 Embedding Engine 中集成**
    - 在 embedding-engine 中创建 DB Manager
    - 使用 `SurrealDBQueryService` 存储 chunk embeddings
-   
 2. **扩展功能**
    - 添加批量操作（batchCreate、batchUpdate）
    - 添加事务支持

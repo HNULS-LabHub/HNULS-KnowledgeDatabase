@@ -1,6 +1,6 @@
 /**
- * ж╙й╤©БеДжцюЮпм╤╗рЕ
- * ж╖Ёжх╚╬жеДжц╨мнд╣╣╤юа╒еДжц
+ * ж╙й╤О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫м╤О©╫О©╫О©╫
+ * ж╖О©╫О©╫х╚О©╫О©╫О©╫О©╫О©╫ц╨О©╫О©╫д╣О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
  */
 
 import type { APIResponse } from './base.types'
@@ -22,43 +22,43 @@ export interface EmbeddingModelConfig {
 }
 
 /**
- * ж╙й╤©Б╡ЦцФ╣дг╤хКеДжц
+ * ж╙й╤О©╫О©╫О©╫О©╫О©╫О©╫г╤О©╫О©╫О©╫О©╫О©╫О©╫
  */
 export interface KnowledgeEmbeddingConfig {
   configs: EmbeddingModelConfig[]
-  /** д╛хог╤хКеДжцIDё╗сцсзеЗа©г╤хК╣хЁ║╬╟ё╘ */
+  /** д╛О©╫О©╫г╤О©╫О©╫О©╫О©╫О©╫О©╫IDО©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫г╤О©╫О©╫хЁО©╫О©╫О©╫О©╫О©╫ */
   defaultConfigId?: string
 }
 
 /**
- * нд╣╣еДжцё╗©и╦╡╦гх╚╬жё╘
+ * О©╫д╣О©╫О©╫О©╫О©╫цёО©╫О©╫и╦О©╫О©╫О©╫х╚О©╫жёО©╫
  */
 export interface DocumentConfig {
   chunking?: KnowledgeChunkingConfig
-  /** нд╣╣╤юа╒╣дг╤хКеДжцIDё╗©ия║ё╛╡╩иХжцтР╦ЗкФх╚╬жд╛хоё╘ */
+  /** О©╫д╣О©╫О©╫О©╫О©╫О©╫О©╫О©╫г╤О©╫О©╫О©╫О©╫О©╫О©╫IDО©╫О©╫О©╫О©╫я║О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫х╚О©╫О©╫д╛О©╫оёО©╫ */
   embeddingConfigId?: string
 }
 
 /**
- * ж╙й╤©Бх╚╬жеДжц
+ * ж╙й╤О©╫О©╫х╚О©╫О©╫О©╫О©╫О©╫О©╫
  */
 export interface KnowledgeGlobalConfig {
-  chunking: Required<ChunkingConfig> // х╚╬ж╠ьпКспмЙуШеДжц
-  embedding?: KnowledgeEmbeddingConfig // г╤хКеДжцё╗©ия║ё╘
-  // т╓аТфДкШеДжц
+  chunking: Required<ChunkingConfig> // х╚О©╫ж╠О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
+  embedding?: KnowledgeEmbeddingConfig // г╤О©╫О©╫О©╫О©╫О©╫цёО©╫О©╫О©╫я║О©╫О©╫
+  // т╓О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
 }
 
 /**
- * ж╙й╤©БеДжцнд╪Ч╫А╧╧
+ * ж╙й╤О©╫О©╫О©╫О©╫О©╫О©╫О©╫д╪О©╫О©╫А╧╧
  */
 export interface KnowledgeConfig {
   version: string
   global: KnowledgeGlobalConfig
-  documents: Record<string, DocumentConfig> // key = fileKeyё╗нд╪ЧоЮ╤тб╥╬╤ё╘
+  documents: Record<string, DocumentConfig> // key = fileKeyО©╫О©╫О©╫д╪О©╫О©╫О©╫О©╫б╥О©╫О©╫О©╫О©╫
 }
 
 /**
- * ж╙й╤©БеДжц API ╫с©з╤╗рЕ
+ * ж╙й╤О©╫О©╫О©╫О©╫О©╫О©╫ API О©╫с©з╤О©╫О©╫О©╫
  */
 export interface KnowledgeConfigAPI {
   getConfig(knowledgeBaseId: number): Promise<APIResponse<KnowledgeConfig>>

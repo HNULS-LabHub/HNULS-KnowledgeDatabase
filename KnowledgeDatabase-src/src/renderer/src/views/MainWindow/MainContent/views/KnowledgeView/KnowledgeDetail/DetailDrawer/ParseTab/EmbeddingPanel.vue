@@ -70,7 +70,10 @@
         <p v-if="!canEmbed" class="text-xs text-amber-600">
           {{ embeddingDisabledReason }}
         </p>
-        <p v-else-if="!hasCustomEmbeddingConfig && defaultEmbeddingConfigId" class="text-xs text-slate-500">
+        <p
+          v-else-if="!hasCustomEmbeddingConfig && defaultEmbeddingConfigId"
+          class="text-xs text-slate-500"
+        >
           当前跟随全局默认配置
         </p>
       </div>

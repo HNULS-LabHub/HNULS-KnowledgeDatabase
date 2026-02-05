@@ -57,7 +57,7 @@ let isRunning = false
 const defaultConfig: IndexerConfig = {
   batchSize: 4000,
   maxConcurrentTables: 5,
-  pollIntervalActive: 1000,   // 降低到 500ms，更快响应
+  pollIntervalActive: 1000, // 降低到 500ms，更快响应
   pollIntervalIdle: 5000,
   processingTimeout: 5 * 60 * 1000
 }
@@ -84,7 +84,13 @@ function getStats(): IndexerStats {
 // ============================================================================
 
 async function startIndexer(
-  dbConfig: { serverUrl: string; username: string; password: string; namespace: string; database: string },
+  dbConfig: {
+    serverUrl: string
+    username: string
+    password: string
+    namespace: string
+    database: string
+  },
   config: Partial<IndexerConfig> = {}
 ): Promise<void> {
   if (isRunning) {

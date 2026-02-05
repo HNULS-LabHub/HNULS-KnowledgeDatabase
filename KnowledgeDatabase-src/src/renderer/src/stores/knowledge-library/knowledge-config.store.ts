@@ -209,10 +209,7 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
   /**
    * 设置默认嵌入配置ID
    */
-  async function setDefaultEmbeddingConfigId(
-    kbId: number,
-    configId: string | null
-  ): Promise<void> {
+  async function setDefaultEmbeddingConfigId(kbId: number, configId: string | null): Promise<void> {
     const currentConfigs = getEmbeddingConfigs.value(kbId)
 
     await updateGlobalConfig(kbId, {

@@ -473,17 +473,12 @@ export class VectorIndexerBridge {
     `
 
     try {
-      await this.queryService.queryInDatabase(
-        params.targetNamespace,
-        params.targetDatabase,
-        sql,
-        {
-          fileKey: params.fileKey,
-          embeddingConfigId: params.embeddingConfigId,
-          dimensions: params.dimensions,
-          chunkCount: params.chunkCount
-        }
-      )
+      await this.queryService.queryInDatabase(params.targetNamespace, params.targetDatabase, sql, {
+        fileKey: params.fileKey,
+        embeddingConfigId: params.embeddingConfigId,
+        dimensions: params.dimensions,
+        chunkCount: params.chunkCount
+      })
 
       logger.debug('[VectorIndexerBridge] Updated kb_document_embedding status', {
         fileKey: params.fileKey,

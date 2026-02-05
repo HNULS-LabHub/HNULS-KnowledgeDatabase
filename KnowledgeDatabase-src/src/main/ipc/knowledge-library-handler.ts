@@ -117,12 +117,12 @@ export class KnowledgeLibraryIPCHandler extends BaseIPCHandler {
       }
 
       const knowledgeBase = await this.knowledgeLibraryService.create(data)
-      
+
       logger.info('Knowledge base created successfully', {
         id: knowledgeBase.id,
         name: knowledgeBase.name
       })
-      
+
       return {
         success: true,
         data: knowledgeBase
@@ -148,12 +148,12 @@ export class KnowledgeLibraryIPCHandler extends BaseIPCHandler {
           }
         }
       }
-      
+
       logger.info('Knowledge base updated successfully', {
         id,
         updates: Object.keys(data)
       })
-      
+
       return {
         success: true,
         data: knowledgeBase
@@ -179,9 +179,9 @@ export class KnowledgeLibraryIPCHandler extends BaseIPCHandler {
           }
         }
       }
-      
+
       logger.info('Knowledge base deleted successfully', { id })
-      
+
       return {
         success: true,
         data: { id }

@@ -13,10 +13,7 @@ import type {
   ChannelConfig,
   VectorStagingRecord
 } from '@shared/embedding.types'
-import type {
-  MainToEngineMessage,
-  EngineToMainMessage
-} from '@shared/embedding-ipc.types'
+import type { MainToEngineMessage, EngineToMainMessage } from '@shared/embedding-ipc.types'
 import { globalMonitorBridge } from '../global-monitor-bridge'
 import { ChunkMetaStore } from '../chunking/chunk-meta-store'
 import { DocumentService } from '../knowledgeBase-library/document-service'
@@ -53,7 +50,6 @@ function getChunksTableName(configId: string, dimensions: number): string {
   const safeId = sanitizeTableName(configId)
   return `emb_${safeId}_${dimensions}_chunks`
 }
-
 
 // ============================================================================
 // EmbeddingEngineBridge
@@ -434,7 +430,10 @@ export class EmbeddingEngineBridge {
     const kbService = this.getKnowledgeLibraryService()
     const kb = await kbService.getById(params.knowledgeBaseId)
     if (!kb?.databaseName) {
-      console.warn('[EmbeddingEngineBridge] Knowledge base not found for search', params.knowledgeBaseId)
+      console.warn(
+        '[EmbeddingEngineBridge] Knowledge base not found for search',
+        params.knowledgeBaseId
+      )
       return []
     }
 
@@ -457,12 +456,9 @@ export class EmbeddingEngineBridge {
     `
 
     try {
-      const rawResult = await this.queryService.queryInDatabase(
-        namespace,
-        kb.databaseName,
-        sql,
-        { queryVector: params.queryVector }
-      )
+      const rawResult = await this.queryService.queryInDatabase(namespace, kb.databaseName, sql, {
+        queryVector: params.queryVector
+      })
       return this.extractQueryRecords(rawResult) as Array<{
         id: string
         content: string
@@ -651,7 +647,10 @@ export class EmbeddingEngineBridge {
     const knowledgeBaseIdRaw = params?.meta?.knowledgeBaseId
     const knowledgeBaseId = knowledgeBaseIdRaw ? Number(knowledgeBaseIdRaw) : NaN
     if (!knowledgeBaseId || Number.isNaN(knowledgeBaseId)) {
-      logger.warn('[EmbeddingEngineBridge] Missing knowledgeBaseId, skip staging', knowledgeBaseIdRaw)
+      logger.warn(
+        '[EmbeddingEngineBridge] Missing knowledgeBaseId, skip staging',
+        knowledgeBaseIdRaw
+      )
       return
     }
 
@@ -782,9 +781,7 @@ export class EmbeddingEngineBridge {
     }
   }
 
-  private fallbackChunksFromParams(
-    params?: SubmitEmbeddingTaskParams
-  ): Array<{
+  private fallbackChunksFromParams(params?: SubmitEmbeddingTaskParams): Array<{
     index: number
     content: string
     size: number
@@ -809,7 +806,7 @@ export class EmbeddingEngineBridge {
           return inner
         }
       }
-      
+
       for (const entry of result) {
         if (Array.isArray(entry?.result)) {
           if (entry.result.length > 0) return entry.result

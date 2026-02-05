@@ -18,7 +18,8 @@ export default defineConfig({
           index: resolve(__dirname, 'src/main/index.ts'),
           'utility/embedding': resolve(__dirname, 'src/utility/embedding-engine/entry.ts'),
           'utility/global-monitor': resolve(__dirname, 'src/utility/global-monitor/entry.ts'),
-          'utility/vector-indexer': resolve(__dirname, 'src/utility/vector-indexer/entry.ts')
+          'utility/vector-indexer': resolve(__dirname, 'src/utility/vector-indexer/entry.ts'),
+          'utility/api-server': resolve(__dirname, 'src/utility/api-server/entry.ts')
         }
       }
     }

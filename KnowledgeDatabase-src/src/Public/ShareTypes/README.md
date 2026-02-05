@@ -29,43 +29,46 @@ ShareTypes/
 ## 类型文件说明
 
 ### 1. `chunking.types.ts`
+
 **职责**：文档分块服务的类型定义
 
 **核心类型**：
+
 - `ChunkingConfig` - 分块配置（模式、最大字符数）
 - `Chunk` - 单个分块数据结构
 - `ChunkingResult` - 分块结果
 - `ChunkingRequest` - 分块请求参数
 
 **使用场景**：
+
 - Main Process: 分块服务实现
 - Renderer: 分块配置管理、结果展示
 
 ---
 
 ### 2. `embedding.types.ts`
+
 **职责**：嵌入服务的核心业务类型
 
 **核心类型**：
+
 - **任务类型**：
   - `DocumentTask` - 文档级任务
   - `ChunkTask` - Chunk 级任务
   - `EmbeddingTaskInfo` - 用户可见的任务信息
-  
 - **配置类型**：
   - `EmbeddingConfig` - 嵌入配置
   - `ChannelConfig` - 通道配置（含熔断状态）
   - `SchedulerConfig` - 调度器配置
-  
 - **数据类型**：
   - `ChunkInput` - Chunk 输入
   - `ChunkEmbeddingResult` - Chunk 嵌入结果
   - `VectorStagingRecord` - 向量暂存记录
-  
 - **API 契约**：
   - `EmbeddingAPI` - Preload 暴露的嵌入服务接口
 
 **使用场景**：
+
 - Utility Process (Embedding Engine): 任务管理、通道管理
 - Main Process: 服务桥接、数据库操作
 - Renderer: 任务监控、配置管理
@@ -73,14 +76,15 @@ ShareTypes/
 ---
 
 ### 3. `embedding-ipc.types.ts`
+
 **职责**：Main Process ↔ Embedding Engine (Utility Process) 的 IPC 消息协议
 
 **核心类型**：
+
 - `MainToEngineMessage` - Main 发送给 Engine 的消息
   - 任务控制：`embed:start` / `embed:pause` / `embed:resume` / `embed:cancel`
   - 配置更新：`config:update-channels` / `config:set-concurrency`
   - 状态查询：`query:task-info` / `query:channels`
-  
 - `EngineToMainMessage` - Engine 发送给 Main 的消息
   - 生命周期：`ready`
   - 任务状态：`task:started` / `task:progress` / `task:completed` / `task:failed`
@@ -88,15 +92,18 @@ ShareTypes/
   - 通道状态：`channel:status-changed`
 
 **使用场景**：
+
 - Main Process: 发送控制指令、接收状态更新
 - Utility Process (Embedding Engine): 接收指令、上报状态
 
 ---
 
 ### 4. `vector-indexer-ipc.types.ts`
+
 **职责**：Main Process ↔ Vector Indexer (Utility Process) 的 IPC 消息协议
 
 **核心类型**：
+
 - `IndexerConfig` - Indexer 运行配置
 - `IndexerStats` - 统计信息
 - `StagingStatus` - 暂存表状态
@@ -104,20 +111,24 @@ ShareTypes/
 - `IndexerToMainMessage` - Indexer 发送的消息
 
 **使用场景**：
+
 - Main Process: 启动/停止 Indexer、查询状态
 - Utility Process (Vector Indexer): 搬运向量数据、上报进度
 
 ---
 
 ### 5. `user-config.types.ts`
+
 **职责**：用户配置的类型定义
 
 **核心类型**：
+
 - `UserConfig` - 用户配置根对象
 - `MinerUConfig` - MinerU 解析服务配置
 - `UserEmbeddingConfig` - 嵌入服务配置
 
 **使用场景**：
+
 - Main Process: 配置读写
 - Renderer: 配置管理界面
 
@@ -129,11 +140,7 @@ ShareTypes/
 
 ```typescript
 // ✅ 推荐：从统一入口导入
-import type { 
-  ChunkingConfig, 
-  EmbeddingTaskInfo,
-  MainToEngineMessage 
-} from '@/Public/ShareTypes'
+import type { ChunkingConfig, EmbeddingTaskInfo, MainToEngineMessage } from '@/Public/ShareTypes'
 
 // ❌ 避免：直接导入子文件（除非有特殊需求）
 import type { ChunkingConfig } from '@/Public/ShareTypes/chunking.types'
@@ -159,26 +166,28 @@ import type { ChunkingConfig } from '@/Public/ShareTypes/chunking.types'
 
 ### `ShareTypes` vs `preload/types`
 
-| 维度 | ShareTypes | preload/types |
-|------|-----------|---------------|
-| **职责** | 跨进程共享的业务类型 | Preload API 的输入输出类型 |
-| **使用方** | Main / Utility / Preload / Renderer | Preload / Renderer |
-| **依赖关系** | 被 `preload/types` 引用 | 引用 `ShareTypes` |
-| **示例** | `EmbeddingTaskInfo`（业务实体） | `SubmitEmbeddingTaskRequest`（API 请求） |
+| 维度         | ShareTypes                          | preload/types                            |
+| ------------ | ----------------------------------- | ---------------------------------------- |
+| **职责**     | 跨进程共享的业务类型                | Preload API 的输入输出类型               |
+| **使用方**   | Main / Utility / Preload / Renderer | Preload / Renderer                       |
+| **依赖关系** | 被 `preload/types` 引用             | 引用 `ShareTypes`                        |
+| **示例**     | `EmbeddingTaskInfo`（业务实体）     | `SubmitEmbeddingTaskRequest`（API 请求） |
 
 **原则**：
+
 - `preload/types` 可以引用 `ShareTypes`
 - `ShareTypes` 不应引用 `preload/types`（避免循环依赖）
 
 ### `ShareTypes` vs `renderer/src/types`
 
-| 维度 | ShareTypes | renderer/src/types |
-|------|-----------|-------------------|
-| **职责** | 跨进程共享类型 | Renderer 内部类型 |
-| **使用方** | 所有进程 | 仅 Renderer |
-| **示例** | `EmbeddingConfig` | `FileCardUIState` |
+| 维度       | ShareTypes        | renderer/src/types |
+| ---------- | ----------------- | ------------------ |
+| **职责**   | 跨进程共享类型    | Renderer 内部类型  |
+| **使用方** | 所有进程          | 仅 Renderer        |
+| **示例**   | `EmbeddingConfig` | `FileCardUIState`  |
 
 **原则**：
+
 - Renderer 内部 UI 状态类型放在 `renderer/src/types`
 - 需要与后端通信的类型放在 `ShareTypes`
 
@@ -213,18 +222,24 @@ import type { ChunkingConfig } from '@/Public/ShareTypes/chunking.types'
 ## 常见问题
 
 ### Q: 什么类型应该放在 ShareTypes？
+
 **A**: 满足以下任一条件：
+
 - 需要在多个进程间传递（IPC 消息、API 参数）
 - 需要在数据库和前端之间共享（数据模型）
 - 需要在配置文件和运行时之间共享（配置类型）
 
 ### Q: ShareTypes 可以依赖外部库吗？
+
 **A**: 尽量避免。如果必须依赖，确保：
+
 - 依赖库在所有进程环境中都可用
 - 仅依赖类型定义（`import type`），不依赖运行时代码
 
 ### Q: 如何处理进程特定的类型扩展？
+
 **A**: 使用类型组合：
+
 ```typescript
 // ShareTypes: 基础类型
 export interface BaseTask {

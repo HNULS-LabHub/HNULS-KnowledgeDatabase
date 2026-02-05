@@ -63,10 +63,7 @@ export class QueryService {
         database: config.database,
         error: errorInfo
       })
-      throw new DatabaseConnectionError(
-        `无法连接到数据库: ${errorInfo.message}`,
-        error
-      )
+      throw new DatabaseConnectionError(`无法连接到数据库: ${errorInfo.message}`, error)
     }
   }
 
@@ -122,29 +119,29 @@ export class QueryService {
     params?: any
   ): Promise<T> {
     const startTime = Date.now()
-    
+
     try {
       // 执行操作
       const result = await executor()
-      
+
       // 记录成功的操作
       const duration = Date.now() - startTime
       const count = Array.isArray(result) ? result.length : 1
-      
+
       logger.debug(`DB ${operation} succeeded`, {
         table,
         duration: `${duration}ms`,
         resultCount: count
       })
-      
+
       await this.log(operation, table, params, count)
-      
+
       return result
     } catch (error) {
       // 解析错误信息
       const errorInfo = parseSurrealDBError(error)
       const duration = Date.now() - startTime
-      
+
       // 详细的错误日志
       logger.error(`DB ${operation} failed`, {
         table,
@@ -154,7 +151,7 @@ export class QueryService {
         details: errorInfo.details,
         code: errorInfo.code
       })
-      
+
       // 包装错误信息，提供更多上下文
       throw new DatabaseOperationError(
         `数据库操作失败 [${operation}] ${table}: ${errorInfo.message}`,
@@ -171,18 +168,18 @@ export class QueryService {
    */
   async create<T = any>(table: string, data: any): Promise<T> {
     this.ensureConnected()
-    
+
     return this.executeWithErrorHandling(
       'CREATE',
       table,
       async () => {
         const result = (await this.db.create(table, data)) as T
-        
+
         // 验证结果
         if (!result) {
           throw new Error(`Create operation returned empty result`)
         }
-        
+
         return result
       },
       { data }
@@ -194,20 +191,18 @@ export class QueryService {
    */
   async select<T = any>(table: string, id?: string): Promise<T | T[]> {
     this.ensureConnected()
-    
+
     return this.executeWithErrorHandling(
       'SELECT',
       table,
       async () => {
-        const result = id 
-          ? await this.db.select(`${table}:${id}`) 
-          : await this.db.select(table)
-        
+        const result = id ? await this.db.select(`${table}:${id}`) : await this.db.select(table)
+
         // 如果查询单条记录但结果为空，抛出 RecordNotFoundError
         if (id && !result) {
           throw new RecordNotFoundError(table, id)
         }
-        
+
         return result as T | T[]
       },
       { id }
@@ -219,18 +214,18 @@ export class QueryService {
    */
   async update<T = any>(table: string, id: string, data: any): Promise<T> {
     this.ensureConnected()
-    
+
     return this.executeWithErrorHandling(
       'UPDATE',
       table,
       async () => {
         const result = (await this.db.update(`${table}:${id}`, data)) as T
-        
+
         // 验证结果
         if (!result) {
           throw new RecordNotFoundError(table, id)
         }
-        
+
         return result
       },
       { id, data }
@@ -242,7 +237,7 @@ export class QueryService {
    */
   async delete(table: string, id: string): Promise<void> {
     this.ensureConnected()
-    
+
     await this.executeWithErrorHandling(
       'DELETE',
       table,
@@ -258,7 +253,7 @@ export class QueryService {
    */
   async query<T = any>(sql: string, params?: Record<string, any>): Promise<T> {
     this.ensureConnected()
-    
+
     return this.executeWithErrorHandling(
       'QUERY',
       'custom',
@@ -285,22 +280,22 @@ export class QueryService {
 
     try {
       await this.db.use({ namespace, database })
-      
+
       const startTime = Date.now()
       const result = (await this.db.query(sql, params)) as any
       const duration = Date.now() - startTime
-      
+
       logger.debug('DB QUERY_IN_DATABASE succeeded', {
         namespace,
         database,
         duration: `${duration}ms`,
         sql: sql.substring(0, 100) + (sql.length > 100 ? '...' : '')
       })
-      
+
       return result as T
     } catch (error) {
       const errorInfo = parseSurrealDBError(error)
-      
+
       logger.error('DB QUERY_IN_DATABASE failed', {
         namespace,
         database,
@@ -309,7 +304,7 @@ export class QueryService {
         error: errorInfo.message,
         details: errorInfo.details
       })
-      
+
       throw new QuerySyntaxError(
         `跨数据库查询失败 [${namespace}.${database}]: ${errorInfo.message}`,
         sql,
@@ -345,7 +340,7 @@ export class QueryService {
       WHERE embedding <|${k},${ef}|> $queryVector
       ORDER BY distance ASC;
     `
-    
+
     try {
       return await this.queryInDatabase(namespace, database, sql, { queryVector })
     } catch (error) {
@@ -445,7 +440,9 @@ export class QueryService {
    */
   private ensureConnected(): void {
     if (!this.connected) {
-      const error = new DatabaseConnectionError('QueryService is not connected. Call connect() first.')
+      const error = new DatabaseConnectionError(
+        'QueryService is not connected. Call connect() first.'
+      )
       logger.error('Database operation attempted without connection', {
         instanceId: this.tracker.getInstanceId()
       })

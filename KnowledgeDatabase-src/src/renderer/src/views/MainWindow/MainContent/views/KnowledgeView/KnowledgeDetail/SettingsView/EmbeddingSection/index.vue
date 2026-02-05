@@ -166,8 +166,8 @@ const showCreateDialog = ref(false)
 const configs = computed(() => knowledgeConfigStore.getEmbeddingConfigs(props.knowledgeBaseId))
 
 // 默认配置ID
-const defaultConfigId = computed(
-  () => knowledgeConfigStore.getDefaultEmbeddingConfigId(props.knowledgeBaseId)
+const defaultConfigId = computed(() =>
+  knowledgeConfigStore.getDefaultEmbeddingConfigId(props.knowledgeBaseId)
 )
 
 // 默认配置选项
@@ -194,9 +194,6 @@ async function handleRemove(id: string) {
 
 // 设置默认配置
 async function handleDefaultConfigChange(value: string | null) {
-  await knowledgeConfigStore.setDefaultEmbeddingConfigId(
-    props.knowledgeBaseId,
-    value || null
-  )
+  await knowledgeConfigStore.setDefaultEmbeddingConfigId(props.knowledgeBaseId, value || null)
 }
 </script>

@@ -241,8 +241,8 @@ export class SurrealDBService implements ISurrealDBService {
     // 设置环境变量以配置 WebSocket 消息大小限制
     const env = {
       ...process.env,
-      SURREAL_WEBSOCKET_MAX_FRAME_SIZE: '104857600',   // 100MB frame size
-      SURREAL_WEBSOCKET_MAX_MESSAGE_SIZE: '104857600'  // 100MB message size
+      SURREAL_WEBSOCKET_MAX_FRAME_SIZE: '104857600', // 100MB frame size
+      SURREAL_WEBSOCKET_MAX_MESSAGE_SIZE: '104857600' // 100MB message size
     }
 
     this.process = spawn(exePath, args, {

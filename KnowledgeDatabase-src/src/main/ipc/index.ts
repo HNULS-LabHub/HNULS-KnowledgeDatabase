@@ -10,7 +10,10 @@ import { ModelConfigIPCHandler } from './model-config-handler'
 import { KnowledgeConfigIPCHandler } from './knowledge-config-handler'
 import { TaskMonitorIPCHandler } from './task-monitor-handler'
 import { EmbeddingIPCHandler } from './embedding-handler'
-import { registerVectorIndexerHandlers, unregisterVectorIndexerHandlers } from './vector-indexer-handler'
+import {
+  registerVectorIndexerHandlers,
+  unregisterVectorIndexerHandlers
+} from './vector-indexer-handler'
 import { SurrealDBService } from '../services/surrealdb-service'
 import { KnowledgeLibraryService } from '../services/knowledgeBase-library'
 import { UserConfigService } from '../services/user-config-service'
