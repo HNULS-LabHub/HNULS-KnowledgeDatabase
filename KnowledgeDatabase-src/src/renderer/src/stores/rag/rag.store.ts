@@ -6,7 +6,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { RagDataSource } from './rag.datasource'
-import type { RagStep, RagConfig, RerankModel, LlmModel, VectorRecallHit } from './rag.types'
+import type { RagStep, RagConfig, VectorRecallHit } from './rag.types'
 
 const STORAGE_KEY = 'rag-config'
 
@@ -19,6 +19,7 @@ function loadConfig(): RagConfig {
     console.warn('[RagStore] Failed to parse localStorage config')
   }
   return {
+    rerankEnabled: false,
     rerankModelId: null,
     llmModelId: null,
     llmDrivenEnabled: false,
@@ -41,6 +42,7 @@ export const useRagStore = defineStore('rag', () => {
   const persisted = loadConfig()
 
   // ---- State: 配置（持久化） ----
+  const rerankEnabled = ref(persisted.rerankEnabled ?? false)
   const rerankModelId = ref<string | null>(persisted.rerankModelId)
   const llmModelId = ref<string | null>(persisted.llmModelId)
   const llmDrivenEnabled = ref(persisted.llmDrivenEnabled)
@@ -54,17 +56,15 @@ export const useRagStore = defineStore('rag', () => {
   const recallResults = ref<VectorRecallHit[]>([])
   const searchElapsedMs = ref<number | null>(null)
   // 向量表元数据 (tableName -> { configName, dimensions })
-  const embeddingTablesMetadata = ref<Map<string, { configName?: string; dimensions?: number }>>(new Map())
-
-  // ---- State: 模型列表（从 datasource 加载） ----
-  const rerankModels = ref<RerankModel[]>([])
-  const llmModels = ref<LlmModel[]>([])
-  const modelsLoading = ref(false)
+  const embeddingTablesMetadata = ref<Map<string, { configName?: string; dimensions?: number }>>(
+    new Map()
+  )
 
   // ---- Getters ----
   const hasCompleted = computed(() => steps.value.length >= 4 && !isSearching.value)
 
   const currentConfig = computed<RagConfig>(() => ({
+    rerankEnabled: rerankEnabled.value,
     rerankModelId: rerankModelId.value,
     llmModelId: llmModelId.value,
     llmDrivenEnabled: llmDrivenEnabled.value,
@@ -78,6 +78,11 @@ export const useRagStore = defineStore('rag', () => {
   }
 
   // ---- Actions: 配置变更 ----
+  function toggleRerank(value?: boolean): void {
+    rerankEnabled.value = value ?? !rerankEnabled.value
+    persistConfig()
+  }
+
   function setRerankModel(id: string | null): void {
     rerankModelId.value = id
     persistConfig()
@@ -130,22 +135,6 @@ export const useRagStore = defineStore('rag', () => {
     }
   }
 
-  // ---- Actions: 加载模型列表 ----
-  async function loadModels(): Promise<void> {
-    if (modelsLoading.value) return
-    modelsLoading.value = true
-    try {
-      const [rerank, llm] = await Promise.all([
-        RagDataSource.getRerankModels(),
-        RagDataSource.getLlmModels()
-      ])
-      rerankModels.value = rerank
-      llmModels.value = llm
-    } finally {
-      modelsLoading.value = false
-    }
-  }
-
   // ---- Actions: 执行检索 ----
   async function executeSearch(): Promise<void> {
     if (!query.value.trim() || isSearching.value) return
@@ -177,6 +166,7 @@ export const useRagStore = defineStore('rag', () => {
 
   return {
     // State
+    rerankEnabled,
     rerankModelId,
     llmModelId,
     llmDrivenEnabled,
@@ -187,13 +177,11 @@ export const useRagStore = defineStore('rag', () => {
     steps,
     recallResults,
     searchElapsedMs,
-    rerankModels,
-    llmModels,
-    modelsLoading,
     // Getters
     hasCompleted,
     currentConfig,
     // Actions
+    toggleRerank,
     setRerankModel,
     setLlmModel,
     toggleLlmDriven,
@@ -201,7 +189,6 @@ export const useRagStore = defineStore('rag', () => {
     setSelectedEmbeddingTables,
     toggleEmbeddingTable,
     setEmbeddingTablesMetadata,
-    loadModels,
     executeSearch
   }
 })

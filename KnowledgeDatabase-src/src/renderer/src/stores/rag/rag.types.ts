@@ -7,10 +7,12 @@ export interface RagStep {
   text: string
   iconPath: string
   colorClass: 'blue' | 'purple' | 'amber' | 'emerald'
+  status: 'pending' | 'loading' | 'completed' | 'error'
 }
 
 /** localStorage 持久化的配置 */
 export interface RagConfig {
+  rerankEnabled: boolean
   rerankModelId: string | null
   llmModelId: string | null
   llmDrivenEnabled: boolean

@@ -862,9 +862,7 @@ export class KnowledgeLibraryService {
    * @param knowledgeBaseId 知识库 ID
    * @returns 向量表列表（表名、配置ID、模型名称、维度、chunk 数量）
    */
-  async listEmbeddingTables(
-    knowledgeBaseId: number
-  ): Promise<
+  async listEmbeddingTables(knowledgeBaseId: number): Promise<
     Array<{
       tableName: string
       configId: string
@@ -874,7 +872,9 @@ export class KnowledgeLibraryService {
     }>
   > {
     if (!this.queryService || !this.queryService.isConnected()) {
-      logger.warn('[KnowledgeLibraryService] QueryService not available for listing embedding tables')
+      logger.warn(
+        '[KnowledgeLibraryService] QueryService not available for listing embedding tables'
+      )
       return []
     }
 
@@ -908,10 +908,8 @@ export class KnowledgeLibraryService {
 
       // 2. 查询 kb_document_embedding 表，获取所有嵌入配置的名称和维度
       //    参考 api-server/routes/knowledge.ts 的实现
-      let embeddingConfigMap: Map<
-        string,
-        { configName: string | null; dimensions: number }
-      > = new Map()
+      let embeddingConfigMap: Map<string, { configName: string | null; dimensions: number }> =
+        new Map()
 
       try {
         const embeddingSql = `
@@ -929,9 +927,7 @@ export class KnowledgeLibraryService {
         )
 
         // SurrealDB query() 返回 [[records], queryInfo]，所以需要取 [0]
-        const embeddingRecords = Array.isArray(embeddingResult?.[0])
-          ? embeddingResult[0]
-          : []
+        const embeddingRecords = Array.isArray(embeddingResult?.[0]) ? embeddingResult[0] : []
 
         logger.debug('[KnowledgeLibraryService] kb_document_embedding query result', {
           knowledgeBaseId,
@@ -975,8 +971,8 @@ export class KnowledgeLibraryService {
 
         // 从 kb_document_embedding 获取 configName
         // 表名中的 configId 可能包含额外的 cfg_ 前缀（如 cfg_cfg_xxx），需 fallback 匹配
-        const configInfo = embeddingConfigMap.get(configId)
-          ?? embeddingConfigMap.get(configId.replace(/^cfg_/, ''))
+        const configInfo =
+          embeddingConfigMap.get(configId) ?? embeddingConfigMap.get(configId.replace(/^cfg_/, ''))
         const configName = configInfo?.configName ?? null
 
         // 4. 查询表中的 chunk 数量

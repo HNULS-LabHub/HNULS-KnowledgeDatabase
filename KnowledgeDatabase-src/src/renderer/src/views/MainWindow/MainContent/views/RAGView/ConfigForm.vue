@@ -17,16 +17,59 @@
     </h4>
 
     <div class="flex flex-col gap-3">
-      <!-- 重排模型 -->
+      <!-- 重排开关 -->
       <div class="flex flex-col gap-1">
-        <label class="text-xs font-medium text-slate-500">重排模型</label>
-        <WhiteSelect
-          :model-value="ragStore.rerankModelId"
-          :options="rerankOptions"
-          placeholder="请选择重排模型"
-          @update:model-value="ragStore.setRerankModel"
-        />
+        <label class="text-xs font-medium text-slate-500">重排功能</label>
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            role="switch"
+            :aria-checked="ragStore.rerankEnabled"
+            class="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none"
+            :class="ragStore.rerankEnabled ? 'bg-emerald-500' : 'bg-slate-200'"
+            @click="ragStore.toggleRerank()"
+          >
+            <span
+              class="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200"
+              :class="ragStore.rerankEnabled ? 'translate-x-5' : 'translate-x-0'"
+            ></span>
+          </button>
+          <span class="text-xs text-slate-500">
+            {{ ragStore.rerankEnabled ? '已启用重排' : '仅向量检索' }}
+          </span>
+        </div>
       </div>
+
+      <!-- 重排模型 -->
+      <div
+        class="flex flex-col gap-1 transition-opacity duration-200"
+        :class="{ 'opacity-40 pointer-events-none': !ragStore.rerankEnabled }"
+      >
+        <label class="text-xs font-medium text-slate-500">重排模型</label>
+        <button
+          type="button"
+          class="w-full text-left bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 hover:bg-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="!ragStore.rerankEnabled"
+          @click="rerankSheetOpen = true"
+        >
+          <span class="font-medium">
+            {{ rerankModelLabel || '请选择重排模型' }}
+          </span>
+        </button>
+        <p
+          v-if="ragStore.rerankEnabled && !ragStore.rerankModelId"
+          class="text-xs text-amber-500 mt-1 m-0"
+        >
+          请选择一个重排模型
+        </p>
+      </div>
+      <ModelSelectSheet
+        v-model="rerankSheetOpen"
+        mode="rerank"
+        title="选择重排模型"
+        :current-model-id="ragStore.rerankModelId"
+        @select="ragStore.setRerankModel"
+      />
 
       <!-- LLM 驱动 RAG 开关 -->
       <div class="flex flex-col gap-1">
@@ -57,17 +100,30 @@
         :class="{ 'opacity-40 pointer-events-none': !ragStore.llmDrivenEnabled }"
       >
         <label class="text-xs font-medium text-slate-500">LLM 模型</label>
-        <WhiteSelect
-          :model-value="ragStore.llmModelId"
-          :options="llmOptions"
-          placeholder="请选择 LLM 模型"
+        <button
+          type="button"
+          class="w-full text-left bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 hover:bg-white transition disabled:opacity-50 disabled:cursor-not-allowed"
           :disabled="!ragStore.llmDrivenEnabled"
-          @update:model-value="ragStore.setLlmModel"
-        />
-        <p v-if="ragStore.llmDrivenEnabled && !ragStore.llmModelId" class="text-xs text-amber-500 mt-1 m-0">
+          @click="llmSheetOpen = true"
+        >
+          <span class="font-medium">
+            {{ llmModelLabel || '请选择 LLM 模型' }}
+          </span>
+        </button>
+        <p
+          v-if="ragStore.llmDrivenEnabled && !ragStore.llmModelId"
+          class="text-xs text-amber-500 mt-1 m-0"
+        >
           请选择一个 LLM 以启用生成
         </p>
       </div>
+      <ModelSelectSheet
+        v-model="llmSheetOpen"
+        mode="llm"
+        title="选择 LLM 模型"
+        :current-model-id="ragStore.llmModelId"
+        @select="ragStore.setLlmModel"
+      />
 
       <!-- 知识库 -->
       <div class="flex flex-col gap-1">
@@ -76,7 +132,7 @@
           :model-value="ragStore.selectedKnowledgeBaseId"
           :options="kbOptions"
           placeholder="请选择知识库"
-          @update:model-value="ragStore.setKnowledgeBase"
+          @update:model-value="(v) => ragStore.setKnowledgeBase(v as number | null)"
         />
         <p v-if="knowledgeBases.length === 0" class="text-xs text-slate-400 mt-1 m-0">
           暂无知识库，请先创建
@@ -84,10 +140,7 @@
       </div>
 
       <!-- 向量表选择 -->
-      <div
-        v-if="ragStore.selectedKnowledgeBaseId"
-        class="flex flex-col gap-1 mt-1"
-      >
+      <div v-if="ragStore.selectedKnowledgeBaseId" class="flex flex-col gap-1 mt-1">
         <label class="text-xs font-medium text-slate-500">嵌入向量表</label>
         <div
           v-if="embeddingTablesLoading"
@@ -103,7 +156,9 @@
         </div>
         <div v-else class="flex flex-col gap-2 bg-slate-50 rounded-lg p-3">
           <!-- 全选 -->
-          <label class="flex items-center gap-2 cursor-pointer hover:bg-white rounded px-2 py-1 transition">
+          <label
+            class="flex items-center gap-2 cursor-pointer hover:bg-white rounded px-2 py-1 transition"
+          >
             <input
               type="checkbox"
               :checked="isAllSelected"
@@ -132,7 +187,8 @@
                   {{ table.tableName }}
                 </div>
                 <div class="text-[10px] text-slate-500 mt-0.5">
-                  {{ table.configName || '未知模型' }} · {{ table.dimensions }}维 · {{ table.chunkCount }}
+                  {{ table.configName || '未知模型' }} · {{ table.dimensions }}维 ·
+                  {{ table.chunkCount }}
                   块
                 </div>
               </div>
@@ -148,14 +204,33 @@
 import { computed, watch, ref, onMounted } from 'vue'
 import { useRagStore } from '@renderer/stores/rag/rag.store'
 import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
+import { useUserModelConfigStore } from '@renderer/stores/user-config/user-model-config.store'
 import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 import type { WhiteSelectOption } from '@renderer/components/select/WhiteSelect.vue'
 import type { EmbeddingTableInfo } from '@preload/types'
+import ModelSelectSheet from './ModelSelectSheet.vue'
 
 const ragStore = useRagStore()
 const knowledgeLibraryStore = useKnowledgeLibraryStore()
+const modelConfigStore = useUserModelConfigStore()
 
 const knowledgeBases = computed(() => knowledgeLibraryStore.knowledgeBases)
+
+const rerankSheetOpen = ref(false)
+const llmSheetOpen = ref(false)
+
+function findModelLabel(modelId: string | null): string {
+  if (!modelId) return ''
+
+  for (const p of modelConfigStore.providers) {
+    const m = p.models.find((x) => x.id === modelId)
+    if (m) return `${m.name} (${p.name})`
+  }
+  return modelId
+}
+
+const rerankModelLabel = computed(() => findModelLabel(ragStore.rerankModelId))
+const llmModelLabel = computed(() => findModelLabel(ragStore.llmModelId))
 
 // 确保知识库列表已加载
 onMounted(() => {
@@ -164,24 +239,17 @@ onMounted(() => {
   }
 })
 
+// 确保模型 Providers 已加载（用于显示当前选择的模型名称）
+onMounted(() => {
+  if (modelConfigStore.providers.length === 0) {
+    modelConfigStore.fetchProviders()
+  }
+})
+
 const kbOptions = computed<WhiteSelectOption<number>[]>(() =>
   knowledgeBases.value.map((kb) => ({
     label: kb.name,
     value: kb.id
-  }))
-)
-
-const rerankOptions = computed<WhiteSelectOption<string>[]>(() =>
-  ragStore.rerankModels.map((m) => ({
-    label: `${m.name} (${m.provider})`,
-    value: m.id
-  }))
-)
-
-const llmOptions = computed<WhiteSelectOption<string>[]>(() =>
-  ragStore.llmModels.map((m) => ({
-    label: `${m.name} (${m.provider})`,
-    value: m.id
   }))
 )
 

@@ -13,7 +13,17 @@
       <div class="step-content">
         <p class="step-text">{{ step.text }}</p>
         <div class="progress-bar">
-          <div class="progress-fill"></div>
+          <div
+            :class="[
+              'progress-fill',
+              {
+                'progress-loading': step.status === 'loading',
+                'progress-completed': step.status === 'completed',
+                'progress-error': step.status === 'error',
+                'progress-pending': step.status === 'pending'
+              }
+            ]"
+          ></div>
         </div>
       </div>
       <svg

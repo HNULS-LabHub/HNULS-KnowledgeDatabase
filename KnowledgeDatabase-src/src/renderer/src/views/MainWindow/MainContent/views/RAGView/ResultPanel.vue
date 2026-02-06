@@ -12,70 +12,76 @@
 
     <div class="results-list">
       <template v-if="hasCompleted && results.length > 0">
-        <!-- 按嵌入表分组显示 -->
-        <div v-for="group in groupedResults" :key="group.tableName" class="mb-4">
-          <!-- 表头信息 -->
-          <div class="flex items-center gap-2 mb-2 px-1">
-            <div class="flex items-center gap-2 flex-1">
-              <svg
-                class="w-3.5 h-3.5 text-indigo-500"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-              </svg>
-              <span class="text-xs font-semibold text-slate-700">
-                {{ group.configName || '未知模型' }}
-              </span>
-              <span class="text-[10px] text-slate-400">
-                {{ group.dimensions }}维 · {{ group.hits.length }} 条
-              </span>
-            </div>
-          </div>
-
-          <!-- 该表的召回结果 -->
-          <div class="flex flex-col gap-2">
-            <div v-for="(hit, idx) in group.hits" :key="hit.id" class="glass-card result-card">
-              <div class="result-header">
-                <div class="result-info">
-                  <div class="result-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                      <polyline points="14,2 14,8 20,8"></polyline>
-                    </svg>
+        <!-- 横向栏布局：等分容器宽度 -->
+        <div class="flex gap-3 h-full">
+          <div
+            v-for="group in groupedResults"
+            :key="group.tableName"
+            class="flex-1 min-w-0 flex flex-col gap-2"
+          >
+            <!-- 表头 -->
+            <div
+              class="flex-shrink-0 px-3 py-2 rounded-lg border border-slate-200 bg-white/80 backdrop-blur-sm"
+            >
+              <div class="flex items-center gap-2">
+                <svg
+                  class="w-3.5 h-3.5 text-indigo-500 flex-shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-semibold text-slate-700 truncate">
+                    {{ group.configName || '未知模型' }}
                   </div>
-                  <div>
-                    <h4 class="result-title">{{ hit.file_name || '未知文件' }}</h4>
-                    <p class="result-meta">
-                      #{{ idx + 1 }}
-                      <template v-if="hit.chunk_index != null"> · Chunk {{ hit.chunk_index }}</template>
-                      <template v-if="hit.distance != null"> · Distance: {{ hit.distance.toFixed(4) }}</template>
-                    </p>
+                  <div class="text-[10px] text-slate-400">
+                    {{ group.dimensions }}维 · {{ group.hits.length }} 条
                   </div>
                 </div>
-                <span class="badge emerald small">
-                  <svg
-                    class="badge-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-                    ></path>
-                  </svg>
-                  Match
-                </span>
               </div>
-              <p class="result-excerpt">
-                {{ truncate(hit.content, 200) }}
-              </p>
+            </div>
+
+            <!-- 该表的召回结果（垂直滚动） -->
+            <div class="flex-1 min-h-0 flex flex-col gap-2 overflow-y-auto pr-1">
+              <div
+                v-for="(hit, idx) in group.hits"
+                :key="hit.id"
+                class="glass-card result-card flex-shrink-0"
+              >
+                <div class="result-header">
+                  <div class="result-info">
+                    <div class="result-icon !w-8 !h-8">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14,2 14,8 20,8"></polyline>
+                      </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <h4 class="result-title truncate" :title="hit.file_name">
+                        {{ hit.file_name || '未知文件' }}
+                      </h4>
+                      <p class="result-meta truncate">
+                        #{{ idx + 1 }}
+                        <template v-if="hit.chunk_index != null">
+                          · Chunk {{ hit.chunk_index }}</template
+                        >
+                        <template v-if="hit.distance != null">
+                          · {{ hit.distance.toFixed(4) }}</template
+                        >
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <p class="result-excerpt">
+                  {{ truncate(hit.content, 150) }}
+                </p>
+              </div>
             </div>
           </div>
         </div>

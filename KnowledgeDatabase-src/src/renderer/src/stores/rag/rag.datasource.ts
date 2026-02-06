@@ -13,15 +13,16 @@ const STEP_VECTORIZE: RagStep = {
   text: '正在向量化查询语句...',
   iconPath:
     '<rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><rect x="14" y="14" width="6" height="6" rx="1"></rect>',
-  colorClass: 'blue'
+  colorClass: 'blue',
+  status: 'loading'
 }
 
 const makeStepSearch = (tableCount: number): RagStep => ({
   id: 2,
   text: `在 ${tableCount} 个向量表中检索相似块...`,
-  iconPath:
-    '<circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path>',
-  colorClass: 'purple'
+  iconPath: '<circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path>',
+  colorClass: 'purple',
+  status: 'loading'
 })
 
 const makeStepRecalled = (hitCount: number): RagStep => ({
@@ -29,7 +30,8 @@ const makeStepRecalled = (hitCount: number): RagStep => ({
   text: `召回 ${hitCount} 个相似块`,
   iconPath:
     '<path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path>',
-  colorClass: 'amber'
+  colorClass: 'amber',
+  status: 'completed'
 })
 
 const STEP_DONE: RagStep = {
@@ -37,7 +39,8 @@ const STEP_DONE: RagStep = {
   text: '召回完成',
   iconPath:
     '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline>',
-  colorClass: 'emerald'
+  colorClass: 'emerald',
+  status: 'completed'
 }
 
 const STEP_ERROR = (msg: string): RagStep => ({
@@ -45,7 +48,8 @@ const STEP_ERROR = (msg: string): RagStep => ({
   text: `检索失败: ${msg}`,
   iconPath:
     '<circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>',
-  colorClass: 'amber'
+  colorClass: 'amber',
+  status: 'error'
 })
 
 // ---- 数据源 ----
@@ -78,6 +82,10 @@ export const RagDataSource = {
   ): Promise<{ steps: RagStep[]; hits: VectorRecallHit[] }> {
     const steps: RagStep[] = []
     const push = (s: RagStep) => {
+      // 推新步骤时，将前一步骤标为 completed
+      if (steps.length > 0 && steps[steps.length - 1].status === 'loading') {
+        steps[steps.length - 1] = { ...steps[steps.length - 1], status: 'completed' }
+      }
       steps.push(s)
       onStep?.([...steps])
     }

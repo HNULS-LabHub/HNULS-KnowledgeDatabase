@@ -74,7 +74,10 @@ export class IPCManager {
     this.handlers.push(new EmbeddingIPCHandler())
 
     // 注册向量召回处理器（RAG 检索入口）
-    const vectorRetrievalService = new VectorRetrievalService(surrealDBService, knowledgeLibraryService)
+    const vectorRetrievalService = new VectorRetrievalService(
+      surrealDBService,
+      knowledgeLibraryService
+    )
     this.handlers.push(new VectorRetrievalIPCHandler(vectorRetrievalService))
 
     // 注册向量索引器处理器

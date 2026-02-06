@@ -120,24 +120,33 @@
 
   /* RAG View */
   .rag-view {
-    @apply h-full flex flex-col gap-6 p-8 overflow-y-auto box-border;
+    @apply h-full flex flex-col gap-4 p-6 overflow-hidden box-border;
     animation: fadeIn 500ms ease-out;
   }
 
-  .rag-header {
-    @apply flex justify-between items-end;
+  .rag-topbar {
+    @apply flex items-center gap-4 flex-shrink-0;
   }
 
-  .rag-content {
-    @apply grid grid-cols-[5fr_7fr] gap-6 flex-1 min-h-[500px];
+  .rag-main {
+    @apply flex gap-4 flex-1 min-h-0 pb-4;
   }
 
-  .left-panel {
-    @apply flex flex-col gap-4;
+  .rag-sidebar {
+    @apply w-72 flex-shrink-0 flex flex-col gap-3 overflow-y-auto pb-4;
   }
 
   .input-card {
-    @apply p-6;
+    @apply p-0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .input-card:hover {
+    transform: none;
+    box-shadow: none;
   }
 
   .input-label {
@@ -226,8 +235,26 @@
   }
 
   .progress-fill {
-    @apply h-full w-full bg-indigo-500;
+    @apply h-full transition-all duration-300;
+  }
+
+  .progress-fill.progress-pending {
+    @apply w-0 bg-slate-200;
+  }
+
+  .progress-fill.progress-loading {
+    @apply w-full bg-indigo-500;
     animation: loading 1s ease-in-out infinite;
+  }
+
+  .progress-fill.progress-completed {
+    @apply w-full bg-emerald-500;
+    animation: none;
+  }
+
+  .progress-fill.progress-error {
+    @apply w-full bg-red-500;
+    animation: none;
   }
 
   .zap-icon {
@@ -235,11 +262,11 @@
   }
 
   .right-panel {
-    @apply flex flex-col gap-4;
+    @apply flex flex-col gap-3 flex-1 min-w-0 pb-4;
   }
 
   .results-header {
-    @apply flex justify-between items-center text-sm text-slate-500 px-2;
+    @apply flex justify-between items-center text-sm text-slate-500 px-2 flex-shrink-0;
   }
 
   .results-header span:first-child {
@@ -251,11 +278,12 @@
   }
 
   .results-list {
-    @apply flex-1 flex flex-col gap-3 overflow-y-auto pr-2;
+    @apply flex-1 min-h-0 overflow-hidden;
   }
 
   .result-card {
-    @apply p-5 cursor-pointer;
+    @apply p-4 cursor-pointer;
+    width: 100%; /* 适应父容器宽度 */
   }
 
   .result-header {
@@ -263,7 +291,7 @@
   }
 
   .result-info {
-    @apply flex items-center gap-3;
+    @apply flex items-center gap-2.5 min-w-0;
   }
 
   .result-icon {
@@ -287,8 +315,10 @@
   }
 
   .result-excerpt {
-    @apply text-slate-600 text-sm leading-6 border-l-2 border-slate-200 pl-3 py-2 rounded-r-lg m-0 transition-colors duration-300;
+    @apply text-slate-600 text-xs leading-relaxed border-l-2 border-slate-200 pl-3 py-2 rounded-r-lg m-0 transition-colors duration-300;
     background: rgba(248, 250, 252, 0.5);
+    word-break: break-word; /* 长单词自动换行 */
+    overflow-wrap: break-word;
   }
 
   .result-card:hover .result-excerpt {

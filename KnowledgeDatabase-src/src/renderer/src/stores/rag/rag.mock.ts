@@ -32,28 +32,31 @@ export async function mockExecuteSearch(
       text: '正在向量化查询语句...',
       iconPath:
         '<rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><rect x="14" y="14" width="6" height="6" rx="1"></rect>',
-      colorClass: 'blue'
+      colorClass: 'blue',
+      status: 'loading'
     },
     {
       id: 2,
       text: '在 128 维空间中检索相似块...',
-      iconPath:
-        '<circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path>',
-      colorClass: 'purple'
+      iconPath: '<circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path>',
+      colorClass: 'purple',
+      status: 'loading'
     },
     {
       id: 3,
       text: '重排序 (Re-ranking) Top-K 结果...',
       iconPath:
         '<path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path>',
-      colorClass: 'amber'
+      colorClass: 'amber',
+      status: 'completed'
     },
     {
       id: 4,
       text: '上下文组装完成',
       iconPath:
         '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline>',
-      colorClass: 'emerald'
+      colorClass: 'emerald',
+      status: 'completed'
     }
   ]
 
