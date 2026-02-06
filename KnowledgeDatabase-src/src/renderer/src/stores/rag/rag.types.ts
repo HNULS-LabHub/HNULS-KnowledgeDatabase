@@ -49,6 +49,8 @@ export interface VectorRecallHit {
   file_key?: string
   file_name?: string
   distance?: number
+  /** 重排分数（仅在启用重排时存在） */
+  rerank_score?: number
   /** 来源向量表名 */
   tableName: string
   /** 表对应的嵌入配置名称 */
@@ -64,4 +66,6 @@ export interface RagSearchConfig {
   embeddingTableConfigs: Record<string, EmbeddingTableConfig>
   /** HNSW ef 参数，默认 100 */
   ef?: number
+  /** 重排模型 ID（可选） */
+  rerankModelId?: string
 }

@@ -34,9 +34,25 @@ const makeStepRecalled = (hitCount: number): RagStep => ({
   status: 'completed'
 })
 
-const STEP_DONE: RagStep = {
+const makeStepReranking = (hitCount: number): RagStep => ({
   id: 4,
-  text: '召回完成',
+  text: `正在重排 ${hitCount} 个结果...`,
+  iconPath: '<path d="M3 6h18"></path><path d="M7 12h10"></path><path d="M10 18h4"></path>',
+  colorClass: 'purple',
+  status: 'loading'
+})
+
+const makeStepReranked = (hitCount: number): RagStep => ({
+  id: 5,
+  text: `重排完成，返回 ${hitCount} 个结果`,
+  iconPath: '<path d="M3 6h18"></path><path d="M7 12h10"></path><path d="M10 18h4"></path>',
+  colorClass: 'amber',
+  status: 'completed'
+})
+
+const STEP_DONE: RagStep = {
+  id: 6,
+  text: '检索完成',
   iconPath:
     '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline>',
   colorClass: 'emerald',
@@ -108,6 +124,7 @@ export const RagDataSource = {
     const errors: string[] = []
 
     // 并发调用所有已启用的表，使用各自的 k 值
+    const hasRerank = !!config.rerankModelId
     const results = await Promise.allSettled(
       enabledTables.map(async ([tableName, tableConfig]) => {
         const res = await window.api.vectorRetrieval.search({
@@ -115,7 +132,9 @@ export const RagDataSource = {
           tableName,
           queryText: query,
           k: tableConfig.k,
-          ef: config.ef ?? 100
+          ef: config.ef ?? 100,
+          // 若启用重排，传递 rerankModelId——后端会在 KNN 召回后自动重排
+          ...(hasRerank ? { rerankModelId: config.rerankModelId } : {})
         })
         return { tableName, res }
       })
@@ -142,11 +161,20 @@ export const RagDataSource = {
       }
     }
 
-    // 按 distance 排序（越小越相似）
-    allHits.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
-
     if (allHits.length > 0) {
       push(makeStepRecalled(allHits.length))
+
+      if (hasRerank) {
+        // 重排已由后端完成，这里只是添加 Pipeline 可视化步骤
+        push(makeStepReranking(allHits.length))
+        // 按 rerank_score 降序排序
+        allHits.sort((a, b) => (b.rerank_score ?? 0) - (a.rerank_score ?? 0))
+        push(makeStepReranked(allHits.length))
+      } else {
+        // 无重排：按 distance 升序排序
+        allHits.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
+      }
+
       push(STEP_DONE)
     } else {
       const errMsg = errors.length > 0 ? errors.join('; ') : '未找到匹配结果'

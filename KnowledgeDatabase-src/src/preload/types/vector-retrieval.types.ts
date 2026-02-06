@@ -17,6 +17,10 @@ export interface VectorRetrievalSearchParams {
   k?: number
   /** HNSW ef 参数，默认 100 */
   ef?: number
+  /** 重排模型 ID（可选，传入则执行重排） */
+  rerankModelId?: string
+  /** 重排 TopN（可选，默认等于 k） */
+  rerankTopN?: number
 }
 
 /**
@@ -29,6 +33,8 @@ export interface VectorRetrievalHit {
   file_key?: string
   file_name?: string
   distance?: number
+  /** 重排分数（仅在启用重排时存在） */
+  rerank_score?: number
 }
 
 /**

@@ -71,8 +71,14 @@
                         <template v-if="hit.chunk_index != null">
                           · Chunk {{ hit.chunk_index }}</template
                         >
+                        <template v-if="hit.rerank_score != null">
+                          ·
+                          <span class="text-amber-600 font-semibold"
+                            >Rerank {{ hit.rerank_score.toFixed(4) }}</span
+                          ></template
+                        >
                         <template v-if="hit.distance != null">
-                          · {{ hit.distance.toFixed(4) }}</template
+                          · Dist {{ hit.distance.toFixed(4) }}</template
                         >
                       </p>
                     </div>

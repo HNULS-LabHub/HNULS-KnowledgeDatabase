@@ -181,7 +181,10 @@ export const useRagStore = defineStore('rag', () => {
         query.value,
         {
           knowledgeBaseId: selectedKnowledgeBaseId.value!,
-          embeddingTableConfigs: embeddingTableConfigs.value
+          embeddingTableConfigs: embeddingTableConfigs.value,
+          // 仅在开关启用且已选模型时传递 rerankModelId
+          rerankModelId:
+            rerankEnabled.value && rerankModelId.value ? rerankModelId.value : undefined
         },
         embeddingTablesMetadata.value,
         (newSteps) => {

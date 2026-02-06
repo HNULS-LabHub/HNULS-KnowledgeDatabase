@@ -10,6 +10,7 @@ import { DocumentService } from '../knowledgeBase-library/document-service'
 import { ModelConfigService } from '../model-config/model-config-service'
 import type { VectorRetrievalHit, VectorRetrievalSearchParams } from './types'
 import { OpenAICompatibleEmbeddingClient } from './embedding-client'
+import { RerankClient } from './reranker/rerank-client'
 import type { KnowledgeConfig } from '../../../preload/types/knowledge-config.types'
 import type { PersistedModelProviderConfig } from '../model-config/types'
 import { SurrealDBQueryService } from '@shared-utils/surrealdb-query'
@@ -27,6 +28,7 @@ export class VectorRetrievalService {
   private readonly knowledgeConfigService = new KnowledgeConfigService()
   private readonly modelConfigService = new ModelConfigService()
   private readonly embeddingClient = new OpenAICompatibleEmbeddingClient()
+  private readonly rerankClient = new RerankClient()
 
   private readonly surrealQuery = new SurrealDBQueryService()
   private connectPromise: Promise<void> | null = null
@@ -157,6 +159,116 @@ export class VectorRetrievalService {
         embeddingProviderId: providerId
       }
     }
+  }
+
+  // ==========================================================================
+  // Rerank
+  // ==========================================================================
+
+  /**
+   * 向量召回 + 重排
+   * 先执行普通 search，再调用重排模型对结果重新排序
+   */
+  async searchWithRerank(params: VectorRetrievalSearchParams): Promise<{
+    results: VectorRetrievalHit[]
+    resolved: {
+      knowledgeBaseId: number
+      tableName: string
+      dimensions: number
+      embeddingConfigId: string
+      embeddingModelId: string
+      embeddingProviderId: string
+      rerankModelId: string
+      rerankProviderId: string
+    }
+  }> {
+    const rerankModelId = String(params.rerankModelId || '').trim()
+    if (!rerankModelId) {
+      throw new Error('rerankModelId is required for searchWithRerank')
+    }
+
+    // 1) 执行普通向量召回
+    const { results: hits, resolved: searchResolved } = await this.search(params)
+
+    if (hits.length === 0) {
+      return {
+        results: [],
+        resolved: {
+          ...searchResolved,
+          rerankModelId,
+          rerankProviderId: ''
+        }
+      }
+    }
+
+    // 2) 解析重排模型对应的 provider
+    const { provider, providerId } = await this.resolveModelProvider(rerankModelId)
+
+    // 3) 组装 documents
+    const documents = hits.map((h) => h.content)
+    const topN = this.normalizePositiveInt(params.rerankTopN, hits.length)
+
+    // 4) 调用重排
+    logger.info('[VectorRetrieval] Starting rerank', {
+      rerankModelId,
+      rerankProviderId: providerId,
+      documentCount: documents.length,
+      topN
+    })
+
+    const rerankResults = await this.rerankClient.rerank({
+      baseUrl: provider.baseUrl,
+      apiKey: provider.apiKey,
+      model: rerankModelId,
+      query: String(params.queryText || '').trim(),
+      documents,
+      topN,
+      headers: provider.defaultHeaders
+    })
+
+    // 5) 按 relevance_score 降序映射回原始 Hit
+    const rerankedHits: VectorRetrievalHit[] = rerankResults
+      .filter((r) => r.index >= 0 && r.index < hits.length)
+      .map((r) => ({
+        ...hits[r.index],
+        rerank_score: r.relevance_score
+      }))
+
+    logger.info('[VectorRetrieval] Rerank completed', {
+      inputCount: hits.length,
+      outputCount: rerankedHits.length,
+      topScore: rerankedHits[0]?.rerank_score
+    })
+
+    return {
+      results: rerankedHits,
+      resolved: {
+        ...searchResolved,
+        rerankModelId,
+        rerankProviderId: providerId
+      }
+    }
+  }
+
+  /**
+   * 根据模型 ID 解析对应的 provider 配置
+   * 遍历所有 providers，查找包含该 modelId 的启用 provider
+   */
+  private async resolveModelProvider(modelId: string): Promise<{
+    provider: PersistedModelProviderConfig
+    providerId: string
+  }> {
+    const modelConfig = await this.modelConfigService.getConfig()
+
+    for (const p of modelConfig.providers || []) {
+      if (!p?.enabled || !p.baseUrl || !p.apiKey) continue
+      const hasModel = p.models?.some((m) => m.id === modelId)
+      if (hasModel) {
+        return { provider: p, providerId: p.id }
+      }
+    }
+
+    throw new Error(`No enabled provider found for model: ${modelId}`)
   }
 
   // ==========================================================================
