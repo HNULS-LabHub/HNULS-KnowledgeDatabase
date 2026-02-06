@@ -48,9 +48,9 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
 import { useRagStore } from '@renderer/stores/rag/rag.store'
 import { useAgentStore } from '@renderer/stores/rag/agent.store'
-import { mockAgentRun } from '@renderer/stores/rag/agent.mock'
 import QueryForm from './QueryForm.vue'
 import ConfigForm from './ConfigForm.vue'
 import PipelineSteps from './PipelineSteps.vue'
@@ -59,19 +59,40 @@ import ResultPanel from './ResultPanel.vue'
 const ragStore = useRagStore()
 const agentStore = useAgentStore()
 
+// 初始化 / 清理 IPC 事件监听
+onMounted(() => agentStore.initIPCListener())
+onUnmounted(() => agentStore.destroyIPCListener())
+
 // 处理查询提交
 async function handleSubmit() {
   // 如果开启了 LLM 驱动，走 Agent 流程
   if (ragStore.llmDrivenEnabled) {
     const question = ragStore.query
-    const modelId = ragStore.llmModelId || 'gpt-4'
-    const kbId = ragStore.selectedKnowledgeBaseId || 1
+    const llmModelId = ragStore.llmModelId || ''
+    const kbId = ragStore.selectedKnowledgeBaseId || 0
+    const tables = ragStore.enabledEmbeddingTables
 
-    const runId = agentStore.startRun(question, modelId, kbId)
+    if (!llmModelId) {
+      console.warn('[RAGView] LLM model not selected')
+      return
+    }
+    if (!kbId) {
+      console.warn('[RAGView] Knowledge base not selected')
+      return
+    }
+    if (tables.length === 0) {
+      console.warn('[RAGView] No embedding tables enabled')
+      return
+    }
 
-    // 使用 mock 数据模拟 Agent 运行
-    await mockAgentRun(runId, (event) => {
-      agentStore.pushEvent(event)
+    await agentStore.runAgent({
+      question,
+      llmModelId,
+      kbId,
+      tables,
+      rerankModelId: ragStore.rerankEnabled && ragStore.rerankModelId
+        ? ragStore.rerankModelId
+        : undefined
     })
   } else {
     // 否则走传统检索管线

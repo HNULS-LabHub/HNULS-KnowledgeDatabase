@@ -4,7 +4,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import type {
   AgentRun,
   AgentEvent,
@@ -114,9 +114,36 @@ export const useAgentStore = defineStore('agent', () => {
     return evts
   }
 
+  // ---- IPC 事件监听 ----
+  let unsubscribeIPC: (() => void) | null = null
+
+  /**
+   * 初始化 IPC 事件监听
+   * 应在组件 setup 中调用
+   */
+  function initIPCListener(): void {
+    if (unsubscribeIPC) return // 已初始化
+    const api = (window as any).api
+    if (api?.agent?.onEvent) {
+      unsubscribeIPC = api.agent.onEvent((event: AgentEvent) => {
+        pushEvent(event)
+      })
+    }
+  }
+
+  /**
+   * 清理 IPC 事件监听
+   */
+  function destroyIPCListener(): void {
+    if (unsubscribeIPC) {
+      unsubscribeIPC()
+      unsubscribeIPC = null
+    }
+  }
+
   // ---- Actions ----
   /**
-   * 开始新的运行
+   * 开始新的运行（本地状态初始化）
    * @param question 用户问题
    * @param modelId LLM 模型 ID
    * @param kbId 知识库 ID
@@ -144,6 +171,51 @@ export const useAgentStore = defineStore('agent', () => {
       runId,
       at: Date.now()
     })
+
+    return runId
+  }
+
+  /**
+   * 通过 IPC 启动后端 Agent 运行
+   */
+  async function runAgent(params: {
+    question: string
+    llmModelId: string
+    kbId: number
+    tables: string[]
+    rerankModelId?: string
+    k?: number
+    ef?: number
+    rerankTopN?: number
+  }): Promise<string | null> {
+    // 1) 初始化本地状态
+    const runId = startRun(params.question, params.llmModelId, params.kbId)
+
+    // 2) 确保 IPC 监听已启动
+    initIPCListener()
+
+    // 3) 调用后端
+    const api = (window as any).api
+    if (!api?.agent?.run) {
+      pushEvent({
+        type: 'error',
+        runId,
+        at: Date.now(),
+        message: 'Agent API not available'
+      })
+      return null
+    }
+
+    const result = await api.agent.run(params)
+    if (!result.success) {
+      pushEvent({
+        type: 'error',
+        runId,
+        at: Date.now(),
+        message: result.error || 'Failed to start agent run'
+      })
+      return null
+    }
 
     return runId
   }
@@ -189,14 +261,20 @@ export const useAgentStore = defineStore('agent', () => {
   }
 
   /**
-   * 取消当前运行
+   * 取消当前运行（同时通知后端）
    */
-  function cancel(): void {
+  async function cancel(): Promise<void> {
     if (!currentRunId.value) return
     const run = runs.value.get(currentRunId.value)
     if (run && run.status === 'running') {
       run.status = 'cancelled'
       run.endedAt = Date.now()
+
+      // 通知后端取消
+      const api = (window as any).api
+      if (api?.agent?.cancel) {
+        await api.agent.cancel(currentRunId.value).catch(() => {})
+      }
 
       // 推送 error 事件（表示取消）
       pushEvent({
@@ -265,10 +343,13 @@ export const useAgentStore = defineStore('agent', () => {
 
     // actions
     startRun,
+    runAgent,
     pushEvent,
     cancel,
     retry,
     clearRuns,
-    setCurrentRun
+    setCurrentRun,
+    initIPCListener,
+    destroyIPCListener
   }
 })

@@ -11,6 +11,7 @@ import { KnowledgeConfigIPCHandler } from './knowledge-config-handler'
 import { TaskMonitorIPCHandler } from './task-monitor-handler'
 import { EmbeddingIPCHandler } from './embedding-handler'
 import { VectorRetrievalIPCHandler } from './vector-retrieval-handler'
+import { AgentIPCHandler } from './agent-handler'
 import {
   registerVectorIndexerHandlers,
   unregisterVectorIndexerHandlers
@@ -79,6 +80,9 @@ export class IPCManager {
       knowledgeLibraryService
     )
     this.handlers.push(new VectorRetrievalIPCHandler(vectorRetrievalService))
+
+    // 注册 Agent 处理器（LangGraph RAG Agent）
+    this.handlers.push(new AgentIPCHandler(vectorRetrievalService, modelConfigService))
 
     // 注册向量索引器处理器
     registerVectorIndexerHandlers()
