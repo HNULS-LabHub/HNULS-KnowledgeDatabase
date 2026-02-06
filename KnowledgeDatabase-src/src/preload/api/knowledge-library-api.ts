@@ -2,7 +2,8 @@ import { ipcRenderer } from 'electron'
 import type {
   KnowledgeBaseMeta,
   CreateKnowledgeBaseData,
-  UpdateKnowledgeBaseData
+  UpdateKnowledgeBaseData,
+  EmbeddingTableInfo
 } from '../../main/services/knowledgeBase-library/types'
 
 /**
@@ -81,6 +82,22 @@ export const knowledgeLibraryAPI = {
         if (!response.success) {
           throw new Error(response.error || `Failed to delete knowledge base with id ${id}`)
         }
+      })
+  },
+
+  /**
+   * 列出知识库中的嵌入向量表
+   */
+  listEmbeddingTables: (knowledgeBaseId: number): Promise<EmbeddingTableInfo[]> => {
+    return ipcRenderer
+      .invoke('knowledge-library:listembeddingtables', knowledgeBaseId)
+      .then((response: IPCResponse<EmbeddingTableInfo[]>) => {
+        if (response.success && response.data) {
+          return response.data
+        }
+        throw new Error(
+          response.error || `Failed to list embedding tables for knowledge base ${knowledgeBaseId}`
+        )
       })
   }
 }

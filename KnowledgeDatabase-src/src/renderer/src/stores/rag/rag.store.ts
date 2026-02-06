@@ -22,7 +22,8 @@ function loadConfig(): RagConfig {
     rerankModelId: null,
     llmModelId: null,
     llmDrivenEnabled: false,
-    selectedKnowledgeBaseId: null
+    selectedKnowledgeBaseId: null,
+    selectedEmbeddingTables: []
   }
 }
 
@@ -44,6 +45,7 @@ export const useRagStore = defineStore('rag', () => {
   const llmModelId = ref<string | null>(persisted.llmModelId)
   const llmDrivenEnabled = ref(persisted.llmDrivenEnabled)
   const selectedKnowledgeBaseId = ref<number | null>(persisted.selectedKnowledgeBaseId)
+  const selectedEmbeddingTables = ref<string[]>(persisted.selectedEmbeddingTables || [])
 
   // ---- State: 运行时（不持久化） ----
   const query = ref('')
@@ -62,7 +64,8 @@ export const useRagStore = defineStore('rag', () => {
     rerankModelId: rerankModelId.value,
     llmModelId: llmModelId.value,
     llmDrivenEnabled: llmDrivenEnabled.value,
-    selectedKnowledgeBaseId: selectedKnowledgeBaseId.value
+    selectedKnowledgeBaseId: selectedKnowledgeBaseId.value,
+    selectedEmbeddingTables: selectedEmbeddingTables.value
   }))
 
   // ---- 内部: 持久化 ----
@@ -89,6 +92,23 @@ export const useRagStore = defineStore('rag', () => {
 
   function setKnowledgeBase(id: number | null): void {
     selectedKnowledgeBaseId.value = id
+    // 切换知识库时清空已选向量表
+    selectedEmbeddingTables.value = []
+    persistConfig()
+  }
+
+  function setSelectedEmbeddingTables(tables: string[]): void {
+    selectedEmbeddingTables.value = tables
+    persistConfig()
+  }
+
+  function toggleEmbeddingTable(tableName: string): void {
+    const idx = selectedEmbeddingTables.value.indexOf(tableName)
+    if (idx >= 0) {
+      selectedEmbeddingTables.value.splice(idx, 1)
+    } else {
+      selectedEmbeddingTables.value.push(tableName)
+    }
     persistConfig()
   }
 
@@ -129,6 +149,7 @@ export const useRagStore = defineStore('rag', () => {
     llmModelId,
     llmDrivenEnabled,
     selectedKnowledgeBaseId,
+    selectedEmbeddingTables,
     query,
     isSearching,
     steps,
@@ -143,6 +164,8 @@ export const useRagStore = defineStore('rag', () => {
     setLlmModel,
     toggleLlmDriven,
     setKnowledgeBase,
+    setSelectedEmbeddingTables,
+    toggleEmbeddingTable,
     loadModels,
     executeSearch
   }

@@ -80,36 +80,155 @@
       <!-- 知识库 -->
       <div class="flex flex-col gap-1">
         <label class="text-xs font-medium text-slate-500">知识库</label>
-        <select
-          class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 outline-none transition-all duration-200 focus:border-indigo-400 focus:bg-white"
-          :value="ragStore.selectedKnowledgeBaseId ?? ''"
-          @change="handleKbChange"
-        >
-          <option value="">请选择知识库</option>
-          <option v-for="kb in knowledgeBases" :key="kb.id" :value="kb.id">
-            {{ kb.name }}
-          </option>
-        </select>
+        <WhiteSelect
+          :model-value="ragStore.selectedKnowledgeBaseId"
+          :options="kbOptions"
+          placeholder="请选择知识库"
+          @update:model-value="ragStore.setKnowledgeBase"
+        />
         <p v-if="knowledgeBases.length === 0" class="text-xs text-slate-400 mt-1 m-0">
           暂无知识库，请先创建
         </p>
+      </div>
+
+      <!-- 向量表选择 -->
+      <div
+        v-if="ragStore.selectedKnowledgeBaseId"
+        class="flex flex-col gap-1 mt-1"
+      >
+        <label class="text-xs font-medium text-slate-500">嵌入向量表</label>
+        <div
+          v-if="embeddingTablesLoading"
+          class="text-xs text-slate-400 py-2 px-3 bg-slate-50 rounded-lg"
+        >
+          加载中...
+        </div>
+        <div
+          v-else-if="embeddingTables.length === 0"
+          class="text-xs text-slate-400 py-2 px-3 bg-slate-50 rounded-lg"
+        >
+          该知识库暂无嵌入向量表
+        </div>
+        <div v-else class="flex flex-col gap-2 bg-slate-50 rounded-lg p-3">
+          <!-- 全选 -->
+          <label class="flex items-center gap-2 cursor-pointer hover:bg-white rounded px-2 py-1 transition">
+            <input
+              type="checkbox"
+              :checked="isAllSelected"
+              :indeterminate="isIndeterminate"
+              class="rounded border-slate-300 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 focus:ring-2"
+              @change="handleSelectAll"
+            />
+            <span class="text-xs font-medium text-slate-600">全选</span>
+          </label>
+          <div class="h-px bg-slate-200"></div>
+          <!-- 向量表列表 -->
+          <div class="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+            <label
+              v-for="table in embeddingTables"
+              :key="table.tableName"
+              class="flex items-start gap-2 cursor-pointer hover:bg-white rounded px-2 py-1.5 transition"
+            >
+              <input
+                type="checkbox"
+                :checked="ragStore.selectedEmbeddingTables.includes(table.tableName)"
+                class="mt-0.5 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 focus:ring-2"
+                @change="ragStore.toggleEmbeddingTable(table.tableName)"
+              />
+              <div class="flex-1 min-w-0">
+                <div class="text-xs font-medium text-slate-700 truncate" :title="table.tableName">
+                  {{ table.tableName }}
+                </div>
+                <div class="text-[10px] text-slate-500 mt-0.5">
+                  {{ table.configName || '未知模型' }} · {{ table.dimensions }}维 · {{ table.chunkCount }}
+                  块
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch, ref, onMounted } from 'vue'
 import { useRagStore } from '@renderer/stores/rag/rag.store'
 import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
+import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
+import type { WhiteSelectOption } from '@renderer/components/select/WhiteSelect.vue'
+import type { EmbeddingTableInfo } from '@preload/types'
 
 const ragStore = useRagStore()
 const knowledgeLibraryStore = useKnowledgeLibraryStore()
 
 const knowledgeBases = computed(() => knowledgeLibraryStore.knowledgeBases)
 
-function handleKbChange(e: Event) {
-  const val = (e.target as HTMLSelectElement).value
-  ragStore.setKnowledgeBase(val ? Number(val) : null)
+// 确保知识库列表已加载
+onMounted(() => {
+  if (knowledgeBases.value.length === 0) {
+    knowledgeLibraryStore.fetchAll()
+  }
+})
+
+const kbOptions = computed<WhiteSelectOption<number>[]>(() =>
+  knowledgeBases.value.map((kb) => ({
+    label: kb.name,
+    value: kb.id
+  }))
+)
+
+// 向量表状态
+const embeddingTables = ref<EmbeddingTableInfo[]>([])
+const embeddingTablesLoading = ref(false)
+
+// 加载向量表
+async function loadEmbeddingTables(kbId: number) {
+  embeddingTablesLoading.value = true
+  try {
+    embeddingTables.value = await window.api.knowledgeLibrary.listEmbeddingTables(kbId)
+  } catch (err) {
+    console.error('[ConfigForm] 加载向量表失败:', err)
+    embeddingTables.value = []
+  } finally {
+    embeddingTablesLoading.value = false
+  }
 }
+
+// 全选状态
+const isAllSelected = computed(
+  () =>
+    embeddingTables.value.length > 0 &&
+    ragStore.selectedEmbeddingTables.length === embeddingTables.value.length
+)
+
+const isIndeterminate = computed(
+  () =>
+    ragStore.selectedEmbeddingTables.length > 0 &&
+    ragStore.selectedEmbeddingTables.length < embeddingTables.value.length
+)
+
+// 全选/取消全选
+function handleSelectAll(e: Event) {
+  const checked = (e.target as HTMLInputElement).checked
+  if (checked) {
+    ragStore.setSelectedEmbeddingTables(embeddingTables.value.map((t) => t.tableName))
+  } else {
+    ragStore.setSelectedEmbeddingTables([])
+  }
+}
+
+// 监听知识库变化
+watch(
+  () => ragStore.selectedKnowledgeBaseId,
+  (kbId) => {
+    if (kbId) {
+      loadEmbeddingTables(kbId)
+    } else {
+      embeddingTables.value = []
+    }
+  },
+  { immediate: true }
+)
 </script>

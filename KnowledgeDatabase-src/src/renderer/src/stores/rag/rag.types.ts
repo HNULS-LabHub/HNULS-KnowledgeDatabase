@@ -15,6 +15,7 @@ export interface RagConfig {
   llmModelId: string | null
   llmDrivenEnabled: boolean
   selectedKnowledgeBaseId: number | null
+  selectedEmbeddingTables: string[] // tableName 列表
 }
 
 export interface RerankModel {

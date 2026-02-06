@@ -190,4 +190,21 @@ export class KnowledgeLibraryIPCHandler extends BaseIPCHandler {
       return this.handleError('knowledge-library:delete', error, { id })
     }
   }
+
+  /**
+   * 列出知识库中的嵌入向量表
+   */
+  async handleListembeddingtables(_event: IpcMainInvokeEvent, knowledgeBaseId: number) {
+    try {
+      const tables = await this.knowledgeLibraryService.listEmbeddingTables(knowledgeBaseId)
+      return {
+        success: true,
+        data: tables
+      }
+    } catch (error) {
+      return this.handleError('knowledge-library:listembeddingtables', error, {
+        knowledgeBaseId
+      })
+    }
+  }
 }

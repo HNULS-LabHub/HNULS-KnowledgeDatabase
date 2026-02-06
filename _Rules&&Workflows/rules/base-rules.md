@@ -201,9 +201,7 @@ trigger: always_on
 
 ---
 
-## 9. 规则变更制度（强制）
-
-- **必须**：任何新增目录规则、命名规则、跨层通信规则，都要同步更新本 Rules 或对应 README，确保"规则可追溯且唯一"。
-- **禁止**：只口头约定、不落文档，导致后续 agent/新人无法按形式推进。
-
+## 9. 编程需要的注意点
+1. 在写后端时，使用logger记录关键操作和错误，方便调试和问题追踪，禁止使用普通console
+2. HNULS-KnowledgeDatabase\KnowledgeDatabase-src\src\Public\SharedUtils\surrealdb-query.ts使用这个封装后的Surrealdb query器
 ---

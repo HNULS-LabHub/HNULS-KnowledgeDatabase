@@ -852,4 +852,180 @@ export class KnowledgeLibraryService {
       // 不抛出错误，不阻止数据库恢复流程
     }
   }
+
+  // ==========================================================================
+  // 向量表枚举（RAG 检索辅助）
+  // ==========================================================================
+
+  /**
+   * 列出知识库中已存在的嵌入向量表（用于 RAG 检索）
+   * @param knowledgeBaseId 知识库 ID
+   * @returns 向量表列表（表名、配置ID、模型名称、维度、chunk 数量）
+   */
+  async listEmbeddingTables(
+    knowledgeBaseId: number
+  ): Promise<
+    Array<{
+      tableName: string
+      configId: string
+      configName: string | null
+      dimensions: number
+      chunkCount: number
+    }>
+  > {
+    if (!this.queryService || !this.queryService.isConnected()) {
+      logger.warn('[KnowledgeLibraryService] QueryService not available for listing embedding tables')
+      return []
+    }
+
+    const kb = await this.getById(knowledgeBaseId)
+    if (!kb?.databaseName) {
+      logger.warn('[KnowledgeLibraryService] Knowledge base not found or missing databaseName', {
+        knowledgeBaseId
+      })
+      return []
+    }
+
+    try {
+      const namespace = this.getNamespace()
+
+      // 1. 查询数据库的表结构
+      const infoSql = 'INFO FOR DB;'
+      const infoResult = await this.queryService.queryInDatabase<any[]>(
+        namespace,
+        kb.databaseName,
+        infoSql
+      )
+
+      const dbInfo = infoResult?.[0]
+      if (!dbInfo || !dbInfo.tables) {
+        logger.debug('[KnowledgeLibraryService] No tables found in database', {
+          knowledgeBaseId,
+          databaseName: kb.databaseName
+        })
+        return []
+      }
+
+      // 2. 查询 kb_document_embedding 表，获取所有嵌入配置的名称和维度
+      //    参考 api-server/routes/knowledge.ts 的实现
+      let embeddingConfigMap: Map<
+        string,
+        { configName: string | null; dimensions: number }
+      > = new Map()
+
+      try {
+        const embeddingSql = `
+          SELECT
+            embedding_config_id,
+            embedding_config_name,
+            dimensions
+          FROM kb_document_embedding
+          GROUP BY embedding_config_id, embedding_config_name, dimensions;
+        `
+        const embeddingResult = await this.queryService.queryInDatabase<any[]>(
+          namespace,
+          kb.databaseName,
+          embeddingSql
+        )
+
+        // SurrealDB query() 返回 [[records], queryInfo]，所以需要取 [0]
+        const embeddingRecords = Array.isArray(embeddingResult?.[0])
+          ? embeddingResult[0]
+          : []
+
+        logger.debug('[KnowledgeLibraryService] kb_document_embedding query result', {
+          knowledgeBaseId,
+          recordCount: embeddingRecords.length,
+          sample: embeddingRecords[0]
+        })
+
+        for (const record of embeddingRecords) {
+          if (record.embedding_config_id) {
+            embeddingConfigMap.set(record.embedding_config_id, {
+              configName: record.embedding_config_name || null,
+              dimensions: record.dimensions || 0
+            })
+          }
+        }
+      } catch (error) {
+        logger.warn(
+          '[KnowledgeLibraryService] Failed to query kb_document_embedding, fallback to table parsing',
+          {
+            error: error instanceof Error ? error.message : String(error)
+          }
+        )
+      }
+
+      // 3. 过滤出 emb_*_chunks 格式的表
+      const embeddingTablePattern = /^emb_(.+)_(\d+)_chunks$/
+      const results: Array<{
+        tableName: string
+        configId: string
+        configName: string | null
+        dimensions: number
+        chunkCount: number
+      }> = []
+
+      for (const tableName in dbInfo.tables) {
+        const match = tableName.match(embeddingTablePattern)
+        if (!match) continue
+
+        const configId = match[1]
+        const dimensions = parseInt(match[2], 10)
+
+        // 从 kb_document_embedding 获取 configName
+        // 表名中的 configId 可能包含额外的 cfg_ 前缀（如 cfg_cfg_xxx），需 fallback 匹配
+        const configInfo = embeddingConfigMap.get(configId)
+          ?? embeddingConfigMap.get(configId.replace(/^cfg_/, ''))
+        const configName = configInfo?.configName ?? null
+
+        // 4. 查询表中的 chunk 数量
+        try {
+          const countSql = `SELECT count() AS count FROM \`${tableName}\` GROUP ALL;`
+          const countResult = await this.queryService.queryInDatabase<any[]>(
+            namespace,
+            kb.databaseName,
+            countSql
+          )
+
+          const chunkCount = countResult?.[0]?.[0]?.count ?? 0
+
+          results.push({
+            tableName,
+            configId,
+            configName,
+            dimensions,
+            chunkCount
+          })
+        } catch (error) {
+          logger.warn('[KnowledgeLibraryService] Failed to count chunks in table', {
+            tableName,
+            error: error instanceof Error ? error.message : String(error)
+          })
+          // 即使计数失败也添加表，count 设为 0
+          results.push({
+            tableName,
+            configId,
+            configName,
+            dimensions,
+            chunkCount: 0
+          })
+        }
+      }
+
+      logger.debug('[KnowledgeLibraryService] Listed embedding tables', {
+        knowledgeBaseId,
+        count: results.length,
+        tables: results.map((r) => `${r.tableName} (${r.configName || 'unnamed'})`)
+      })
+
+      return results
+    } catch (error) {
+      logger.error('[KnowledgeLibraryService] Failed to list embedding tables', {
+        knowledgeBaseId,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      return []
+    }
+  }
 }

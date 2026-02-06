@@ -99,3 +99,19 @@ export interface EmbeddingConfigItem {
 export interface EmbeddingGlobalConfig {
   configs: EmbeddingConfigItem[]
 }
+
+/**
+ * 嵌入向量表信息（用于 RAG 检索）
+ */
+export interface EmbeddingTableInfo {
+  /** 表名（如 emb_cfg_xxx_3072_chunks） */
+  tableName: string
+  /** 嵌入配置 ID */
+  configId: string
+  /** 嵌入配置名称（从 kb_document_embedding 表获取） */
+  configName: string | null
+  /** 向量维度 */
+  dimensions: number
+  /** chunk 数量 */
+  chunkCount: number
+}
