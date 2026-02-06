@@ -11,9 +11,11 @@ import type {
   ApiServerToMainMessage,
   ApiServerConfig,
   ApiServerDBConfig,
-  ApiServerStatus
+  ApiServerStatus,
+  RetrievalHit
 } from '@shared/api-server.types'
 import { logger } from '../logger'
+import type { VectorRetrievalService } from '../vector-retrieval/vector-retrieval-service'
 
 // ============================================================================
 // 类型定义
@@ -37,10 +39,25 @@ export class ApiServerBridge {
   private readyPromise: Promise<void> | null = null
   private readyResolve: (() => void) | null = null
 
+  /** 向量检索服务（由 main 注入） */
+  private vectorRetrievalService: VectorRetrievalService | null = null
+
   /** 事件监听器 */
   private startedListeners: Set<(port: number, host: string) => void> = new Set()
   private stoppedListeners: Set<() => void> = new Set()
   private errorListeners: Set<(message: string, details?: string) => void> = new Set()
+
+  // ==========================================================================
+  // 依赖注入
+  // ==========================================================================
+
+  /**
+   * 注入向量检索服务（在 main/index.ts 启动 ApiServer 时调用）
+   */
+  setVectorRetrievalService(service: VectorRetrievalService): void {
+    this.vectorRetrievalService = service
+    logger.info('[ApiServerBridge] VectorRetrievalService injected')
+  }
 
   // ==========================================================================
   // 生命周期
@@ -241,6 +258,74 @@ export class ApiServerBridge {
         }
         break
       }
+
+      case 'retrieval:search': {
+        this.handleRetrievalSearch(msg.requestId, msg.params)
+        break
+      }
+    }
+  }
+
+  /**
+   * 处理来自 Utility 进程的向量检索请求
+   */
+  private async handleRetrievalSearch(
+    requestId: string,
+    params: import('@shared/api-server.types').RetrievalSearchParams
+  ): Promise<void> {
+    try {
+      if (!this.vectorRetrievalService) {
+        this.send({
+          type: 'retrieval:result',
+          requestId,
+          success: false,
+          error: 'VectorRetrievalService not available'
+        })
+        return
+      }
+
+      const hasRerank = !!params.rerankModelId
+
+      const { results } = hasRerank
+        ? await this.vectorRetrievalService.searchWithRerank(params)
+        : await this.vectorRetrievalService.search(params)
+
+      if (!results || results.length === 0) {
+        this.send({
+          type: 'retrieval:result',
+          requestId,
+          success: false,
+          error: 'No recall results'
+        })
+        return
+      }
+
+      // 映射为 RetrievalHit（与 IPC 行为一致）
+      const data: RetrievalHit[] = results.map((r) => ({
+        id: typeof r.id === 'object' ? String(r.id) : r.id,
+        content: r.content,
+        chunk_index: r.chunk_index,
+        file_key: r.file_key,
+        file_name: r.file_name,
+        distance: r.distance,
+        rerank_score: r.rerank_score
+      }))
+
+      this.send({
+        type: 'retrieval:result',
+        requestId,
+        success: true,
+        data
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      logger.error('[ApiServerBridge] Retrieval search failed:', message)
+      this.send({
+        type: 'retrieval:result',
+        requestId,
+        success: false,
+        error: message
+      })
     }
   }
 

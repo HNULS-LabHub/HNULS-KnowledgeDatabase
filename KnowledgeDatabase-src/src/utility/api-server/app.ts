@@ -7,6 +7,8 @@ import express, { Router } from 'express'
 import type { Express, Request, Response, NextFunction } from 'express'
 import type { SurrealClient } from './db/surreal-client'
 import { createKnowledgeRoutes } from './routes/knowledge'
+import { createRetrievalRoutes } from './routes/retrieval'
+import { mainBridge } from './ipc/main-bridge'
 
 // ============================================================================
 // 日志
@@ -97,6 +99,14 @@ export function createApp(dbClient: SurrealClient, metaFilePath: string): Expres
   const knowledgeRouter = Router()
   createKnowledgeRoutes(knowledgeRouter, dbClient, metaFilePath)
   app.use('/api/v1', knowledgeRouter)
+
+  // ==========================================================================
+  // 检索路由
+  // ==========================================================================
+
+  const retrievalRouter = Router()
+  createRetrievalRoutes(retrievalRouter, mainBridge)
+  app.use('/api/v1', retrievalRouter)
 
   // ==========================================================================
   // 404 处理

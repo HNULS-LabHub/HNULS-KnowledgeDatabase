@@ -4,6 +4,7 @@ import { globalMonitorBridge } from './services/global-monitor-bridge'
 import { embeddingEngineBridge } from './services/embedding-engine-bridge'
 import { vectorIndexerBridge } from './services/vector-indexer-bridge'
 import { apiServerBridge } from './services/api-server-bridge'
+import { VectorRetrievalService } from './services/vector-retrieval'
 import { logServiceDiagnostics } from './services/logger'
 
 // Windows: 强制 Node 控制台使用 UTF-8，避免中文日志乱码
@@ -128,6 +129,13 @@ class Application {
       // 获取数据库连接配置
       const serverUrl = surrealDBService.getServerUrl()
       const credentials = surrealDBService.getCredentials()
+
+      // 注入向量检索服务（供 Utility 进程 REST API 使用）
+      const vectorRetrievalService = new VectorRetrievalService(
+        surrealDBService,
+        knowledgeLibraryService
+      )
+      apiServerBridge.setVectorRetrievalService(vectorRetrievalService)
 
       // 启动 utility process
       await apiServerBridge.spawn()

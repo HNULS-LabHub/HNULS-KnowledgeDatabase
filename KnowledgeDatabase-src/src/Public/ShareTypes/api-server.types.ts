@@ -55,6 +55,13 @@ export type MainToApiServerMessage =
     }
   | { type: 'server:stop' }
   | { type: 'server:query-status'; requestId: string }
+  | {
+      type: 'retrieval:result'
+      requestId: string
+      success: boolean
+      data?: RetrievalHit[]
+      error?: string
+    }
 
 /**
  * ApiServer → Main 消息
@@ -65,6 +72,11 @@ export type ApiServerToMainMessage =
   | { type: 'server:stopped' }
   | { type: 'server:error'; message: string; details?: string }
   | { type: 'server:status'; requestId: string; status: ApiServerStatus }
+  | {
+      type: 'retrieval:search'
+      requestId: string
+      params: RetrievalSearchParams
+    }
 
 /**
  * API 服务器状态
@@ -244,3 +256,44 @@ export type ListDocumentsResponse = ApiResponse<{
 
 /** 文档嵌入列表响应 */
 export type ListDocumentEmbeddingsResponse = ApiResponse<DocumentEmbeddingInfo[]>
+
+// ============================================================================
+// 向量检索相关类型 (Utility ↔ Main 消息 & REST API)
+// ============================================================================
+
+/**
+ * 向量检索请求参数（与主进程 VectorRetrievalSearchParams 对齐）
+ */
+export interface RetrievalSearchParams {
+  /** 知识库 ID */
+  knowledgeBaseId: number
+  /** 向量表名（如 emb_cfg_xxx_3072_chunks） */
+  tableName: string
+  /** 用户查询文本 */
+  queryText: string
+  /** TopK，默认 10 */
+  k?: number
+  /** HNSW ef 参数，默认 100 */
+  ef?: number
+  /** 重排模型 ID（可选，传入则执行重排） */
+  rerankModelId?: string
+  /** 重排 TopN（可选，默认等于 k） */
+  rerankTopN?: number
+}
+
+/**
+ * 单条召回命中
+ */
+export interface RetrievalHit {
+  id: string
+  content: string
+  chunk_index?: number
+  file_key?: string
+  file_name?: string
+  distance?: number
+  /** 重排分数（仅在启用重排时存在） */
+  rerank_score?: number
+}
+
+/** 检索响应 */
+export type RetrievalSearchResponse = ApiResponse<RetrievalHit[]>

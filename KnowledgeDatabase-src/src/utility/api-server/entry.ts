@@ -6,6 +6,7 @@
 import type { Server } from 'http'
 import { SurrealClient } from './db/surreal-client'
 import { createApp, getRequestCount, getUptime } from './app'
+import { mainBridge } from './ipc/main-bridge'
 import type {
   MainToApiServerMessage,
   ApiServerToMainMessage,
@@ -32,6 +33,9 @@ if (!parentPort) {
   log('Error: Not running inside a UtilityProcess.')
   process.exit(1)
 }
+
+// 绑定 mainBridge 到 parentPort（用于向主进程发送检索请求）
+mainBridge.bind(parentPort)
 
 // ============================================================================
 // 发送消息到 Main 进程
@@ -138,6 +142,12 @@ async function stopServer(): Promise<void> {
 parentPort.on('message', async (event: { data: MainToApiServerMessage }) => {
   const msg = event.data
   log(`Received: ${msg?.type}`)
+
+  // 将检索结果消息路由到 mainBridge
+  if (msg.type === 'retrieval:result') {
+    mainBridge.handleMessage(msg)
+    return
+  }
 
   try {
     switch (msg.type) {
