@@ -27,7 +27,7 @@
         v-model="ragStore.query"
         :is-searching="ragStore.isSearching"
         class="flex-1 ml-4"
-        @submit="ragStore.executeSearch"
+        @submit="handleSubmit"
       />
     </div>
 
@@ -49,10 +49,33 @@
 
 <script setup lang="ts">
 import { useRagStore } from '@renderer/stores/rag/rag.store'
+import { useAgentStore } from '@renderer/stores/rag/agent.store'
+import { mockAgentRun } from '@renderer/stores/rag/agent.mock'
 import QueryForm from './QueryForm.vue'
 import ConfigForm from './ConfigForm.vue'
 import PipelineSteps from './PipelineSteps.vue'
 import ResultPanel from './ResultPanel.vue'
 
 const ragStore = useRagStore()
+const agentStore = useAgentStore()
+
+// 处理查询提交
+async function handleSubmit() {
+  // 如果开启了 LLM 驱动，走 Agent 流程
+  if (ragStore.llmDrivenEnabled) {
+    const question = ragStore.query
+    const modelId = ragStore.llmModelId || 'gpt-4'
+    const kbId = ragStore.selectedKnowledgeBaseId || 1
+
+    const runId = agentStore.startRun(question, modelId, kbId)
+
+    // 使用 mock 数据模拟 Agent 运行
+    await mockAgentRun(runId, (event) => {
+      agentStore.pushEvent(event)
+    })
+  } else {
+    // 否则走传统检索管线
+    await ragStore.executeSearch()
+  }
+}
 </script>

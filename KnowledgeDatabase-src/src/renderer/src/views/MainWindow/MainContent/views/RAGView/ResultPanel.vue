@@ -1,6 +1,32 @@
 <template>
   <div class="kb-rag-results right-panel">
-    <div class="results-header">
+    <!-- Tab 切换（仅在 LLM 驱动开启时显示） -->
+    <div v-if="showAgentTab" class="flex items-center px-4 py-0 border-b border-gray-200 bg-white">
+      <button
+        class="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent transition-all"
+        :class="activeTab === 'results' ? 'text-blue-600 border-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
+        @click="activeTab = 'results'"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        检索结果
+      </button>
+      <button
+        class="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent transition-all"
+        :class="activeTab === 'agent' ? 'text-blue-600 border-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
+        @click="activeTab = 'agent'"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"></path>
+        </svg>
+        Agent 流程
+      </button>
+    </div>
+
+    <!-- 原有的检索结果面板 -->
+    <div v-show="!showAgentTab || activeTab === 'results'" class="results-header">
       <span>召回结果 ({{ hasCompleted ? results.length : '...' }})</span>
       <span>
         耗时:
@@ -10,7 +36,7 @@
       </span>
     </div>
 
-    <div class="results-list">
+    <div v-show="!showAgentTab || activeTab === 'results'" class="results-list">
       <template v-if="hasCompleted && results.length > 0">
         <!-- 横向栏布局：等分容器宽度 -->
         <div class="flex gap-3 h-full">
@@ -110,12 +136,20 @@
         </div>
       </div>
     </div>
+
+    <!-- Agent 流程面板 -->
+    <div v-if="showAgentTab && activeTab === 'agent'" class="flex-1 overflow-hidden">
+      <AgentRunPanel />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRagStore } from '@renderer/stores/rag/rag.store'
+import { useAgentStore } from '@renderer/stores/rag/agent.store'
 import type { VectorRecallHit } from '@renderer/stores/rag/rag.types'
+import AgentRunPanel from './AgentKit/AgentRunPanel.vue'
 
 const props = defineProps<{
   isSearching: boolean
@@ -123,6 +157,27 @@ const props = defineProps<{
   results: VectorRecallHit[]
   searchElapsedMs: number | null
 }>()
+
+const ragStore = useRagStore()
+const agentStore = useAgentStore()
+
+// 当前活跃 Tab
+const activeTab = ref<'results' | 'agent'>('results')
+
+// 是否显示 Agent Tab（仅在 LLM 驱动开启时）
+const showAgentTab = computed(() => {
+  return ragStore.llmDrivenEnabled
+})
+
+// 当 Agent 开始运行时，自动切换到 Agent Tab
+watch(
+  () => agentStore.currentRunId,
+  (newRunId) => {
+    if (newRunId && showAgentTab.value) {
+      activeTab.value = 'agent'
+    }
+  }
+)
 
 function truncate(text: string, maxLen: number): string {
   if (!text) return ''
