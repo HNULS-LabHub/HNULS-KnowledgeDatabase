@@ -16,6 +16,8 @@ import type { AgentMeta } from './rag-agent-graph'
 // ============================================================================
 
 export interface AgentRunParams {
+  /** 运行 ID（由前端生成，保证全链路一致） */
+  runId: string
   /** 用户问题 */
   question: string
   /** LLM 模型 ID */
@@ -63,7 +65,7 @@ export class AgentRunner {
     params: AgentRunParams,
     emitEvent: (event: AgentEvent) => void
   ): Promise<string> {
-    const runId = `run_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+    const runId = params.runId
     const controller = new AbortController()
     this.activeControllers.set(runId, controller)
 

@@ -188,13 +188,13 @@ export const useAgentStore = defineStore('agent', () => {
     ef?: number
     rerankTopN?: number
   }): Promise<string | null> {
-    // 1) 初始化本地状态
+    // 1) 初始化本地状态（生成 runId）
     const runId = startRun(params.question, params.llmModelId, params.kbId)
 
     // 2) 确保 IPC 监听已启动
     initIPCListener()
 
-    // 3) 调用后端
+    // 3) 调用后端，透传 runId 保证全链路一致
     const api = (window as any).api
     if (!api?.agent?.run) {
       pushEvent({
@@ -206,7 +206,7 @@ export const useAgentStore = defineStore('agent', () => {
       return null
     }
 
-    const result = await api.agent.run(params)
+    const result = await api.agent.run({ ...params, runId })
     if (!result.success) {
       pushEvent({
         type: 'error',

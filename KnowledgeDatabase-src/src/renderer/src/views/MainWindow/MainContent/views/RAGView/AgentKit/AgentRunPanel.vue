@@ -1,39 +1,78 @@
 <template>
-  <div class="h-full flex flex-col bg-gray-50">
-    <!-- 内容区域 -->
-    <div class="flex-1 overflow-y-auto p-4">
-      <div v-if="!currentRun" class="text-center text-gray-400 py-12">
-        <p class="text-sm mb-2">暂无运行记录</p>
-        <p class="text-xs">在上方输入框提交问题开始 Agent 流程</p>
+  <div class="h-full flex flex-col">
+    <!-- 聊天消息区域 -->
+    <div ref="chatContainer" class="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+      <div v-if="!currentRun" class="flex items-center justify-center h-full text-gray-400">
+        <div class="text-center">
+          <svg class="w-10 h-10 mx-auto mb-3 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
+          </svg>
+          <p class="text-sm">在上方输入问题，开始 Agent 对话</p>
+        </div>
       </div>
 
-      <div v-else class="space-y-4">
-        <!-- 错误面板 -->
-        <AgentErrorPanel />
+      <template v-else>
+        <!-- 用户消息气泡（右侧） -->
+        <div class="flex justify-end">
+          <div class="max-w-[75%] px-4 py-2.5 rounded-2xl rounded-tr-sm bg-blue-500 text-white text-sm leading-relaxed shadow-sm">
+            {{ currentRun.question }}
+          </div>
+        </div>
 
-        <!-- 答案 -->
-        <AgentAnswer />
+        <!-- Agent 回复气泡（左侧） -->
+        <div class="flex justify-start">
+          <div class="max-w-[85%] w-full">
+            <!-- 思考过程（可折叠） -->
+            <AgentThinking />
 
-        <!-- 引用文档 -->
-        <AgentCitations />
+            <!-- 回复内容 -->
+            <AgentAnswer />
 
-        <!-- 时间线 -->
-        <AgentTimeline />
-      </div>
+            <!-- 引用文档（回复下方） -->
+            <AgentCitations />
+
+            <!-- 错误 -->
+            <AgentErrorPanel />
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { useAgentStore } from '@renderer/stores/rag/agent.store'
 import AgentAnswer from './AgentAnswer.vue'
-import AgentTimeline from './AgentTimeline.vue'
+import AgentThinking from './AgentThinking.vue'
 import AgentCitations from './AgentCitations.vue'
 import AgentErrorPanel from './AgentErrorPanel.vue'
 
 const agentStore = useAgentStore()
+const chatContainer = ref<HTMLElement>()
 
-// 计算属性
 const currentRun = computed(() => agentStore.currentRun)
+
+// 自动滚动到底部
+watch(
+  () => agentStore.currentAnswer,
+  () => {
+    nextTick(() => {
+      if (chatContainer.value) {
+        chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+      }
+    })
+  }
+)
+
+watch(
+  () => agentStore.currentEvents.length,
+  () => {
+    nextTick(() => {
+      if (chatContainer.value) {
+        chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+      }
+    })
+  }
+)
 </script>

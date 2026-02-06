@@ -45,15 +45,13 @@ export class AgentIPCHandler extends BaseIPCHandler {
         }
       }
 
-      // 生成 runId 并立即返回给前端，后台异步执行图
-      const runId = `run_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
-
       // fire-and-forget：不 await，让图在后台流式执行
+      // runId 由前端生成并通过 params.runId 透传，保证全链路一致
       this.agentRunner.run(params, emitEvent).catch(() => {
         // 错误已在 run 内部通过 emitEvent 推送，这里只防止 unhandled rejection
       })
 
-      return { success: true, runId }
+      return { success: true, runId: params.runId }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       return { success: false, error: message }

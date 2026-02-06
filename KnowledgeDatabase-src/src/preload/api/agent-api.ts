@@ -20,6 +20,7 @@ const IPC_CHANNELS = {
 // ============================================================================
 
 export interface AgentRunParams {
+  runId: string
   question: string
   llmModelId: string
   kbId: number
