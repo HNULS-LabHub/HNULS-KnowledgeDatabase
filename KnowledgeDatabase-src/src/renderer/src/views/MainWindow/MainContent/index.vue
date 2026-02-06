@@ -25,7 +25,7 @@ import { ref, computed } from 'vue'
 import TopBar from '../TopBar/index.vue'
 import NavBar from '../NavBar/index.vue'
 import DashboardView from './views/DashboardView.vue'
-import RAGView from './views/RAGView.vue'
+import RAGView from './views/RAGView/index.vue'
 import GraphView from './views/GraphView.vue'
 import DocsView from './views/DocsView.vue'
 
