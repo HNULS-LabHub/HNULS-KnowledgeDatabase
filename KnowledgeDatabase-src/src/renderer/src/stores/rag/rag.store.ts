@@ -6,7 +6,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { RagDataSource } from './rag.datasource'
-import type { RagStep, RagConfig, RerankModel, LlmModel } from './rag.types'
+import type { RagStep, RagConfig, RerankModel, LlmModel, VectorRecallHit } from './rag.types'
 
 const STORAGE_KEY = 'rag-config'
 
@@ -51,6 +51,10 @@ export const useRagStore = defineStore('rag', () => {
   const query = ref('')
   const isSearching = ref(false)
   const steps = ref<RagStep[]>([])
+  const recallResults = ref<VectorRecallHit[]>([])
+  const searchElapsedMs = ref<number | null>(null)
+  // 向量表元数据 (tableName -> { configName, dimensions })
+  const embeddingTablesMetadata = ref<Map<string, { configName?: string; dimensions?: number }>>(new Map())
 
   // ---- State: 模型列表（从 datasource 加载） ----
   const rerankModels = ref<RerankModel[]>([])
@@ -94,6 +98,7 @@ export const useRagStore = defineStore('rag', () => {
     selectedKnowledgeBaseId.value = id
     // 切换知识库时清空已选向量表
     selectedEmbeddingTables.value = []
+    embeddingTablesMetadata.value.clear()
     persistConfig()
   }
 
@@ -110,6 +115,19 @@ export const useRagStore = defineStore('rag', () => {
       selectedEmbeddingTables.value.push(tableName)
     }
     persistConfig()
+  }
+
+  /** 更新向量表元数据 */
+  function setEmbeddingTablesMetadata(
+    tables: Array<{ tableName: string; configName?: string; dimensions?: number }>
+  ): void {
+    embeddingTablesMetadata.value.clear()
+    for (const t of tables) {
+      embeddingTablesMetadata.value.set(t.tableName, {
+        configName: t.configName,
+        dimensions: t.dimensions
+      })
+    }
   }
 
   // ---- Actions: 加载模型列表 ----
@@ -133,12 +151,26 @@ export const useRagStore = defineStore('rag', () => {
     if (!query.value.trim() || isSearching.value) return
     isSearching.value = true
     steps.value = []
+    recallResults.value = []
+    searchElapsedMs.value = null
+
+    const startTime = performance.now()
 
     try {
-      await RagDataSource.executeSearch(query.value, (newSteps) => {
-        steps.value = newSteps
-      })
+      const { hits } = await RagDataSource.executeSearch(
+        query.value,
+        {
+          knowledgeBaseId: selectedKnowledgeBaseId.value!,
+          embeddingTables: selectedEmbeddingTables.value
+        },
+        embeddingTablesMetadata.value,
+        (newSteps) => {
+          steps.value = newSteps
+        }
+      )
+      recallResults.value = hits
     } finally {
+      searchElapsedMs.value = Math.round(performance.now() - startTime)
       isSearching.value = false
     }
   }
@@ -153,6 +185,8 @@ export const useRagStore = defineStore('rag', () => {
     query,
     isSearching,
     steps,
+    recallResults,
+    searchElapsedMs,
     rerankModels,
     llmModels,
     modelsLoading,
@@ -166,6 +200,7 @@ export const useRagStore = defineStore('rag', () => {
     setKnowledgeBase,
     setSelectedEmbeddingTables,
     toggleEmbeddingTable,
+    setEmbeddingTablesMetadata,
     loadModels,
     executeSearch
   }

@@ -29,3 +29,27 @@ export interface LlmModel {
   name: string
   provider: string
 }
+
+/** 向量召回命中（来自后端 IPC） */
+export interface VectorRecallHit {
+  id: string
+  content: string
+  chunk_index?: number
+  file_key?: string
+  file_name?: string
+  distance?: number
+  /** 来源向量表名 */
+  tableName: string
+  /** 表对应的嵌入配置名称 */
+  configName?: string
+  /** 表向量维度 */
+  dimensions?: number
+}
+
+/** 执行检索需要的配置参数 */
+export interface RagSearchConfig {
+  knowledgeBaseId: number
+  embeddingTables: string[]
+  k?: number
+  ef?: number
+}

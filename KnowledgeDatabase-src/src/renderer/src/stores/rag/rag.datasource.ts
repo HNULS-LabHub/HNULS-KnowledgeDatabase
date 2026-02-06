@@ -1,12 +1,54 @@
 /**
  * RAG 数据源适配器
- * 当前阶段指向 mock，后续切换为 IPC
+ * 通过 IPC 调用后端向量召回服务
  */
 
-import type { RerankModel, LlmModel, RagStep } from './rag.types'
-import { MOCK_RERANK_MODELS, MOCK_LLM_MODELS, mockExecuteSearch } from './rag.mock'
+import type { RerankModel, LlmModel, RagStep, VectorRecallHit, RagSearchConfig } from './rag.types'
+import { MOCK_RERANK_MODELS, MOCK_LLM_MODELS } from './rag.mock'
 
-// const isElectron = !!(window as any).electron
+// ---- Pipeline Step 模板 ----
+
+const STEP_VECTORIZE: RagStep = {
+  id: 1,
+  text: '正在向量化查询语句...',
+  iconPath:
+    '<rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><rect x="14" y="14" width="6" height="6" rx="1"></rect>',
+  colorClass: 'blue'
+}
+
+const makeStepSearch = (tableCount: number): RagStep => ({
+  id: 2,
+  text: `在 ${tableCount} 个向量表中检索相似块...`,
+  iconPath:
+    '<circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path>',
+  colorClass: 'purple'
+})
+
+const makeStepRecalled = (hitCount: number): RagStep => ({
+  id: 3,
+  text: `召回 ${hitCount} 个相似块`,
+  iconPath:
+    '<path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path>',
+  colorClass: 'amber'
+})
+
+const STEP_DONE: RagStep = {
+  id: 4,
+  text: '召回完成',
+  iconPath:
+    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline>',
+  colorClass: 'emerald'
+}
+
+const STEP_ERROR = (msg: string): RagStep => ({
+  id: 99,
+  text: `检索失败: ${msg}`,
+  iconPath:
+    '<circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>',
+  colorClass: 'amber'
+})
+
+// ---- 数据源 ----
 
 export const RagDataSource = {
   /** 获取可用重排模型列表 */
@@ -23,13 +65,82 @@ export const RagDataSource = {
     return MOCK_LLM_MODELS
   },
 
-  /** 执行检索流程 */
+  /**
+   * 执行向量召回检索
+   * 对选中的每个向量表并发调用 vector-retrieval:search IPC
+   * @param tablesMeta - 表元数据 (tableName -> { configName, dimensions })
+   */
   async executeSearch(
     query: string,
+    config: RagSearchConfig,
+    tablesMeta: Map<string, { configName?: string; dimensions?: number }>,
     onStep?: (steps: RagStep[]) => void
-  ): Promise<RagStep[]> {
-    // TODO: 后续切换为 IPC 调用
-    console.debug('[Dev Mode] Using Mock Search')
-    return mockExecuteSearch(query, onStep)
+  ): Promise<{ steps: RagStep[]; hits: VectorRecallHit[] }> {
+    const steps: RagStep[] = []
+    const push = (s: RagStep) => {
+      steps.push(s)
+      onStep?.([...steps])
+    }
+
+    // 校验
+    if (!config.knowledgeBaseId || config.embeddingTables.length === 0) {
+      push(STEP_ERROR('请先选择知识库和向量表'))
+      return { steps, hits: [] }
+    }
+
+    // Step 1: 向量化 + 检索
+    push(STEP_VECTORIZE)
+    push(makeStepSearch(config.embeddingTables.length))
+
+    const allHits: VectorRecallHit[] = []
+    const errors: string[] = []
+
+    // 并发调用所有选中表
+    const results = await Promise.allSettled(
+      config.embeddingTables.map(async (tableName) => {
+        const res = await window.api.vectorRetrieval.search({
+          knowledgeBaseId: config.knowledgeBaseId,
+          tableName,
+          queryText: query,
+          k: config.k ?? 10,
+          ef: config.ef ?? 100
+        })
+        return { tableName, res }
+      })
+    )
+
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        const { tableName, res } = r.value
+        if (res.success && res.data) {
+          const meta = tablesMeta.get(tableName)
+          for (const hit of res.data) {
+            allHits.push({
+              ...hit,
+              tableName,
+              configName: meta?.configName,
+              dimensions: meta?.dimensions
+            })
+          }
+        } else if (res.error) {
+          errors.push(`[${tableName}] ${res.error}`)
+        }
+      } else {
+        errors.push(r.reason?.message || 'Unknown error')
+      }
+    }
+
+    // 按 distance 排序（越小越相似）
+    allHits.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
+
+    if (allHits.length > 0) {
+      push(makeStepRecalled(allHits.length))
+      push(STEP_DONE)
+    } else {
+      const errMsg = errors.length > 0 ? errors.join('; ') : '未找到匹配结果'
+      push(STEP_ERROR(errMsg))
+    }
+
+    return { steps, hits: allHits }
   }
 }

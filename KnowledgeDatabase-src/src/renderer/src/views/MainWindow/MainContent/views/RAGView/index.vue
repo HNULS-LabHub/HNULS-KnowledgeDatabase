@@ -15,7 +15,12 @@
       </div>
 
       <!-- Right: Results -->
-      <ResultPanel :is-searching="ragStore.isSearching" :has-completed="ragStore.hasCompleted" />
+      <ResultPanel
+        :is-searching="ragStore.isSearching"
+        :has-completed="ragStore.hasCompleted"
+        :results="ragStore.recallResults"
+        :search-elapsed-ms="ragStore.searchElapsedMs"
+      />
     </div>
   </div>
 </template>

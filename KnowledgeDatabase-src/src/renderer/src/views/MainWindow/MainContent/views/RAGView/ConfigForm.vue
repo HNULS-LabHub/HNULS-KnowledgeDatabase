@@ -20,16 +20,12 @@
       <!-- 重排模型 -->
       <div class="flex flex-col gap-1">
         <label class="text-xs font-medium text-slate-500">重排模型</label>
-        <select
-          class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 outline-none transition-all duration-200 focus:border-indigo-400 focus:bg-white"
-          :value="ragStore.rerankModelId"
-          @change="ragStore.setRerankModel(($event.target as HTMLSelectElement).value || null)"
-        >
-          <option value="">请选择重排模型</option>
-          <option v-for="m in ragStore.rerankModels" :key="m.id" :value="m.id">
-            {{ m.name }} ({{ m.provider }})
-          </option>
-        </select>
+        <WhiteSelect
+          :model-value="ragStore.rerankModelId"
+          :options="rerankOptions"
+          placeholder="请选择重排模型"
+          @update:model-value="ragStore.setRerankModel"
+        />
       </div>
 
       <!-- LLM 驱动 RAG 开关 -->
@@ -61,17 +57,13 @@
         :class="{ 'opacity-40 pointer-events-none': !ragStore.llmDrivenEnabled }"
       >
         <label class="text-xs font-medium text-slate-500">LLM 模型</label>
-        <select
-          class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 outline-none transition-all duration-200 focus:border-indigo-400 focus:bg-white disabled:cursor-not-allowed"
-          :value="ragStore.llmModelId"
+        <WhiteSelect
+          :model-value="ragStore.llmModelId"
+          :options="llmOptions"
+          placeholder="请选择 LLM 模型"
           :disabled="!ragStore.llmDrivenEnabled"
-          @change="ragStore.setLlmModel(($event.target as HTMLSelectElement).value || null)"
-        >
-          <option value="">请选择 LLM 模型</option>
-          <option v-for="m in ragStore.llmModels" :key="m.id" :value="m.id">
-            {{ m.name }} ({{ m.provider }})
-          </option>
-        </select>
+          @update:model-value="ragStore.setLlmModel"
+        />
         <p v-if="ragStore.llmDrivenEnabled && !ragStore.llmModelId" class="text-xs text-amber-500 mt-1 m-0">
           请选择一个 LLM 以启用生成
         </p>
@@ -179,6 +171,20 @@ const kbOptions = computed<WhiteSelectOption<number>[]>(() =>
   }))
 )
 
+const rerankOptions = computed<WhiteSelectOption<string>[]>(() =>
+  ragStore.rerankModels.map((m) => ({
+    label: `${m.name} (${m.provider})`,
+    value: m.id
+  }))
+)
+
+const llmOptions = computed<WhiteSelectOption<string>[]>(() =>
+  ragStore.llmModels.map((m) => ({
+    label: `${m.name} (${m.provider})`,
+    value: m.id
+  }))
+)
+
 // 向量表状态
 const embeddingTables = ref<EmbeddingTableInfo[]>([])
 const embeddingTablesLoading = ref(false)
@@ -188,6 +194,14 @@ async function loadEmbeddingTables(kbId: number) {
   embeddingTablesLoading.value = true
   try {
     embeddingTables.value = await window.api.knowledgeLibrary.listEmbeddingTables(kbId)
+    // 同步元数据到 store
+    ragStore.setEmbeddingTablesMetadata(
+      embeddingTables.value.map((t) => ({
+        tableName: t.tableName,
+        configName: t.configName,
+        dimensions: t.dimensions
+      }))
+    )
   } catch (err) {
     console.error('[ConfigForm] 加载向量表失败:', err)
     embeddingTables.value = []

@@ -4,7 +4,7 @@
  */
 
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { TestAPI, KnowledgeLibraryAPI, FileAPI, FileImportAPI, UserConfigAPI, MinerUAPI, ChunkingAPI, ModelConfigAPI, KnowledgeConfigAPI, TaskMonitorAPI, EmbeddingAPI, VectorIndexerAPI, // Electron 文件路径工具
+import type { TestAPI, KnowledgeLibraryAPI, FileAPI, FileImportAPI, UserConfigAPI, MinerUAPI, ChunkingAPI, ModelConfigAPI, KnowledgeConfigAPI, TaskMonitorAPI, EmbeddingAPI, VectorIndexerAPI, VectorRetrievalAPI, // Electron 文件路径工具
   utilsAPI } from './types'
 
 declare global {
@@ -23,6 +23,7 @@ declare global {
       taskMonitor: TaskMonitorAPI
       embedding: EmbeddingAPI
       vectorIndexer: VectorIndexerAPI
+      vectorRetrieval: VectorRetrievalAPI
       // Electron 文件路径工具
   utils: // Electron 文件路径工具
   utilsAPI
