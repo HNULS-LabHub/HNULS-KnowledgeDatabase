@@ -6,7 +6,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { RagDataSource } from './rag.datasource'
-import type { RagStep, RagConfig, VectorRecallHit } from './rag.types'
+import type { RagStep, RagConfig, VectorRecallHit, EmbeddingTableConfig } from './rag.types'
 
 const STORAGE_KEY = 'rag-config'
 
@@ -24,7 +24,7 @@ function loadConfig(): RagConfig {
     llmModelId: null,
     llmDrivenEnabled: false,
     selectedKnowledgeBaseId: null,
-    selectedEmbeddingTables: []
+    embeddingTableConfigs: {}
   }
 }
 
@@ -47,7 +47,9 @@ export const useRagStore = defineStore('rag', () => {
   const llmModelId = ref<string | null>(persisted.llmModelId)
   const llmDrivenEnabled = ref(persisted.llmDrivenEnabled)
   const selectedKnowledgeBaseId = ref<number | null>(persisted.selectedKnowledgeBaseId)
-  const selectedEmbeddingTables = ref<string[]>(persisted.selectedEmbeddingTables || [])
+  const embeddingTableConfigs = ref<Record<string, EmbeddingTableConfig>>(
+    persisted.embeddingTableConfigs || {}
+  )
 
   // ---- State: 运行时（不持久化） ----
   const query = ref('')
@@ -63,13 +65,20 @@ export const useRagStore = defineStore('rag', () => {
   // ---- Getters ----
   const hasCompleted = computed(() => steps.value.length >= 4 && !isSearching.value)
 
+  /** 已启用的向量表列表 */
+  const enabledEmbeddingTables = computed(() => {
+    return Object.entries(embeddingTableConfigs.value)
+      .filter(([_, config]) => config.enabled)
+      .map(([tableName]) => tableName)
+  })
+
   const currentConfig = computed<RagConfig>(() => ({
     rerankEnabled: rerankEnabled.value,
     rerankModelId: rerankModelId.value,
     llmModelId: llmModelId.value,
     llmDrivenEnabled: llmDrivenEnabled.value,
     selectedKnowledgeBaseId: selectedKnowledgeBaseId.value,
-    selectedEmbeddingTables: selectedEmbeddingTables.value
+    embeddingTableConfigs: embeddingTableConfigs.value
   }))
 
   // ---- 内部: 持久化 ----
@@ -102,22 +111,44 @@ export const useRagStore = defineStore('rag', () => {
   function setKnowledgeBase(id: number | null): void {
     selectedKnowledgeBaseId.value = id
     // 切换知识库时清空已选向量表
-    selectedEmbeddingTables.value = []
+    embeddingTableConfigs.value = {}
     embeddingTablesMetadata.value.clear()
     persistConfig()
   }
 
-  function setSelectedEmbeddingTables(tables: string[]): void {
-    selectedEmbeddingTables.value = tables
+  /** 切换向量表的启用状态 */
+  function toggleEmbeddingTable(tableName: string, defaultK = 10): void {
+    const current = embeddingTableConfigs.value[tableName]
+    if (current?.enabled) {
+      // 已启用 -> 禁用
+      embeddingTableConfigs.value[tableName] = { ...current, enabled: false }
+    } else {
+      // 未启用 -> 启用（使用默认或已有 k 值）
+      embeddingTableConfigs.value[tableName] = {
+        enabled: true,
+        k: current?.k ?? defaultK
+      }
+    }
     persistConfig()
   }
 
-  function toggleEmbeddingTable(tableName: string): void {
-    const idx = selectedEmbeddingTables.value.indexOf(tableName)
-    if (idx >= 0) {
-      selectedEmbeddingTables.value.splice(idx, 1)
-    } else {
-      selectedEmbeddingTables.value.push(tableName)
+  /** 设置向量表的 k 值 */
+  function setEmbeddingTableK(tableName: string, k: number): void {
+    const current = embeddingTableConfigs.value[tableName]
+    if (current) {
+      embeddingTableConfigs.value[tableName] = { ...current, k }
+      persistConfig()
+    }
+  }
+
+  /** 批量设置向量表启用状态 */
+  function setAllEmbeddingTables(tableNames: string[], enabled: boolean, defaultK = 10): void {
+    for (const tableName of tableNames) {
+      const current = embeddingTableConfigs.value[tableName]
+      embeddingTableConfigs.value[tableName] = {
+        enabled,
+        k: current?.k ?? defaultK
+      }
     }
     persistConfig()
   }
@@ -150,7 +181,7 @@ export const useRagStore = defineStore('rag', () => {
         query.value,
         {
           knowledgeBaseId: selectedKnowledgeBaseId.value!,
-          embeddingTables: selectedEmbeddingTables.value
+          embeddingTableConfigs: embeddingTableConfigs.value
         },
         embeddingTablesMetadata.value,
         (newSteps) => {
@@ -171,7 +202,7 @@ export const useRagStore = defineStore('rag', () => {
     llmModelId,
     llmDrivenEnabled,
     selectedKnowledgeBaseId,
-    selectedEmbeddingTables,
+    embeddingTableConfigs,
     query,
     isSearching,
     steps,
@@ -179,6 +210,7 @@ export const useRagStore = defineStore('rag', () => {
     searchElapsedMs,
     // Getters
     hasCompleted,
+    enabledEmbeddingTables,
     currentConfig,
     // Actions
     toggleRerank,
@@ -186,8 +218,9 @@ export const useRagStore = defineStore('rag', () => {
     setLlmModel,
     toggleLlmDriven,
     setKnowledgeBase,
-    setSelectedEmbeddingTables,
     toggleEmbeddingTable,
+    setEmbeddingTableK,
+    setAllEmbeddingTables,
     setEmbeddingTablesMetadata,
     executeSearch
   }

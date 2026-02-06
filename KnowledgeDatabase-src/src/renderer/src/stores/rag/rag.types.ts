@@ -10,6 +10,14 @@ export interface RagStep {
   status: 'pending' | 'loading' | 'completed' | 'error'
 }
 
+/** 向量表配置项 */
+export interface EmbeddingTableConfig {
+  /** 是否启用该向量表 */
+  enabled: boolean
+  /** TopK 召回数量 */
+  k: number
+}
+
 /** localStorage 持久化的配置 */
 export interface RagConfig {
   rerankEnabled: boolean
@@ -17,7 +25,8 @@ export interface RagConfig {
   llmModelId: string | null
   llmDrivenEnabled: boolean
   selectedKnowledgeBaseId: number | null
-  selectedEmbeddingTables: string[] // tableName 列表
+  /** 向量表配置：tableName -> { enabled, k } */
+  embeddingTableConfigs: Record<string, EmbeddingTableConfig>
 }
 
 export interface RerankModel {
@@ -51,7 +60,8 @@ export interface VectorRecallHit {
 /** 执行检索需要的配置参数 */
 export interface RagSearchConfig {
   knowledgeBaseId: number
-  embeddingTables: string[]
-  k?: number
+  /** 向量表配置：tableName -> { enabled, k } */
+  embeddingTableConfigs: Record<string, EmbeddingTableConfig>
+  /** HNSW ef 参数，默认 100 */
   ef?: number
 }

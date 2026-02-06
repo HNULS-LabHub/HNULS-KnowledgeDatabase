@@ -48,7 +48,6 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
 import { useRagStore } from '@renderer/stores/rag/rag.store'
 import QueryForm from './QueryForm.vue'
 import ConfigForm from './ConfigForm.vue'

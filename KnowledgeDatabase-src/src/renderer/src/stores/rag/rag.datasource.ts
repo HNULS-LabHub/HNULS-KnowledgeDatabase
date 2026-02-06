@@ -19,7 +19,7 @@ const STEP_VECTORIZE: RagStep = {
 
 const makeStepSearch = (tableCount: number): RagStep => ({
   id: 2,
-  text: `在 ${tableCount} 个向量表中检索相似块...`,
+  text: `在 ${tableCount} 个向量表中并发检索相似块...`,
   iconPath: '<circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path>',
   colorClass: 'purple',
   status: 'loading'
@@ -90,27 +90,31 @@ export const RagDataSource = {
       onStep?.([...steps])
     }
 
-    // 校验
-    if (!config.knowledgeBaseId || config.embeddingTables.length === 0) {
+    // 校验：筛选出已启用的向量表
+    const enabledTables = Object.entries(config.embeddingTableConfigs).filter(
+      ([_, cfg]) => cfg.enabled
+    )
+
+    if (!config.knowledgeBaseId || enabledTables.length === 0) {
       push(STEP_ERROR('请先选择知识库和向量表'))
       return { steps, hits: [] }
     }
 
     // Step 1: 向量化 + 检索
     push(STEP_VECTORIZE)
-    push(makeStepSearch(config.embeddingTables.length))
+    push(makeStepSearch(enabledTables.length))
 
     const allHits: VectorRecallHit[] = []
     const errors: string[] = []
 
-    // 并发调用所有选中表
+    // 并发调用所有已启用的表，使用各自的 k 值
     const results = await Promise.allSettled(
-      config.embeddingTables.map(async (tableName) => {
+      enabledTables.map(async ([tableName, tableConfig]) => {
         const res = await window.api.vectorRetrieval.search({
           knowledgeBaseId: config.knowledgeBaseId,
           tableName,
           queryText: query,
-          k: config.k ?? 10,
+          k: tableConfig.k,
           ef: config.ef ?? 100
         })
         return { tableName, res }

@@ -171,28 +171,55 @@
           <div class="h-px bg-slate-200"></div>
           <!-- 向量表列表 -->
           <div class="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
-            <label
+            <div
               v-for="table in embeddingTables"
               :key="table.tableName"
-              class="flex items-start gap-2 cursor-pointer hover:bg-white rounded px-2 py-1.5 transition"
+              class="flex items-start gap-2 hover:bg-white rounded px-2 py-1.5 transition"
             >
               <input
                 type="checkbox"
-                :checked="ragStore.selectedEmbeddingTables.includes(table.tableName)"
-                class="mt-0.5 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 focus:ring-2"
+                :checked="ragStore.embeddingTableConfigs[table.tableName]?.enabled === true"
+                class="mt-0.5 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 focus:ring-2 cursor-pointer"
                 @change="ragStore.toggleEmbeddingTable(table.tableName)"
               />
-              <div class="flex-1 min-w-0">
-                <div class="text-xs font-medium text-slate-700 truncate" :title="table.tableName">
-                  {{ table.tableName }}
-                </div>
-                <div class="text-[10px] text-slate-500 mt-0.5">
-                  {{ table.configName || '未知模型' }} · {{ table.dimensions }}维 ·
-                  {{ table.chunkCount }}
-                  块
+              <div class="flex-1 min-w-0 flex flex-col gap-1.5">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex-1 min-w-0">
+                    <div
+                      class="text-xs font-medium text-slate-700 truncate"
+                      :title="table.tableName"
+                    >
+                      {{ table.tableName }}
+                    </div>
+                    <div class="text-[10px] text-slate-500 mt-0.5">
+                      {{ table.configName || '未知模型' }} · {{ table.dimensions }}维 ·
+                      {{ table.chunkCount }} 块
+                    </div>
+                  </div>
+                  <!-- k 值配置 -->
+                  <div
+                    v-if="ragStore.embeddingTableConfigs[table.tableName]?.enabled"
+                    class="flex items-center gap-1.5"
+                  >
+                    <span class="text-[10px] text-slate-400 whitespace-nowrap">TopK:</span>
+                    <input
+                      type="number"
+                      :value="ragStore.embeddingTableConfigs[table.tableName]?.k ?? 10"
+                      min="1"
+                      max="100"
+                      class="w-14 px-1.5 py-0.5 text-[11px] border border-slate-200 rounded bg-white focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                      @input="
+                        (e) =>
+                          ragStore.setEmbeddingTableK(
+                            table.tableName,
+                            Math.max(1, Math.min(100, Number((e.target as HTMLInputElement).value)))
+                          )
+                      "
+                    />
+                  </div>
                 </div>
               </div>
-            </label>
+            </div>
           </div>
         </div>
       </div>
@@ -207,8 +234,16 @@ import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/kno
 import { useUserModelConfigStore } from '@renderer/stores/user-config/user-model-config.store'
 import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 import type { WhiteSelectOption } from '@renderer/components/select/WhiteSelect.vue'
-import type { EmbeddingTableInfo } from '@preload/types'
 import ModelSelectSheet from './ModelSelectSheet.vue'
+
+// 嵌入向量表信息类型
+interface EmbeddingTableInfo {
+  tableName: string
+  configId: string
+  configName: string | null
+  dimensions: number
+  chunkCount: number
+}
 
 const ragStore = useRagStore()
 const knowledgeLibraryStore = useKnowledgeLibraryStore()
@@ -266,7 +301,7 @@ async function loadEmbeddingTables(kbId: number) {
     ragStore.setEmbeddingTablesMetadata(
       embeddingTables.value.map((t) => ({
         tableName: t.tableName,
-        configName: t.configName,
+        configName: t.configName ?? undefined,
         dimensions: t.dimensions
       }))
     )
@@ -282,23 +317,25 @@ async function loadEmbeddingTables(kbId: number) {
 const isAllSelected = computed(
   () =>
     embeddingTables.value.length > 0 &&
-    ragStore.selectedEmbeddingTables.length === embeddingTables.value.length
+    embeddingTables.value.every(
+      (t) => ragStore.embeddingTableConfigs[t.tableName]?.enabled === true
+    )
 )
 
-const isIndeterminate = computed(
-  () =>
-    ragStore.selectedEmbeddingTables.length > 0 &&
-    ragStore.selectedEmbeddingTables.length < embeddingTables.value.length
-)
+const isIndeterminate = computed(() => {
+  const enabledCount = embeddingTables.value.filter(
+    (t) => ragStore.embeddingTableConfigs[t.tableName]?.enabled === true
+  ).length
+  return enabledCount > 0 && enabledCount < embeddingTables.value.length
+})
 
 // 全选/取消全选
 function handleSelectAll(e: Event) {
   const checked = (e.target as HTMLInputElement).checked
-  if (checked) {
-    ragStore.setSelectedEmbeddingTables(embeddingTables.value.map((t) => t.tableName))
-  } else {
-    ragStore.setSelectedEmbeddingTables([])
-  }
+  ragStore.setAllEmbeddingTables(
+    embeddingTables.value.map((t) => t.tableName),
+    checked
+  )
 }
 
 // 监听知识库变化

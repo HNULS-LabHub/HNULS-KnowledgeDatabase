@@ -4,7 +4,8 @@
 import type {
   KnowledgeBaseMeta,
   CreateKnowledgeBaseData,
-  UpdateKnowledgeBaseData
+  UpdateKnowledgeBaseData,
+  EmbeddingTableInfo
 } from '../../../main/services/knowledgeBase-library/types'
 
 /**
@@ -16,4 +17,5 @@ export interface KnowledgeLibraryAPI {
   create(data: CreateKnowledgeBaseData): Promise<KnowledgeBaseMeta>
   update(id: number, data: UpdateKnowledgeBaseData): Promise<KnowledgeBaseMeta>
   delete(id: number): Promise<void>
+  listEmbeddingTables(knowledgeBaseId: number): Promise<EmbeddingTableInfo[]>
 }
