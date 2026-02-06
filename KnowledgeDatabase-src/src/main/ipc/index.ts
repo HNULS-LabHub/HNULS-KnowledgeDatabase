@@ -10,6 +10,7 @@ import { ModelConfigIPCHandler } from './model-config-handler'
 import { KnowledgeConfigIPCHandler } from './knowledge-config-handler'
 import { TaskMonitorIPCHandler } from './task-monitor-handler'
 import { EmbeddingIPCHandler } from './embedding-handler'
+import { VectorRetrievalIPCHandler } from './vector-retrieval-handler'
 import {
   registerVectorIndexerHandlers,
   unregisterVectorIndexerHandlers
@@ -20,6 +21,7 @@ import { UserConfigService } from '../services/user-config-service'
 import { MinerUParserService } from '../services/mineru-parser'
 import { ChunkingService } from '../services/chunking'
 import { ModelConfigService } from '../services/model-config'
+import { VectorRetrievalService } from '../services/vector-retrieval'
 
 export class IPCManager {
   private handlers: any[] = []
@@ -70,6 +72,10 @@ export class IPCManager {
 
     // 注册嵌入服务处理器
     this.handlers.push(new EmbeddingIPCHandler())
+
+    // 注册向量召回处理器（RAG 检索入口）
+    const vectorRetrievalService = new VectorRetrievalService(surrealDBService, knowledgeLibraryService)
+    this.handlers.push(new VectorRetrievalIPCHandler(vectorRetrievalService))
 
     // 注册向量索引器处理器
     registerVectorIndexerHandlers()

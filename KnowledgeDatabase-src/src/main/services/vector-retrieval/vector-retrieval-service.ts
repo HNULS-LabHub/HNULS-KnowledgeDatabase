@@ -1,0 +1,420 @@
+/**
+ * @file 向量召回服务
+ * @description 负责将 queryText 嵌入成向量，并在指定知识库的指定向量表中执行 KNN 检索
+ */
+
+import { logger } from '../logger'
+import { KnowledgeLibraryService } from '../knowledgeBase-library/knowledge-library-service'
+import { KnowledgeConfigService } from '../knowledgeBase-library/knowledge-config-service'
+import { DocumentService } from '../knowledgeBase-library/document-service'
+import { ModelConfigService } from '../model-config/model-config-service'
+import type { VectorRetrievalHit, VectorRetrievalSearchParams } from './types'
+import { OpenAICompatibleEmbeddingClient } from './embedding-client'
+import type { KnowledgeConfig } from '../../../preload/types/knowledge-config.types'
+import type { PersistedModelProviderConfig } from '../model-config/types'
+import { SurrealDBQueryService } from '@shared-utils/surrealdb-query'
+import type { SurrealDBService } from '../surrealdb-service'
+
+type ResolvedEmbeddingConfig = {
+  id: string
+  name?: string
+  dimensions: number
+  candidates: Array<{ providerId: string; modelId: string }>
+}
+
+export class VectorRetrievalService {
+  private readonly documentService = new DocumentService()
+  private readonly knowledgeConfigService = new KnowledgeConfigService()
+  private readonly modelConfigService = new ModelConfigService()
+  private readonly embeddingClient = new OpenAICompatibleEmbeddingClient()
+
+  private readonly surrealQuery = new SurrealDBQueryService()
+  private connectPromise: Promise<void> | null = null
+
+  constructor(
+    private readonly surrealDBService: SurrealDBService,
+    private readonly knowledgeLibraryService: KnowledgeLibraryService
+  ) {
+    // 召回查询不需要写入 operation_log
+    this.surrealQuery.setLogging(false)
+  }
+
+  // ==========================================================================
+  // Public API
+  // ==========================================================================
+
+  async search(params: VectorRetrievalSearchParams): Promise<{
+    results: VectorRetrievalHit[]
+    resolved: {
+      knowledgeBaseId: number
+      tableName: string
+      dimensions: number
+      embeddingConfigId: string
+      embeddingModelId: string
+      embeddingProviderId: string
+    }
+  }> {
+    const knowledgeBaseId = Number(params.knowledgeBaseId)
+    const tableName = String(params.tableName || '').trim()
+    const queryText = String(params.queryText || '').trim()
+    const k = this.normalizePositiveInt(params.k, 10)
+    const ef = this.normalizePositiveInt(params.ef, 100)
+
+    if (!knowledgeBaseId || Number.isNaN(knowledgeBaseId)) {
+      throw new Error('Invalid knowledgeBaseId')
+    }
+
+    if (!queryText) {
+      throw new Error('queryText is required')
+    }
+
+    this.assertSafeVectorTableName(tableName)
+
+    const dimensions = this.parseDimensionsFromTableName(tableName)
+    if (!dimensions) {
+      throw new Error(`Cannot parse dimensions from tableName: ${tableName}`)
+    }
+
+    // 1) 获取知识库信息
+    const kb = await this.knowledgeLibraryService.getById(knowledgeBaseId)
+    if (!kb) {
+      throw new Error(`Knowledge base not found (ID: ${knowledgeBaseId})`)
+    }
+    if (!kb.databaseName) {
+      throw new Error(`Knowledge base missing databaseName (ID: ${knowledgeBaseId})`)
+    }
+    if (!kb.documentPath) {
+      throw new Error(`Knowledge base missing documentPath (ID: ${knowledgeBaseId})`)
+    }
+
+    // 2) 读取知识库配置，解析 embedding config
+    await this.documentService.ensureKnowledgeBaseDirectory(kb.documentPath)
+    const kbRoot = this.documentService.getFullDirectoryPath(kb.documentPath)
+
+    const kbConfig = (await this.knowledgeConfigService.readConfig(kbRoot)) as KnowledgeConfig
+    const embeddingConfig = this.resolveEmbeddingConfigForTable(kbConfig, tableName, dimensions)
+
+    // 3) 选取 provider + model，并调用 embeddings API 生成 queryVector
+    const provider = await this.resolveProviderForEmbedding(embeddingConfig)
+    const { queryVector, providerId, modelId } = await this.embedQueryText({
+      queryText,
+      dimensions,
+      candidates: embeddingConfig.candidates,
+      providerMap: provider
+    })
+
+    if (!Array.isArray(queryVector) || queryVector.length === 0) {
+      throw new Error('Embedding returned empty vector')
+    }
+    if (queryVector.length !== dimensions) {
+      throw new Error(
+        `Embedding dimension mismatch: expected ${dimensions}, got ${queryVector.length}`
+      )
+    }
+
+    // 4) KNN 查询
+    await this.ensureSurrealConnected()
+    const namespace = this.getNamespace()
+
+    const sql = `
+      SELECT
+        id,
+        content,
+        chunk_index,
+        file_key,
+        file_name,
+        vector::distance::knn() AS distance
+      FROM \`${tableName}\`
+      WHERE embedding <|${k},${ef}|> $queryVector
+      ORDER BY distance ASC;
+    `
+
+    const raw = await this.surrealQuery.queryInDatabase<any>(namespace, kb.databaseName, sql, {
+      queryVector
+    })
+
+    const records = this.extractRecords(raw)
+
+    const results: VectorRetrievalHit[] = records
+      .filter((r) => r && typeof r === 'object')
+      .map((r: any) => ({
+        id: typeof r.id === 'object' ? r.id.id || String(r.id) : String(r.id),
+        content: String(r.content ?? ''),
+        chunk_index: typeof r.chunk_index === 'number' ? r.chunk_index : undefined,
+        file_key: r.file_key ? String(r.file_key) : undefined,
+        file_name: r.file_name ? String(r.file_name) : undefined,
+        distance: typeof r.distance === 'number' ? r.distance : undefined
+      }))
+
+    return {
+      results,
+      resolved: {
+        knowledgeBaseId,
+        tableName,
+        dimensions,
+        embeddingConfigId: embeddingConfig.id,
+        embeddingModelId: modelId,
+        embeddingProviderId: providerId
+      }
+    }
+  }
+
+  // ==========================================================================
+  // Embedding config resolve
+  // ==========================================================================
+
+  /**
+   * 生成向量表名（与 VectorIndexer 的命名保持一致）
+   */
+  private getChunksTableName(configId: string, dimensions: number): string {
+    const safeId = configId.replace(/[^a-zA-Z0-9_]/g, '_')
+    return `emb_cfg_${safeId}_${dimensions}_chunks`
+  }
+
+  private getAltChunksTableName(configId: string, dimensions: number): string {
+    const safeId = configId.replace(/[^a-zA-Z0-9_]/g, '_')
+    return `emb_${safeId}_${dimensions}_chunks`
+  }
+
+  private resolveEmbeddingConfigForTable(
+    cfg: KnowledgeConfig,
+    tableName: string,
+    dimensions: number
+  ): ResolvedEmbeddingConfig {
+    const list = cfg.global?.embedding?.configs || []
+    if (!Array.isArray(list) || list.length === 0) {
+      throw new Error('No embedding configs found in KnowledgeConfig.json')
+    }
+
+    // 先按“表名计算一致”匹配，避免 cfg_ 前缀/安全字符差异
+    for (const item of list as any[]) {
+      if (!item?.id) continue
+      const expected1 = this.getChunksTableName(String(item.id), dimensions)
+      const expected2 = this.getAltChunksTableName(String(item.id), dimensions)
+      if (tableName === expected1 || tableName === expected2) {
+        return {
+          id: String(item.id),
+          name: item.name ? String(item.name) : undefined,
+          dimensions: dimensions,
+          candidates: Array.isArray(item.candidates) ? item.candidates : []
+        }
+      }
+    }
+
+    // fallback：从表名解析 configId，再尝试多种归一化匹配
+    const parsed = this.parseConfigIdFromTableName(tableName)
+    if (parsed) {
+      const candidates = this.buildConfigIdCandidates(parsed)
+      for (const id of candidates) {
+        const hit = (list as any[]).find((x) => String(x?.id) === id)
+        if (hit) {
+          return {
+            id: String(hit.id),
+            name: hit.name ? String(hit.name) : undefined,
+            dimensions: dimensions,
+            candidates: Array.isArray(hit.candidates) ? hit.candidates : []
+          }
+        }
+      }
+    }
+
+    throw new Error(`Embedding config not found for table: ${tableName}`)
+  }
+
+  private parseConfigIdFromTableName(tableName: string): string | null {
+    const m = tableName.match(/^emb_(.+)_(\d+)_chunks$/)
+    if (!m) return null
+    return m[1] ? String(m[1]) : null
+  }
+
+  private buildConfigIdCandidates(configIdFromTable: string): string[] {
+    const out: string[] = []
+    const push = (v: string) => {
+      if (v && !out.includes(v)) out.push(v)
+    }
+
+    push(configIdFromTable)
+
+    // 常见情况：tableName 的 config 段可能多一个 cfg_ 前缀（例如 cfg_cfg_xxx）
+    if (configIdFromTable.startsWith('cfg_')) {
+      push(configIdFromTable.slice(4))
+      if (configIdFromTable.startsWith('cfg_cfg_')) {
+        push(configIdFromTable.slice(4)) // cfg_xxx
+        push(configIdFromTable.slice(8)) // xxx
+      }
+    }
+
+    // 也可能缺少 cfg_ 前缀
+    push(`cfg_${configIdFromTable}`)
+
+    return out
+  }
+
+  // ==========================================================================
+  // Provider resolve + embed
+  // ==========================================================================
+
+  private async resolveProviderForEmbedding(
+    embeddingConfig: ResolvedEmbeddingConfig
+  ): Promise<Map<string, PersistedModelProviderConfig>> {
+    if (!Array.isArray(embeddingConfig.candidates) || embeddingConfig.candidates.length === 0) {
+      throw new Error('Embedding config has no candidates')
+    }
+
+    const modelConfig = await this.modelConfigService.getConfig()
+    const providerMap = new Map<string, PersistedModelProviderConfig>()
+
+    for (const p of modelConfig.providers || []) {
+      if (p && p.id) {
+        providerMap.set(p.id, p)
+      }
+    }
+
+    return providerMap
+  }
+
+  private async embedQueryText(params: {
+    queryText: string
+    dimensions: number
+    candidates: Array<{ providerId: string; modelId: string }>
+    providerMap: Map<string, PersistedModelProviderConfig>
+  }): Promise<{ queryVector: number[]; providerId: string; modelId: string }> {
+    let lastError: Error | null = null
+
+    for (const cand of params.candidates) {
+      const providerId = String(cand?.providerId || '')
+      const modelId = String(cand?.modelId || '')
+
+      if (!providerId || !modelId) {
+        continue
+      }
+
+      const provider = params.providerMap.get(providerId)
+      if (!provider || !provider.enabled) {
+        continue
+      }
+
+      if (!provider.baseUrl || !provider.apiKey) {
+        continue
+      }
+
+      try {
+        const queryVector = await this.embeddingClient.createEmbedding({
+          baseUrl: provider.baseUrl,
+          apiKey: provider.apiKey,
+          model: modelId,
+          input: params.queryText,
+          dimensions: params.dimensions,
+          headers: provider.defaultHeaders
+        })
+
+        return { queryVector, providerId, modelId }
+      } catch (err) {
+        const e = err instanceof Error ? err : new Error(String(err))
+        lastError = e
+        logger.warn('[VectorRetrieval] Embedding candidate failed, trying next', {
+          providerId,
+          modelId,
+          error: e.message
+        })
+      }
+    }
+
+    throw lastError || new Error('All embedding candidates failed')
+  }
+
+  // ==========================================================================
+  // SurrealDB connection
+  // ==========================================================================
+
+  private getNamespace(): string {
+    return this.surrealDBService.getQueryService().getNamespace() || 'knowledge'
+  }
+
+  private getSystemDatabase(): string {
+    return this.surrealDBService.getQueryService().getDatabase() || 'system'
+  }
+
+  private async ensureSurrealConnected(): Promise<void> {
+    if (this.surrealQuery.isConnected()) return
+
+    if (this.connectPromise) {
+      return await this.connectPromise
+    }
+
+    const serverUrl = this.surrealDBService.getServerUrl()
+    const credentials = this.surrealDBService.getCredentials()
+
+    this.connectPromise = this.surrealQuery
+      .connect(serverUrl, {
+        username: credentials.username,
+        password: credentials.password,
+        namespace: this.getNamespace(),
+        database: this.getSystemDatabase()
+      })
+      .catch((err) => {
+        // 允许后续重试
+        this.connectPromise = null
+        throw err
+      })
+
+    await this.connectPromise
+  }
+
+  // ==========================================================================
+  // Helpers
+  // ==========================================================================
+
+  private normalizePositiveInt(v: unknown, fallback: number): number {
+    const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN
+    if (!Number.isFinite(n)) return fallback
+    const i = Math.floor(n)
+    return i > 0 ? i : fallback
+  }
+
+  private parseDimensionsFromTableName(tableName: string): number | null {
+    const m = tableName.match(/_(\d+)_chunks$/)
+    if (!m) return null
+    const n = parseInt(m[1], 10)
+    return Number.isFinite(n) && n > 0 ? n : null
+  }
+
+  private assertSafeVectorTableName(tableName: string): void {
+    if (!tableName) {
+      throw new Error('tableName is required')
+    }
+
+    // 只允许安全字符，避免动态表名注入
+    if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
+      throw new Error(`Invalid tableName: ${tableName}`)
+    }
+    if (!tableName.startsWith('emb_') || !tableName.endsWith('_chunks')) {
+      throw new Error(`Invalid vector tableName: ${tableName}`)
+    }
+  }
+
+  private extractRecords(result: any): any[] {
+    if (!result) return []
+    if (Array.isArray(result)) {
+      // Handle double-nested arrays: [ [ {record} ] ]
+      if (result.length === 1 && Array.isArray(result[0])) {
+        const inner = result[0]
+        if (inner.length > 0 && typeof inner[0] === 'object' && !Array.isArray(inner[0])) {
+          return inner
+        }
+      }
+
+      for (const entry of result) {
+        if (Array.isArray(entry?.result)) {
+          if (entry.result.length > 0) return entry.result
+        }
+      }
+      if (result.length > 0 && typeof result[0] === 'object' && !('result' in result[0])) {
+        return result
+      }
+      return []
+    }
+    if (Array.isArray(result?.result)) return result.result
+    return []
+  }
+}
