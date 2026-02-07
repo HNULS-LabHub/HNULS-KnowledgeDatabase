@@ -62,6 +62,14 @@ export type MainToApiServerMessage =
       data?: RetrievalHit[]
       error?: string
     }
+  | {
+      /** 响应 ApiServer 发起的 model:list 请求 */
+      type: 'model:list:result'
+      requestId: string
+      success: boolean
+      data?: RerankModelInfo[]
+      error?: string
+    }
 
 /**
  * ApiServer → Main 消息
@@ -76,6 +84,11 @@ export type ApiServerToMainMessage =
       type: 'retrieval:search'
       requestId: string
       params: RetrievalSearchParams
+    }
+  | {
+      /** 列出当前可用的重排模型（脱敏） */
+      type: 'model:list'
+      requestId: string
     }
 
 /**
@@ -92,6 +105,32 @@ export interface ApiServerStatus {
   uptime: number
   /** 请求计数 */
   requestCount: number
+}
+
+// ============================================================================
+// Model catalog (for external clients)
+// ============================================================================
+
+/**
+ * 可供外部程序选择的重排模型信息（脱敏）。
+ *
+ * 注意：
+ * - 不返回 provider.baseUrl / apiKey 等敏感信息。
+ * - 当前系统对 rerankModelId 的解析仅依赖 modelId；请尽量保证不同 provider 下 modelId 唯一。
+ */
+export interface RerankModelInfo {
+  /** 模型 ID（用于 retrieval/search 的 rerankModelId） */
+  id: string
+  /** 展示名（通常用于前端下拉） */
+  displayName: string
+  /** 分组（可选） */
+  group?: string
+  /** 提供商 ID */
+  providerId: string
+  /** 提供商名称 */
+  providerName: string
+  /** 协议类型（当前主要为 openai-compatible） */
+  protocol: string
 }
 
 // ============================================================================
@@ -114,7 +153,7 @@ export interface ApiErrorResponse {
   error: {
     code: string
     message: string
-    details?: any
+    details?: unknown
   }
 }
 
@@ -256,6 +295,9 @@ export type ListDocumentsResponse = ApiResponse<{
 
 /** 文档嵌入列表响应 */
 export type ListDocumentEmbeddingsResponse = ApiResponse<DocumentEmbeddingInfo[]>
+
+/** 重排模型列表响应 */
+export type ListRerankModelsResponse = ApiResponse<RerankModelInfo[]>
 
 // ============================================================================
 // 向量检索相关类型 (Utility ↔ Main 消息 & REST API)

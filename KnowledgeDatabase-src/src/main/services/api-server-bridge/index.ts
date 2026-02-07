@@ -12,10 +12,12 @@ import type {
   ApiServerConfig,
   ApiServerDBConfig,
   ApiServerStatus,
-  RetrievalHit
+  RetrievalHit,
+  RerankModelInfo
 } from '@shared/api-server.types'
 import { logger } from '../logger'
 import type { VectorRetrievalService } from '../vector-retrieval/vector-retrieval-service'
+import { ModelConfigService } from '../model-config'
 
 // ============================================================================
 // 类型定义
@@ -33,7 +35,7 @@ interface PendingRequest<T> {
 
 export class ApiServerBridge {
   private process: UtilityProcess | null = null
-  private pendingRequests: Map<string, PendingRequest<any>> = new Map()
+  private pendingRequests: Map<string, PendingRequest<unknown>> = new Map()
   private isReady = false
   private isRunning = false
   private readyPromise: Promise<void> | null = null
@@ -263,6 +265,66 @@ export class ApiServerBridge {
         this.handleRetrievalSearch(msg.requestId, msg.params)
         break
       }
+
+      case 'model:list': {
+        this.handleModelList(msg.requestId)
+        break
+      }
+    }
+  }
+
+  /**
+   * 列出当前可用的重排模型（脱敏），供 Utility 进程 REST API 对外暴露。
+   */
+  private async handleModelList(requestId: string): Promise<void> {
+    try {
+      const modelConfigService = new ModelConfigService()
+      const config = await modelConfigService.getConfig()
+
+      const seen = new Set<string>()
+      const list: RerankModelInfo[] = []
+
+      for (const p of config.providers || []) {
+        // 与 renderer 的 providersReady 逻辑对齐：enabled + 有 baseUrl/apiKey + 有 models
+        if (!p?.enabled || !p.baseUrl || !p.apiKey) continue
+        if (!Array.isArray(p.models) || p.models.length === 0) continue
+
+        for (const m of p.models) {
+          const id = String(m?.id || '').trim()
+          if (!id || seen.has(id)) continue
+          seen.add(id)
+
+          list.push({
+            id,
+            displayName: m.displayName || id,
+            group: m.group,
+            providerId: p.id,
+            providerName: p.name,
+            protocol: p.protocol
+          })
+        }
+      }
+
+      // 排序：先 provider，再 displayName
+      list.sort((a, b) =>
+        `${a.providerName}::${a.displayName}`.localeCompare(`${b.providerName}::${b.displayName}`)
+      )
+
+      this.send({
+        type: 'model:list:result',
+        requestId,
+        success: true,
+        data: list
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      logger.error('[ApiServerBridge] model:list failed:', message)
+      this.send({
+        type: 'model:list:result',
+        requestId,
+        success: false,
+        error: message
+      })
     }
   }
 
@@ -345,7 +407,11 @@ export class ApiServerBridge {
         }
       }, 30000) // 30 秒超时
 
-      this.pendingRequests.set(msg.requestId, { resolve, reject, timeoutId })
+      this.pendingRequests.set(msg.requestId, {
+        resolve: (value: unknown) => resolve(value as T),
+        reject,
+        timeoutId
+      })
       this.send(msg)
     })
   }

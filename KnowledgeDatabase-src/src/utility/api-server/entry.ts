@@ -143,8 +143,8 @@ parentPort.on('message', async (event: { data: MainToApiServerMessage }) => {
   const msg = event.data
   log(`Received: ${msg?.type}`)
 
-  // 将检索结果消息路由到 mainBridge
-  if (msg.type === 'retrieval:result') {
+  // 将 RPC 响应消息路由到 mainBridge
+  if (msg.type === 'retrieval:result' || msg.type === 'model:list:result') {
     mainBridge.handleMessage(msg)
     return
   }
@@ -176,8 +176,10 @@ parentPort.on('message', async (event: { data: MainToApiServerMessage }) => {
         break
       }
 
-      default:
-        log(`Unknown message type: ${(msg as any).type}`)
+      default: {
+        const unknownType = (msg as { type?: unknown }).type
+        log(`Unknown message type: ${typeof unknownType === 'string' ? unknownType : 'unknown'}`)
+      }
     }
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Unknown error'

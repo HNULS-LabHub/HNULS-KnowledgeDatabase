@@ -11,7 +11,7 @@ import type { ApiResponse, RetrievalHit, RetrievalSearchParams } from '@shared/a
 // 日志
 // ============================================================================
 
-const log = (msg: string, data?: any): void => {
+const log = (msg: string, data?: unknown): void => {
   if (data) {
     console.log(`[ApiServer:RetrievalRoutes] ${msg}`, data)
   } else {
@@ -19,7 +19,7 @@ const log = (msg: string, data?: any): void => {
   }
 }
 
-const logError = (msg: string, error?: any): void => {
+const logError = (msg: string, error?: unknown): void => {
   console.error(`[ApiServer:RetrievalRoutes] ${msg}`, error)
 }
 
@@ -31,7 +31,7 @@ function success<T>(data: T): ApiResponse<T> {
   return { success: true, data }
 }
 
-function error(code: string, message: string, details?: any): ApiResponse<never> {
+function error(code: string, message: string, details?: unknown): ApiResponse<never> {
   return {
     success: false,
     error: { code, message, details }
@@ -43,6 +43,29 @@ function error(code: string, message: string, details?: any): ApiResponse<never>
 // ============================================================================
 
 export function createRetrievalRoutes(router: Router, bridge: MainBridge): Router {
+  // ==========================================================================
+  // Rerank model cache (best-effort)
+  // ==========================================================================
+
+  const RERANK_MODEL_CACHE_TTL_MS = 60_000
+  let rerankModelCache: { at: number; ids: Set<string> } | null = null
+
+  async function getRerankModelIdSet(): Promise<Set<string> | null> {
+    const now = Date.now()
+    if (rerankModelCache && now - rerankModelCache.at < RERANK_MODEL_CACHE_TTL_MS) {
+      return rerankModelCache.ids
+    }
+
+    const resp = await bridge.listRerankModels()
+    if (!resp.success || !Array.isArray(resp.data)) {
+      return null
+    }
+
+    const ids = new Set(resp.data.map((m) => String(m?.id || '').trim()).filter(Boolean))
+    rerankModelCache = { at: now, ids }
+    return ids
+  }
+
   // ==========================================================================
   // POST /api/v1/retrieval/search - 向量检索（含可选重排）
   // ==========================================================================
@@ -79,7 +102,7 @@ export function createRetrievalRoutes(router: Router, bridge: MainBridge): Route
       // - 优先级: fileKey > fileKeys（同时传递时只使用 fileKey）
       const fileKey = body.fileKey !== undefined ? String(body.fileKey).trim() : undefined
       const fileKeys = Array.isArray(body.fileKeys)
-        ? body.fileKeys.map((v: any) => String(v).trim()).filter(Boolean)
+        ? body.fileKeys.map((v: unknown) => String(v).trim()).filter(Boolean)
         : undefined
 
       // 空数组校验：fileKeys 不能为空数组
@@ -89,6 +112,11 @@ export function createRetrievalRoutes(router: Router, bridge: MainBridge): Route
       }
       // ========== [/Feature] fileKey/fileKeys 筛选参数 ==========
 
+      const rerankModelId =
+        body.rerankModelId !== undefined && body.rerankModelId !== null
+          ? String(body.rerankModelId).trim()
+          : ''
+
       const params: RetrievalSearchParams = {
         knowledgeBaseId,
         tableName,
@@ -97,8 +125,25 @@ export function createRetrievalRoutes(router: Router, bridge: MainBridge): Route
         fileKeys,
         k: body.k !== undefined ? Number(body.k) : undefined,
         ef: body.ef !== undefined ? Number(body.ef) : undefined,
-        rerankModelId: body.rerankModelId ? String(body.rerankModelId) : undefined,
+        rerankModelId: rerankModelId || undefined,
         rerankTopN: body.rerankTopN !== undefined ? Number(body.rerankTopN) : undefined
+      }
+
+      // best-effort：若客户端提供了 rerankModelId，先做一次轻量校验（避免 500）
+      if (params.rerankModelId) {
+        try {
+          const validIds = await getRerankModelIdSet()
+          if (validIds && !validIds.has(params.rerankModelId)) {
+            res.status(400).json(
+              error('INVALID_PARAM', 'Unknown rerankModelId', {
+                rerankModelId: params.rerankModelId
+              })
+            )
+            return
+          }
+        } catch {
+          // ignore validation errors, fall through
+        }
       }
 
       log('Search request', {

@@ -150,7 +150,12 @@ export class VectorRetrievalService {
       ORDER BY distance ASC;
     `
 
-    const raw = await this.surrealQuery.queryInDatabase<any>(namespace, kb.databaseName, sql, queryParams)
+    const raw = await this.surrealQuery.queryInDatabase<any>(
+      namespace,
+      kb.databaseName,
+      sql,
+      queryParams
+    )
 
     const records = this.extractRecords(raw)
 

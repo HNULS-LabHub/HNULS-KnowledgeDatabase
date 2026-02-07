@@ -1,0 +1,155 @@
+Debugger attached.
+vite v7.3.1 building ssr environment for development...
+(node:42712) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/code/Large-scale-integrated-project/HNULS-LabHub/HNULS-KnowledgeDatabase/KnowledgeDatabase-src/postcss.config.js?t=1770491960527 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+transforming...
+✓ 97 modules transformed.
+rendering chunks...
+out/main/utility/global-monitor.js             7.54 kB
+out/main/chunks/surrealdb-query-F6zs1Y0g.js   12.77 kB
+out/main/utility/vector-indexer.js            23.82 kB
+out/main/utility/embedding.js                 24.66 kB
+out/main/utility/api-server.js                26.55 kB
+out/main/index.js                            292.80 kB
+✓ built in 945ms
+
+electron main process built successfully
+
+-----
+
+vite v7.3.1 building ssr environment for development...
+(node:42712) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/code/Large-scale-integrated-project/HNULS-LabHub/HNULS-KnowledgeDatabase/KnowledgeDatabase-src/postcss.config.js?t=1770491961455 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+transforming...
+✓ 17 modules transformed.
+rendering chunks...
+out/preload/index.js  16.54 kB
+✓ built in 34ms
+
+electron preload scripts built successfully
+
+-----
+
+Port 5173 is in use, trying another one...
+dev server running for the electron renderer process at:
+
+  ➜  Local:   http://localhost:5174/
+  ➜  Network: use --host to expose
+
+starting electron app...
+
+
+Debugger attached.
+[2026-02-08 03:19:22] [warn]  log.catchErrors is deprecated. Use log.errorHandler instead
+[2026-02-08 03:19:22] [info]  Logger initialized with level: info
+[2026-02-08 03:19:22] [info]  SurrealDBService created with config {
+  namespace: 'knowledge',
+  database: 'system',
+  portRange: { min: 8000, max: 8100 }
+}
+[2026-02-08 03:19:22] [info]  Initializing documents directory...
+[2026-02-08 03:19:22] [info]  Initialized documents directory: C:\Users\zhaowendao\AppData\Roaming\knowledgedatabase-src\data\documents
+[2026-02-08 03:19:22] [info]  Documents directory initialized successfully
+[2026-02-08 03:19:22] [info]  Initializing SurrealDB service...
+[2026-02-08 03:19:22] [info]  Initializing SurrealDB service
+[2026-02-08 03:19:22] [info]  Port 8000 allocated successfully
+[2026-02-08 03:19:22] [info]  SurrealDB service initialized on port 8000
+[2026-02-08 03:19:24] [warn]  [SurrealDB stderr] 2026-02-07T19:19:24.516571Z  WARN surrealdb::core::kvs::ds: Credentials were provided, but existing root users were found. The root user 'root' will not be created
+2026-02-07T19:19:24.516584Z  WARN surrealdb::core::kvs::ds: Consider removing the --user and --pass arguments from the server start command
+[2026-02-08 03:19:24] [info]  Initializing database schema
+[2026-02-08 03:19:25] [info]  Schema exists: true
+[2026-02-08 03:19:25] [info]  Schema validation result: true
+[2026-02-08 03:19:25] [info]  Schema is valid, no import needed
+[2026-02-08 03:19:25] [info]  SurrealDB server is ready
+[2026-02-08 03:19:25] [info]  QueryService connected to SurrealDB { namespace: 'knowledge', database: 'system', instanceId: 'd5wb0u' }
+[2026-02-08 03:19:25] [info]  QueryService initialized
+[2026-02-08 03:19:25] [info]  SurrealDB service started successfully
+[2026-02-08 03:19:25] [info]  ✅ [ServiceTracker] KnowledgeLibraryService[kor1kf] <- QueryService injected { dependencyInstanceId: 'd5wb0u', isConnected: true }
+[2026-02-08 03:19:25] [info]  QueryService injected into KnowledgeLibraryService
+[2026-02-08 03:19:25] [info]  QueryService injected into EmbeddingEngineBridge
+[2026-02-08 03:19:25] [info]  Restoring knowledge base databases...
+[2026-02-08 03:19:25] [info]  Restoring 2 knowledge base databases...
+[2026-02-08 03:19:25] [info]  Knowledge base database restoration completed: 2 restored, 0 failed
+[2026-02-08 03:19:25] [info]  Restored 2 knowledge base databases: temp1, temp2
+[2026-02-08 03:19:25] [info]  Cleaning up orphaned knowledge base directories...
+[2026-02-08 03:19:25] [info]  Directory cleanup completed: scanned 2 directories, removed 0
+[2026-02-08 03:19:25] [warn]  ⚠️ [ServiceTracker] Multiple instances detected for KnowledgeLibraryService {
+  totalInstances: 2,
+  instances: [
+    { instanceId: 'kor1kf', createdAt: '2026-02-07T19:19:22.542Z' },
+    { instanceId: 'iis5bb', createdAt: '2026-02-07T19:19:25.516Z' }
+  ]
+}
+[2026-02-08 03:19:25] [info]  [ChunkingService] Registered strategy: recursive
+[2026-02-08 03:19:25] [warn]  ⚠️ [ServiceTracker] Multiple instances detected for KnowledgeLibraryService {
+  totalInstances: 3,
+  instances: [
+    { instanceId: 'kor1kf', createdAt: '2026-02-07T19:19:22.542Z' },
+    { instanceId: 'iis5bb', createdAt: '2026-02-07T19:19:25.516Z' },
+    { instanceId: '7zniav', createdAt: '2026-02-07T19:19:25.517Z' }
+  ]
+}
+[EmbeddingIPCHandler] Registered embedding IPC handlers
+[2026-02-08 03:19:25] [info]  [VectorIndexerHandler] Handlers registered
+Registered 14 IPC handlers
+[GlobalMonitorBridge] Starting utility process: D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\global-monitor.js
+[2026-02-08 03:19:25] [info]  [MinerUParserService] restored tasks { count: 4 }
+[GlobalMonitorBridge] Ready
+[2026-02-08 03:19:25] [info]  [EmbeddingEngineBridge] Spawning utility process: D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\embedding.js
+[2026-02-08 03:19:26] [info]  [EmbeddingEngineBridge] Process spawned successfully
+[2026-02-08 03:19:26] [info]  [EmbeddingEngineBridge] Ready
+[2026-02-08 03:19:26] [info]  [VectorIndexerBridge] Spawning utility process: D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\vector-indexer.js
+[2026-02-08 03:19:26] [info]  [VectorIndexerBridge] Process ready
+Vector Indexer started successfully
+[2026-02-08 03:19:26] [info]  [ApiServerBridge] VectorRetrievalService injected
+[2026-02-08 03:19:26] [info]  [ApiServerBridge] Spawning utility process: D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\api-server.js
+[2026-02-08 03:19:26] [info]  [VectorIndexerBridge] Indexer started
+[2026-02-08 03:19:27] [info]  [ApiServerBridge] Process ready
+API Server started successfully
+[2026-02-08 03:19:27] [info]  📊 [ServiceTracker] Service Diagnostics Report {
+  QueryService: [
+    {
+      instanceId: 'd5wb0u',
+      createdAt: '2026-02-07T19:19:22.538Z',
+      dependencies: {}
+    }
+  ],
+  KnowledgeLibraryService: [
+    {
+      instanceId: 'kor1kf',
+      createdAt: '2026-02-07T19:19:22.542Z',
+      dependencies: [Object]
+    },
+    {
+      instanceId: 'iis5bb',
+      createdAt: '2026-02-07T19:19:25.516Z',
+      dependencies: {}
+    },
+    {
+      instanceId: '7zniav',
+      createdAt: '2026-02-07T19:19:25.517Z',
+      dependencies: {}
+    }
+  ]
+}
+[2026-02-08 03:19:27] [warn]  ⚠️ [ServiceTracker] KnowledgeLibraryService has 3 instances!
+Application started successfully
+[2026-02-08 03:19:27] [info]  [ApiServerBridge] Server started on 0.0.0.0:3721
+[ApiServer] HTTP server started on http://0.0.0.0:3721
+[SurrealDBQueryService] Connected to SurrealDB { namespace: 'knowledge', database: 'system' }
+[SurrealDBQueryService] DB QUERY_IN_DATABASE succeeded {
+  namespace: 'knowledge',
+  database: 'temp1',
+  duration: '86ms',
+  sql: '\n' +
+    '      SELECT\n' +
+    '        id,\n' +
+    '        content,\n' +
+    '        chunk_index,\n' +
+    '        file_key,\n' +
+    '        file_name,...'
+}

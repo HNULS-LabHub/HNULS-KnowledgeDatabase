@@ -8,13 +8,14 @@ import type { Express, Request, Response, NextFunction } from 'express'
 import type { SurrealClient } from './db/surreal-client'
 import { createKnowledgeRoutes } from './routes/knowledge'
 import { createRetrievalRoutes } from './routes/retrieval'
+import { createRerankModelRoutes } from './routes/rerank-models'
 import { mainBridge } from './ipc/main-bridge'
 
 // ============================================================================
 // 日志
 // ============================================================================
 
-const log = (msg: string, data?: any): void => {
+const log = (msg: string, data?: unknown): void => {
   if (data) {
     console.log(`[ApiServer:App] ${msg}`, data)
   } else {
@@ -109,6 +110,14 @@ export function createApp(dbClient: SurrealClient, metaFilePath: string): Expres
   app.use('/api/v1', retrievalRouter)
 
   // ==========================================================================
+  // 重排模型路由（供外部程序发现可用 rerankModelId）
+  // ==========================================================================
+
+  const rerankModelRouter = Router()
+  createRerankModelRoutes(rerankModelRouter, mainBridge)
+  app.use('/api/v1', rerankModelRouter)
+
+  // ==========================================================================
   // 404 处理
   // ==========================================================================
 
@@ -126,7 +135,10 @@ export function createApp(dbClient: SurrealClient, metaFilePath: string): Expres
   // 错误处理
   // ==========================================================================
 
-  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  app.use((err: Error, _req: Request, res: Response, next: NextFunction) => {
+    // 保持 4 参数签名，确保 Express 将其识别为错误处理中间件
+    void next
+
     console.error('[ApiServer:App] Unhandled error:', err)
     res.status(500).json({
       success: false,
