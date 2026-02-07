@@ -1,7 +1,13 @@
 <template>
   <div v-if="error" class="mt-2 px-3 py-2 rounded-xl bg-red-50 border border-red-200">
     <div class="flex items-start gap-2">
-      <svg class="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        class="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <circle cx="12" cy="12" r="10" />
         <path d="m15 9-6 6M9 9l6 6" />
       </svg>

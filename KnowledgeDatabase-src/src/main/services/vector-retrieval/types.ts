@@ -12,6 +12,13 @@ export interface VectorRetrievalSearchParams {
   tableName: string
   /** 用户查询文本 */
   queryText: string
+
+  // ========== [Feature] fileKey/fileKeys 筛选参数（v3 新增） ==========
+  /** 仅检索指定 file_key 的分片（单值优先于数组） */
+  fileKey?: string
+  /** 仅检索指定 file_key 列表的分片 */
+  fileKeys?: string[]
+  // ========== [/Feature] ==========
   /** TopK */
   k?: number
   /** HNSW ef 参数 */

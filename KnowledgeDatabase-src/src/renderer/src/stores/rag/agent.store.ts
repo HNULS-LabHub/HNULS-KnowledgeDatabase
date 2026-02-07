@@ -5,13 +5,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed, onUnmounted } from 'vue'
-import type {
-  AgentRun,
-  AgentEvent,
-  AgentDoc,
-  AgentCitation,
-  AgentStatus
-} from './agent.types'
+import type { AgentRun, AgentEvent, AgentDoc, AgentCitation, AgentStatus } from './agent.types'
 
 export const useAgentStore = defineStore('agent', () => {
   // ---- State ----

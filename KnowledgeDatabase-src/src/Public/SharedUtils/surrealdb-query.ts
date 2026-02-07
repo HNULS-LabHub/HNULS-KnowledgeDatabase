@@ -511,14 +511,32 @@ export class SurrealDBQueryService {
 
   /**
    * 向量检索（KNN）
+   * @param options.fileKey - [Feature v3] 单个文件筛选
+   * @param options.fileKeys - [Feature v3] 多个文件筛选
    */
   async vectorSearch(
     namespace: string,
     database: string,
     queryVector: number[],
     k: number = 10,
-    ef: number = 100
+    ef: number = 100,
+    options?: { fileKey?: string; fileKeys?: string[] }
   ): Promise<any> {
+    // ========== [Feature] fileKey/fileKeys 筛选逻辑（v3 新增） ==========
+    const filters: string[] = [`embedding <|${k},${ef}|> $queryVector`]
+    const params: Record<string, any> = { queryVector }
+
+    if (options?.fileKey) {
+      filters.push('document.file_key = $fileKey')
+      params.fileKey = options.fileKey
+    } else if (Array.isArray(options?.fileKeys) && options.fileKeys.length > 0) {
+      filters.push('document.file_key IN $fileKeys')
+      params.fileKeys = options.fileKeys
+    }
+
+    const whereClause = filters.join(' AND ')
+    // ========== [/Feature] fileKey/fileKeys 筛选逻辑 ==========
+
     const sql = `
       SELECT
         id,
@@ -528,12 +546,12 @@ export class SurrealDBQueryService {
         document.file_name AS file_name,
         vector::distance::knn() AS distance
       FROM chunk
-      WHERE embedding <|${k},${ef}|> $queryVector
+      WHERE ${whereClause}
       ORDER BY distance ASC;
     `
 
     try {
-      return await this.queryInDatabase(namespace, database, sql, { queryVector })
+      return await this.queryInDatabase(namespace, database, sql, params)
     } catch (error) {
       console.error('[SurrealDBQueryService] Vector search failed', {
         namespace,

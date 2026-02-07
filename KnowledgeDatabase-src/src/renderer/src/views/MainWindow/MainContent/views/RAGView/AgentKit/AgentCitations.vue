@@ -8,7 +8,10 @@
       <svg
         class="w-3 h-3 transition-transform"
         :class="expanded ? 'rotate-90' : ''"
-        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
       >
         <path d="m9 18 6-6-6-6" />
       </svg>
@@ -27,7 +30,9 @@
         class="flex items-start gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 text-xs"
       >
         <!-- 序号 -->
-        <span class="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-medium text-[10px]">
+        <span
+          class="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-medium text-[10px]"
+        >
           {{ index + 1 }}
         </span>
 
@@ -46,10 +51,7 @@
           </div>
 
           <!-- 内容预览（可展开） -->
-          <button
-            class="text-gray-400 hover:text-gray-600 mt-0.5"
-            @click="toggleDoc(index)"
-          >
+          <button class="text-gray-400 hover:text-gray-600 mt-0.5" @click="toggleDoc(index)">
             {{ expandedDocs.has(index) ? '收起' : '查看内容' }}
           </button>
           <div

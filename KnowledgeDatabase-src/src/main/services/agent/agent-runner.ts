@@ -61,10 +61,7 @@ export class AgentRunner {
    * @param emitEvent 事件回调（推送到渲染层）
    * @returns runId
    */
-  async run(
-    params: AgentRunParams,
-    emitEvent: (event: AgentEvent) => void
-  ): Promise<string> {
+  async run(params: AgentRunParams, emitEvent: (event: AgentEvent) => void): Promise<string> {
     const runId = params.runId
     const controller = new AbortController()
     this.activeControllers.set(runId, controller)

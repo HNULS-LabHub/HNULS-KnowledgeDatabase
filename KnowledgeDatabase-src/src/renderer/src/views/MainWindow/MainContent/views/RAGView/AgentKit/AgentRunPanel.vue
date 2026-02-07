@@ -4,8 +4,16 @@
     <div ref="chatContainer" class="flex-1 overflow-y-auto px-4 py-6 space-y-4">
       <div v-if="!currentRun" class="flex items-center justify-center h-full text-gray-400">
         <div class="text-center">
-          <svg class="w-10 h-10 mx-auto mb-3 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
+          <svg
+            class="w-10 h-10 mx-auto mb-3 text-gray-300"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"
+            />
           </svg>
           <p class="text-sm">在上方输入问题，开始 Agent 对话</p>
         </div>
@@ -14,7 +22,9 @@
       <template v-else>
         <!-- 用户消息气泡（右侧） -->
         <div class="flex justify-end">
-          <div class="max-w-[75%] px-4 py-2.5 rounded-2xl rounded-tr-sm bg-blue-500 text-white text-sm leading-relaxed shadow-sm">
+          <div
+            class="max-w-[75%] px-4 py-2.5 rounded-2xl rounded-tr-sm bg-blue-500 text-white text-sm leading-relaxed shadow-sm"
+          >
             {{ currentRun.question }}
           </div>
         </div>

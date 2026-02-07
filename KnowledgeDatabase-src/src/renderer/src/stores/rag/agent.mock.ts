@@ -146,7 +146,10 @@ export async function mockAgentRun(
     runId,
     node: 'grade',
     at: Date.now(),
-    data: { needMore: false, rationale: '检索到的文档覆盖了深度学习的核心概念、架构和训练技巧，足以回答问题' }
+    data: {
+      needMore: false,
+      rationale: '检索到的文档覆盖了深度学习的核心概念、架构和训练技巧，足以回答问题'
+    }
   })
 
   // 8. generate 节点开始（生成答案）

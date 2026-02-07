@@ -118,6 +118,25 @@ export class VectorRetrievalService {
     await this.ensureSurrealConnected()
     const namespace = this.getNamespace()
 
+    // ========== [Feature] fileKey/fileKeys 筛选逻辑（v3 新增） ==========
+    // 构建 WHERE 子句的筛选条件
+    // - 优先级: params.fileKey > params.fileKeys
+    // - fileKey: 单个文件筛选 (file_key = $fileKey)
+    // - fileKeys: 多个文件筛选 (file_key IN $fileKeys)
+    const filters: string[] = [`embedding <|${k},${ef}|> $queryVector`]
+    const queryParams: Record<string, any> = { queryVector }
+
+    if (params.fileKey) {
+      filters.push('file_key = $fileKey')
+      queryParams.fileKey = params.fileKey
+    } else if (Array.isArray(params.fileKeys) && params.fileKeys.length > 0) {
+      filters.push('file_key IN $fileKeys')
+      queryParams.fileKeys = params.fileKeys
+    }
+
+    const whereClause = filters.join(' AND ')
+    // ========== [/Feature] fileKey/fileKeys 筛选逻辑 ==========
+
     const sql = `
       SELECT
         id,
@@ -127,13 +146,11 @@ export class VectorRetrievalService {
         file_name,
         vector::distance::knn() AS distance
       FROM \`${tableName}\`
-      WHERE embedding <|${k},${ef}|> $queryVector
+      WHERE ${whereClause}
       ORDER BY distance ASC;
     `
 
-    const raw = await this.surrealQuery.queryInDatabase<any>(namespace, kb.databaseName, sql, {
-      queryVector
-    })
+    const raw = await this.surrealQuery.queryInDatabase<any>(namespace, kb.databaseName, sql, queryParams)
 
     const records = this.extractRecords(raw)
 

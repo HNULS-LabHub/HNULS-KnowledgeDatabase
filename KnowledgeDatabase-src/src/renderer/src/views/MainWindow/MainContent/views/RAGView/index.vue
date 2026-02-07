@@ -90,9 +90,8 @@ async function handleSubmit() {
       llmModelId,
       kbId,
       tables,
-      rerankModelId: ragStore.rerankEnabled && ragStore.rerankModelId
-        ? ragStore.rerankModelId
-        : undefined
+      rerankModelId:
+        ragStore.rerankEnabled && ragStore.rerankModelId ? ragStore.rerankModelId : undefined
     })
   } else {
     // 否则走传统检索管线

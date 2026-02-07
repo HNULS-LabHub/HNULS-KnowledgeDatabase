@@ -44,10 +44,7 @@
             </div>
 
             <!-- 展开详情 -->
-            <div
-              v-if="item.type === 'tool_called' || item.type === 'tool_result'"
-              class="mt-2"
-            >
+            <div v-if="item.type === 'tool_called' || item.type === 'tool_result'" class="mt-2">
               <button
                 class="text-xs text-blue-500 hover:text-blue-600"
                 @click="toggleExpand(index)"
@@ -55,9 +52,7 @@
                 {{ expandedItems.has(index) ? '收起' : '展开详情' }}
               </button>
               <div v-if="expandedItems.has(index)" class="mt-2 p-2 bg-gray-50 rounded text-xs">
-                <pre class="whitespace-pre-wrap overflow-x-auto">{{
-                  formatToolData(item)
-                }}</pre>
+                <pre class="whitespace-pre-wrap overflow-x-auto">{{ formatToolData(item) }}</pre>
               </div>
             </div>
           </div>

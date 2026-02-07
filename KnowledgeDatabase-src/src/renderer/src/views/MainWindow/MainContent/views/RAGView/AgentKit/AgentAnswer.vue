@@ -11,9 +11,18 @@
 
       <!-- 等待生成的光标动画 -->
       <div v-else-if="isGenerating" class="flex items-center gap-1 py-1">
-        <span class="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 0ms"></span>
-        <span class="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 150ms"></span>
-        <span class="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 300ms"></span>
+        <span
+          class="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"
+          style="animation-delay: 0ms"
+        ></span>
+        <span
+          class="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"
+          style="animation-delay: 150ms"
+        ></span>
+        <span
+          class="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"
+          style="animation-delay: 300ms"
+        ></span>
       </div>
 
       <!-- 正在生成时的闪烁光标 -->
@@ -29,9 +38,7 @@
       <span v-else-if="currentStatus === 'completed'" class="text-[11px] text-gray-400">
         {{ formatElapsed }} · 完成
       </span>
-      <span v-else-if="currentStatus === 'error'" class="text-[11px] text-red-400">
-        生成中断
-      </span>
+      <span v-else-if="currentStatus === 'error'" class="text-[11px] text-red-400"> 生成中断 </span>
     </div>
   </div>
 </template>

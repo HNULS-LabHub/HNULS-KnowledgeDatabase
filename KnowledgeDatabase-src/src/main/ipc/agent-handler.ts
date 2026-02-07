@@ -61,10 +61,7 @@ export class AgentIPCHandler extends BaseIPCHandler {
   /**
    * agent:cancel — 取消指定运行
    */
-  async handleCancel(
-    _event: IpcMainInvokeEvent,
-    runId: string
-  ): Promise<{ success: boolean }> {
+  async handleCancel(_event: IpcMainInvokeEvent, runId: string): Promise<{ success: boolean }> {
     const cancelled = this.agentRunner.cancel(runId)
     return { success: cancelled }
   }

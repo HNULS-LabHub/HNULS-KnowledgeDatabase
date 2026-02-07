@@ -54,7 +54,9 @@ export function createRetrievalRoutes(router: Router, bridge: MainBridge): Route
       // ---------- 参数校验 ----------
       const knowledgeBaseId = Number(body.knowledgeBaseId)
       if (!knowledgeBaseId || isNaN(knowledgeBaseId)) {
-        res.status(400).json(error('INVALID_PARAM', 'knowledgeBaseId is required and must be a number'))
+        res
+          .status(400)
+          .json(error('INVALID_PARAM', 'knowledgeBaseId is required and must be a number'))
         return
       }
 
@@ -70,10 +72,29 @@ export function createRetrievalRoutes(router: Router, bridge: MainBridge): Route
         return
       }
 
+      // ========== [Feature] fileKey/fileKeys 筛选参数（v3 新增） ==========
+      // 可选筛选参数：fileKey / fileKeys（单值优先）
+      // - fileKey: 单个文件路径筛选
+      // - fileKeys: 多个文件路径数组筛选
+      // - 优先级: fileKey > fileKeys（同时传递时只使用 fileKey）
+      const fileKey = body.fileKey !== undefined ? String(body.fileKey).trim() : undefined
+      const fileKeys = Array.isArray(body.fileKeys)
+        ? body.fileKeys.map((v: any) => String(v).trim()).filter(Boolean)
+        : undefined
+
+      // 空数组校验：fileKeys 不能为空数组
+      if (fileKeys && fileKeys.length === 0) {
+        res.status(400).json(error('INVALID_PARAM', 'fileKeys must not be empty'))
+        return
+      }
+      // ========== [/Feature] fileKey/fileKeys 筛选参数 ==========
+
       const params: RetrievalSearchParams = {
         knowledgeBaseId,
         tableName,
         queryText,
+        fileKey,
+        fileKeys,
         k: body.k !== undefined ? Number(body.k) : undefined,
         ef: body.ef !== undefined ? Number(body.ef) : undefined,
         rerankModelId: body.rerankModelId ? String(body.rerankModelId) : undefined,
@@ -86,8 +107,9 @@ export function createRetrievalRoutes(router: Router, bridge: MainBridge): Route
         k: params.k,
         ef: params.ef,
         rerankModelId: params.rerankModelId || null,
-        queryPreview:
-          queryText.length > 100 ? queryText.slice(0, 100) + '…' : queryText
+        fileKey: params.fileKey || null,
+        fileKeys: params.fileKeys || null,
+        queryPreview: queryText.length > 100 ? queryText.slice(0, 100) + '…' : queryText
       })
 
       // ---------- 委托主进程执行 ----------

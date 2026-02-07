@@ -219,7 +219,10 @@ function createGradeNode(deps: GraphDeps) {
       const text = typeof response.content === 'string' ? response.content : ''
 
       // 提取 JSON（处理 LLM 可能包裹 markdown code block 的情况）
-      const jsonStr = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+      const jsonStr = text
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .trim()
       const parsed = JSON.parse(jsonStr) as GradeResult
 
       const result: GradeResult = {

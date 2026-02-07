@@ -58,9 +58,7 @@ ${docContents}
 /**
  * 将文档列表压缩为摘要文本（给 grade 节点用）
  */
-export function summarizeDocs(
-  docs: Array<{ content: string; file_name?: string }>
-): string {
+export function summarizeDocs(docs: Array<{ content: string; file_name?: string }>): string {
   if (docs.length === 0) return '（无文档）'
 
   return docs
@@ -76,9 +74,7 @@ export function summarizeDocs(
 /**
  * 将文档列表构建为完整上下文（给 generate 节点用）
  */
-export function buildDocContext(
-  docs: Array<{ content: string; file_name?: string }>
-): string {
+export function buildDocContext(docs: Array<{ content: string; file_name?: string }>): string {
   if (docs.length === 0) return '（无参考文档）'
 
   return docs

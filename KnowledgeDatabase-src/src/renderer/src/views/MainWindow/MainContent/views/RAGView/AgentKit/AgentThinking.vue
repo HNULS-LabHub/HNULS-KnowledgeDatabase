@@ -3,16 +3,21 @@
     <!-- 折叠头 -->
     <button
       class="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors"
-      :class="isRunning
-        ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-        : 'text-gray-500 bg-gray-50 hover:bg-gray-100'"
+      :class="
+        isRunning
+          ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+          : 'text-gray-500 bg-gray-50 hover:bg-gray-100'
+      "
       @click="expanded = !expanded"
     >
       <!-- 旋转箭头 -->
       <svg
         class="w-3 h-3 transition-transform"
         :class="expanded ? 'rotate-90' : ''"
-        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
       >
         <path d="m9 18 6-6-6-6" />
       </svg>
@@ -21,7 +26,10 @@
       <svg
         v-if="isRunning"
         class="w-3 h-3 animate-spin"
-        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
       >
         <path d="M21 12a9 9 0 1 1-6.219-8.56" />
       </svg>
@@ -31,11 +39,7 @@
 
     <!-- 展开的步骤列表 -->
     <div v-if="expanded" class="mt-1.5 ml-2 pl-3 border-l-2 border-gray-200 space-y-1">
-      <div
-        v-for="(step, i) in steps"
-        :key="i"
-        class="flex items-start gap-2 py-1 text-xs"
-      >
+      <div v-for="(step, i) in steps" :key="i" class="flex items-start gap-2 py-1 text-xs">
         <!-- 状态点 -->
         <span
           class="mt-0.5 w-2 h-2 rounded-full flex-shrink-0"
@@ -150,10 +154,14 @@ function getNodeDetail(evt: AgentEvent): string | undefined {
 
 function getStepDotClass(step: ThinkingStep): string {
   switch (step.status) {
-    case 'done': return 'bg-emerald-400'
-    case 'active': return 'bg-blue-400 animate-pulse'
-    case 'error': return 'bg-red-400'
-    default: return 'bg-gray-300'
+    case 'done':
+      return 'bg-emerald-400'
+    case 'active':
+      return 'bg-blue-400 animate-pulse'
+    case 'error':
+      return 'bg-red-400'
+    default:
+      return 'bg-gray-300'
   }
 }
 
