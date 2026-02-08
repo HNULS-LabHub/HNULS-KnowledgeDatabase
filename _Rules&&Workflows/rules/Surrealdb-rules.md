@@ -1,21 +1,6 @@
 ---
-inclusion: fileMatch
-fileMatchPattern:
-  - '**/surrealdb-service/**/*.ts'
-  - '**/services/**/query-service.ts'
-  - '**/services/base-service/app-service.ts'
-  - '**/ipc/index.ts'
-  - '**/main/index.ts'
-  - '**/services/knowledgeBase-library/**/*.ts'
-  - '**/services/model-config/**/*.ts'
-  - '**/services/user-config-service/**/*.ts'
-trigger: model_decision
+description: 应用于HNULS-KnowledgeDatabase项目下
 ---
-<!------------------------------------------------------------------------------------
-   Add rules to this file or a short description and have Kiro refine them for you.
-   
-   Learn about inclusion modes: https://kiro.dev/docs/steering/#inclusion-modes
--------------------------------------------------------------------------------------> 
 # 单一实例统一注入
 # SurrealDB 服务实例管理注意事项
 
