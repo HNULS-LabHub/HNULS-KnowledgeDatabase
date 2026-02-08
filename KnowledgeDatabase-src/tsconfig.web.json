@@ -5,6 +5,7 @@
     "src/renderer/src/**/*",
     "src/renderer/src/**/*.vue",
     "src/preload/*.d.ts",
+    "src/preload/types/**/*.ts",
     "src/Public/**/*"
   ],
   "compilerOptions": {
@@ -12,7 +13,9 @@
     "baseUrl": ".",
     "paths": {
       "@renderer/*": ["src/renderer/src/*"],
-      "@shared/*": ["src/Public/ShareTypes/*"]
+      "@shared/*": ["src/Public/ShareTypes/*"],
+      "@preload/types": ["src/preload/types/index.ts"],
+      "@preload/types/*": ["src/preload/types/*"]
     }
   }
 }

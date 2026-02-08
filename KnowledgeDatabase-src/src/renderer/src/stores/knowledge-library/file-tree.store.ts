@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useFileDataStore } from './file-data.store'
 import type { FileNode, TreeNode } from './file.types'
+import { FileDataSource } from './file.datasource'
 import type { MoveResult, BatchMoveResult } from './file.datasource'
 
 /**

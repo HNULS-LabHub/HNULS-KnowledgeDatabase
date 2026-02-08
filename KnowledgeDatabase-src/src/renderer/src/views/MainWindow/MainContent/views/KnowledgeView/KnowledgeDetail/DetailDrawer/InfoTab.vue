@@ -39,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import type { FileNode } from '../types'
+import type { FileNode } from '@renderer/stores/knowledge-library/file.types'
 
 const props = defineProps<{
   fileData?: FileNode | null

@@ -22,10 +22,9 @@ export class FileImportIPCHandler extends BaseIPCHandler {
   private importService: FileImportService
   private activeTasks = new Map<string, { webContentsId: number }>()
 
-  constructor(private knowledgeLibraryService: KnowledgeLibraryService) {
+  constructor(knowledgeLibraryService: KnowledgeLibraryService) {
     super()
     this.documentService = new DocumentService()
-    // knowledgeLibraryService 被传递给 FileImportService，所以需要保留
     this.importService = new FileImportService(knowledgeLibraryService, this.documentService)
     this.register()
     // 手动注册异步导入方法（因为方法名包含连字符）

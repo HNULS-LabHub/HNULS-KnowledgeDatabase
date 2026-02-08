@@ -365,7 +365,31 @@ export class VectorIndexerBridge {
       case 'indexer:document-embedded': {
         // 🎯 更新 kb_document_embedding 的嵌入信息
         this.updateKbDocumentEmbeddingStatus(msg).catch((err) => {
-          logger.error('[VectorIndexerBridge] Failed to update kb_document_embedding:', err)
+          const details = err instanceof Error ? err.stack || err.message : String(err)
+          logger.error('[VectorIndexerBridge] Failed to update kb_document_embedding', {
+            error: err instanceof Error ? err.message : String(err)
+          })
+
+          // 对外抛出可见错误（避免“数据库操作失败但不报错”）
+          for (const listener of this.errorListeners) {
+            try {
+              listener({
+                message: 'Failed to update kb_document_embedding',
+                details
+              })
+            } catch (e) {
+              logger.error('[VectorIndexerBridge] Error listener error:', e)
+            }
+          }
+
+          // 关键写入失败：停止索引器，避免继续产生不一致数据
+          try {
+            this.stopIndexer()
+          } catch (stopErr) {
+            logger.error('[VectorIndexerBridge] Failed to stop indexer after db update failure', {
+              error: stopErr instanceof Error ? stopErr.message : String(stopErr)
+            })
+          }
         })
         break
       }
@@ -463,8 +487,7 @@ export class VectorIndexerBridge {
     chunkCount: number
   }): Promise<void> {
     if (!this.queryService || !this.queryService.isConnected()) {
-      logger.warn('[VectorIndexerBridge] QueryService not available, skip embedding status update')
-      return
+      throw new Error('QueryService not available for embedding status update')
     }
     const embeddingConfigName = await this.resolveEmbeddingConfigName(
       params.targetDatabase,
@@ -475,47 +498,50 @@ export class VectorIndexerBridge {
     const safeId = String(params.embeddingConfigId).replace(/[^a-zA-Z0-9_]/g, '_')
     const vectorTableName = `emb_cfg_${safeId}_${params.dimensions}_chunks`
 
-    // ✅ 直接查询目标向量表中该文档的实际 chunk 数量
+    // ✅ 直接查询目标向量表中该文档的实际 chunk 数量（严格模式：失败即报错）
     //    这样无论分多少批搬运，最终都是准确的实际值
-    let actualChunkCount = params.chunkCount
-    try {
-      const countSql = `SELECT count() AS count FROM \`${vectorTableName}\` WHERE file_key = $fileKey GROUP ALL;`
-      const countResult = await this.queryService.queryInDatabase(
-        params.targetNamespace,
-        params.targetDatabase,
-        countSql,
-        { fileKey: params.fileKey }
-      )
-      
-      logger.debug('[VectorIndexerBridge] COUNT query result', {
-        fileKey: params.fileKey,
-        vectorTableName,
-        rawResult: countResult
-      })
-      
-      const counted = (countResult as any)?.[0]?.[0]?.count ?? (countResult as any)?.[0]?.count
-      if (typeof counted === 'number' && counted > 0) {
-        actualChunkCount = counted
-        logger.info('[VectorIndexerBridge] Using actual chunk count from vector table', {
-          fileKey: params.fileKey,
-          batchCount: params.chunkCount,
-          actualCount: actualChunkCount
-        })
-      } else {
-        logger.warn('[VectorIndexerBridge] COUNT query returned invalid result, using batch count', {
-          fileKey: params.fileKey,
-          counted,
-          batchCount: params.chunkCount
-        })
+    const countSql = `SELECT count() AS count FROM \`${vectorTableName}\` WHERE file_key = $fileKey GROUP ALL;`
+    const countResult = await this.queryService.queryInDatabase(
+      params.targetNamespace,
+      params.targetDatabase,
+      countSql,
+      { fileKey: params.fileKey }
+    )
+
+    const extractRecords = (result: any): any[] => {
+      if (!result) return []
+      if (Array.isArray(result)) {
+        // [[{...}]]
+        if (result.length === 1 && Array.isArray(result[0])) {
+          const inner = result[0]
+          if (inner.length > 0 && typeof inner[0] === 'object' && !Array.isArray(inner[0])) {
+            return inner
+          }
+        }
+        // [{ result: [...] }]
+        for (const entry of result) {
+          if (Array.isArray((entry as any)?.result)) {
+            return (entry as any).result
+          }
+        }
+        // [{...}]
+        if (result.length > 0 && typeof result[0] === 'object' && !(result[0] as any).result) {
+          return result
+        }
+        return []
       }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error)
-      logger.error('[VectorIndexerBridge] COUNT query failed, using batch count', {
-        fileKey: params.fileKey,
-        vectorTableName,
-        error: errorMsg,
-        batchCount: params.chunkCount
-      })
+      if (Array.isArray((result as any)?.result)) return (result as any).result
+      return []
+    }
+
+    const countRecords = extractRecords(countResult)
+    const countedRaw = countRecords[0]?.count
+    const actualChunkCount = Number(countedRaw)
+
+    if (!Number.isFinite(actualChunkCount) || actualChunkCount < 0) {
+      throw new Error(
+        `COUNT query returned invalid count for ${vectorTableName} fileKey=${params.fileKey}: ${String(countedRaw)}`
+      )
     }
 
     // UPSERT 到 kb_document_embedding 关联表
@@ -534,30 +560,21 @@ export class VectorIndexerBridge {
         AND dimensions = $dimensions;
     `
 
-    try {
-      await this.queryService.queryInDatabase(params.targetNamespace, params.targetDatabase, sql, {
-        fileKey: params.fileKey,
-        embeddingConfigId: params.embeddingConfigId,
-        embeddingConfigName: embeddingConfigName ?? null,
-        dimensions: params.dimensions,
-        chunkCount: actualChunkCount
-      })
+    await this.queryService.queryInDatabase(params.targetNamespace, params.targetDatabase, sql, {
+      fileKey: params.fileKey,
+      embeddingConfigId: params.embeddingConfigId,
+      embeddingConfigName: embeddingConfigName ?? null,
+      dimensions: params.dimensions,
+      chunkCount: actualChunkCount
+    })
 
-      logger.info('[VectorIndexerBridge] Updated kb_document_embedding status', {
-        fileKey: params.fileKey,
-        embeddingConfigId: params.embeddingConfigId,
-        embeddingConfigName,
-        dimensions: params.dimensions,
-        chunkCount: actualChunkCount
-      })
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error)
-      logger.error('[VectorIndexerBridge] Failed to update kb_document_embedding status', {
-        fileKey: params.fileKey,
-        embeddingConfigId: params.embeddingConfigId,
-        error: errorMsg
-      })
-    }
+    logger.info('[VectorIndexerBridge] Updated kb_document_embedding status', {
+      fileKey: params.fileKey,
+      embeddingConfigId: params.embeddingConfigId,
+      embeddingConfigName,
+      dimensions: params.dimensions,
+      chunkCount: actualChunkCount
+    })
   }
 
   private async resolveEmbeddingConfigName(

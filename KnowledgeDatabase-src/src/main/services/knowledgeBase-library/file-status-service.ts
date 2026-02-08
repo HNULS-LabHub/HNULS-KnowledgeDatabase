@@ -2,7 +2,6 @@ import * as path from 'path'
 import { MinerUMetaStore } from '../mineru-parser/meta-store'
 import { ChunkMetaStore } from '../chunking/chunk-meta-store'
 import { logger } from '../logger'
-import { safeDocName } from '../mineru-parser/util'
 import type { QueryService } from '../surrealdb-service/query-service'
 
 /**

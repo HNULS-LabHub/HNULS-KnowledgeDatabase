@@ -93,7 +93,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { FileNode } from '../types'
+import type { FileNode } from '@renderer/stores/knowledge-library/file.types'
 import { useFileDataStore } from '@renderer/stores/knowledge-library/file-data.store'
 import InfoTab from './InfoTab.vue'
 import ParseTab from './ParseTab/index.vue'

@@ -54,7 +54,7 @@ import { getDocDir as getParserDocDir } from '../mineru-parser/util'
 import { IChunkingStrategy } from './strategies'
 import { RecursiveChunkingStrategy, SemanticChunkingStrategy } from './strategies'
 import { ChunkMetaStore } from './chunk-meta-store'
-import { isPlainTextFile, getChunkDocDir } from './util'
+import { isPlainTextFile } from './util'
 import type { ChunkingRequest, ChunkingResult, GetChunkingResultRequest } from './types'
 
 export class ChunkingService {
@@ -215,7 +215,7 @@ export class ChunkingService {
       if (!versionId) {
         // 如果没有指定，使用 active version
         const meta = await this.minerUMetaStore.loadOrInit({ kbRoot: params.kbRoot, fileName })
-        versionId = meta.activeVersionId || null
+        versionId = meta.activeVersionId ?? undefined
       }
 
       if (!versionId) {

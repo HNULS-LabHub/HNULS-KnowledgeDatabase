@@ -22,7 +22,6 @@ export class GlobalMonitorBridge {
     { resolve: (value: any) => void; reject: (error: Error) => void }
   > = new Map()
   private changeListeners: Set<(tasks: TaskRecord[]) => void> = new Set()
-  private isReady = false
   private readyPromise: Promise<void> | null = null
   private readyResolve: (() => void) | null = null
 
@@ -52,7 +51,6 @@ export class GlobalMonitorBridge {
     this.process.on('exit', (code) => {
       console.log('[GlobalMonitorBridge] Process exited with code:', code)
       this.process = null
-      this.isReady = false
     })
 
     await this.readyPromise
@@ -63,7 +61,6 @@ export class GlobalMonitorBridge {
     if (this.process) {
       this.process.kill()
       this.process = null
-      this.isReady = false
     }
   }
 
@@ -74,7 +71,6 @@ export class GlobalMonitorBridge {
   private handleMessage(msg: UtilityToMainMessage): void {
     switch (msg.type) {
       case 'ready':
-        this.isReady = true
         this.readyResolve?.()
         break
 

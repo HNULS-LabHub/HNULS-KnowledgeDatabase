@@ -50,8 +50,7 @@ export class VectorStagingService {
   async ensureTable(): Promise<void> {
     if (this.tableInitialized) return
     if (!this.queryService?.isConnected()) {
-      logger.warn('[VectorStagingService] QueryService not available, skip ensureTable')
-      return
+      throw new Error('QueryService not available for VectorStagingService.ensureTable')
     }
 
     try {
@@ -87,8 +86,7 @@ export class VectorStagingService {
   async insert(record: VectorStagingRecord): Promise<void> {
     await this.ensureTable()
     if (!this.queryService?.isConnected()) {
-      logger.warn('[VectorStagingService] QueryService not available, skip insert')
-      return
+      throw new Error('QueryService not available for VectorStagingService.insert')
     }
 
     try {
@@ -119,8 +117,7 @@ export class VectorStagingService {
     if (records.length === 0) return
     await this.ensureTable()
     if (!this.queryService?.isConnected()) {
-      logger.warn('[VectorStagingService] QueryService not available, skip insertBatch')
-      return
+      throw new Error('QueryService not available for VectorStagingService.insertBatch')
     }
 
     const totalRecords = records.length

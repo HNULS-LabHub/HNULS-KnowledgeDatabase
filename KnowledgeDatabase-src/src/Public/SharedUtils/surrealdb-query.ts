@@ -12,6 +12,28 @@
 import { Surreal } from 'surrealdb'
 
 // ============================================================================
+// 日志
+// ============================================================================
+
+export interface SurrealDBLogger {
+  debug(message: string, meta?: any): void
+  info(message: string, meta?: any): void
+  warn(message: string, meta?: any): void
+  error(message: string, meta?: any): void
+}
+
+const defaultConsoleLogger: SurrealDBLogger = {
+  debug: (message: string, meta?: any) =>
+    meta !== undefined ? console.debug(message, meta) : console.debug(message),
+  info: (message: string, meta?: any) =>
+    meta !== undefined ? console.info(message, meta) : console.info(message),
+  warn: (message: string, meta?: any) =>
+    meta !== undefined ? console.warn(message, meta) : console.warn(message),
+  error: (message: string, meta?: any) =>
+    meta !== undefined ? console.error(message, meta) : console.error(message)
+}
+
+// ============================================================================
 // 类型定义
 // ============================================================================
 
@@ -208,12 +230,39 @@ export function parseSurrealDBError(error: unknown): ParsedError {
 export class SurrealDBQueryService {
   private db: Surreal
   private connected: boolean = false
+  /** 是否写入 operation_log（与 console/logger 输出无关） */
   private enableLogging: boolean = true
   private namespace?: string
   private database?: string
 
-  constructor() {
+  private readonly logger: SurrealDBLogger
+  private readonly operationLogSource: string
+
+  /**
+   * 互斥锁：确保同一个 Surreal 实例上的 db.use/query/create 等操作串行执行
+   * 以避免 queryInDatabase 的 db.use 切换导致的并发串库问题。
+   */
+  private opChain: Promise<void> = Promise.resolve()
+
+  constructor(options?: { logger?: SurrealDBLogger; operationLogSource?: string }) {
     this.db = new Surreal()
+    this.logger = options?.logger ?? defaultConsoleLogger
+    this.operationLogSource = options?.operationLogSource ?? 'shared_utils'
+  }
+
+  private async runExclusive<T>(executor: () => Promise<T>): Promise<T> {
+    const prev = this.opChain
+    let release!: () => void
+    this.opChain = new Promise<void>((resolve) => {
+      release = resolve
+    })
+
+    await prev
+    try {
+      return await executor()
+    } finally {
+      release()
+    }
   }
 
   // ==========================================================================
@@ -224,45 +273,49 @@ export class SurrealDBQueryService {
    * 连接到 SurrealDB 服务器
    */
   async connect(serverUrl: string, config: SurrealDBConfig): Promise<void> {
-    try {
-      await this.db.connect(serverUrl)
-      await this.db.signin({
-        username: config.username,
-        password: config.password
-      })
-      await this.db.use({
-        namespace: config.namespace,
-        database: config.database
-      })
-      this.connected = true
-      this.namespace = config.namespace
-      this.database = config.database
+    return await this.runExclusive(async () => {
+      try {
+        await this.db.connect(serverUrl)
+        await this.db.signin({
+          username: config.username,
+          password: config.password
+        })
+        await this.db.use({
+          namespace: config.namespace,
+          database: config.database
+        })
+        this.connected = true
+        this.namespace = config.namespace
+        this.database = config.database
 
-      console.info('[SurrealDBQueryService] Connected to SurrealDB', {
-        namespace: config.namespace,
-        database: config.database
-      })
-    } catch (error) {
-      const errorInfo = parseSurrealDBError(error)
-      console.error('[SurrealDBQueryService] Failed to connect', {
-        serverUrl,
-        namespace: config.namespace,
-        database: config.database,
-        error: errorInfo
-      })
-      throw new DatabaseConnectionError(`无法连接到数据库: ${errorInfo.message}`, error)
-    }
+        this.logger.info('[SurrealDBQueryService] Connected to SurrealDB', {
+          namespace: config.namespace,
+          database: config.database
+        })
+      } catch (error) {
+        const errorInfo = parseSurrealDBError(error)
+        this.logger.error('[SurrealDBQueryService] Failed to connect', {
+          serverUrl,
+          namespace: config.namespace,
+          database: config.database,
+          error: errorInfo
+        })
+        throw new DatabaseConnectionError(`无法连接到数据库: ${errorInfo.message}`, error)
+      }
+    })
   }
 
   /**
    * 断开连接
    */
   async disconnect(): Promise<void> {
-    if (this.connected) {
-      await this.db.close()
-      this.connected = false
-      console.info('[SurrealDBQueryService] Disconnected')
-    }
+    return await this.runExclusive(async () => {
+      if (this.connected) {
+        await this.db.close()
+        this.connected = false
+        this.logger.info('[SurrealDBQueryService] Disconnected')
+      }
+    })
   }
 
   /**
@@ -307,49 +360,51 @@ export class SurrealDBQueryService {
     executor: () => Promise<T>,
     params?: any
   ): Promise<T> {
-    const startTime = Date.now()
+    return await this.runExclusive(async () => {
+      const startTime = Date.now()
 
-    try {
-      // 执行操作
-      const result = await executor()
+      try {
+        // 执行操作
+        const result = await executor()
 
-      // 记录成功的操作
-      const duration = Date.now() - startTime
-      const count = Array.isArray(result) ? result.length : 1
+        // 记录成功的操作
+        const duration = Date.now() - startTime
+        const count = Array.isArray(result) ? result.length : 1
 
-      console.debug(`[SurrealDBQueryService] DB ${operation} succeeded`, {
-        table,
-        duration: `${duration}ms`,
-        resultCount: count
-      })
+        this.logger.debug(`[SurrealDBQueryService] DB ${operation} succeeded`, {
+          table,
+          duration: `${duration}ms`,
+          resultCount: count
+        })
 
-      await this.log(operation, table, params, count)
+        await this.log(operation, table, params, count)
 
-      return result
-    } catch (error) {
-      // 解析错误信息
-      const errorInfo = parseSurrealDBError(error)
-      const duration = Date.now() - startTime
+        return result
+      } catch (error) {
+        // 解析错误信息
+        const errorInfo = parseSurrealDBError(error)
+        const duration = Date.now() - startTime
 
-      // ⚠️ 重点：所有错误使用 error 级别日志
-      console.error(`[SurrealDBQueryService] DB ${operation} failed`, {
-        table,
-        params,
-        duration: `${duration}ms`,
-        error: errorInfo.message,
-        details: errorInfo.details,
-        code: errorInfo.code
-      })
+        // ⚠️ 重点：所有错误使用 error 级别日志
+        this.logger.error(`[SurrealDBQueryService] DB ${operation} failed`, {
+          table,
+          params,
+          duration: `${duration}ms`,
+          error: errorInfo.message,
+          details: errorInfo.details,
+          code: errorInfo.code
+        })
 
-      // 包装错误信息，提供更多上下文
-      throw new DatabaseOperationError(
-        `数据库操作失败 [${operation}] ${table}: ${errorInfo.message}`,
-        operation,
-        table,
-        params,
-        error
-      )
-    }
+        // 包装错误信息，提供更多上下文
+        throw new DatabaseOperationError(
+          `数据库操作失败 [${operation}] ${table}: ${errorInfo.message}`,
+          operation,
+          table,
+          params,
+          error
+        )
+      }
+    })
   }
 
   /**
@@ -469,44 +524,69 @@ export class SurrealDBQueryService {
     const prevNamespace = this.namespace
     const prevDatabase = this.database
 
-    try {
-      await this.db.use({ namespace, database })
+    return await this.runExclusive(async () => {
+      let primaryError: unknown | null = null
 
-      const startTime = Date.now()
-      const result = (await this.db.query(sql, params)) as any
-      const duration = Date.now() - startTime
+      try {
+        await this.db.use({ namespace, database })
 
-      console.debug('[SurrealDBQueryService] DB QUERY_IN_DATABASE succeeded', {
-        namespace,
-        database,
-        duration: `${duration}ms`,
-        sql: sql.substring(0, 100) + (sql.length > 100 ? '...' : '')
-      })
+        const startTime = Date.now()
+        const result = (await this.db.query(sql, params)) as any
+        const duration = Date.now() - startTime
 
-      return result as T
-    } catch (error) {
-      const errorInfo = parseSurrealDBError(error)
+        this.logger.debug('[SurrealDBQueryService] DB QUERY_IN_DATABASE succeeded', {
+          namespace,
+          database,
+          duration: `${duration}ms`,
+          sql: sql.substring(0, 100) + (sql.length > 100 ? '...' : '')
+        })
 
-      console.error('[SurrealDBQueryService] DB QUERY_IN_DATABASE failed', {
-        namespace,
-        database,
-        sql,
-        params,
-        error: errorInfo.message,
-        details: errorInfo.details
-      })
+        return result as T
+      } catch (error) {
+        primaryError = error
+        const errorInfo = parseSurrealDBError(error)
 
-      throw new QuerySyntaxError(
-        `跨数据库查询失败 [${namespace}.${database}]: ${errorInfo.message}`,
-        sql,
-        params,
-        error
-      )
-    } finally {
-      if (prevNamespace && prevDatabase) {
-        await this.db.use({ namespace: prevNamespace, database: prevDatabase })
+        this.logger.error('[SurrealDBQueryService] DB QUERY_IN_DATABASE failed', {
+          namespace,
+          database,
+          sql,
+          params,
+          error: errorInfo.message,
+          details: errorInfo.details
+        })
+
+        throw new QuerySyntaxError(
+          `跨数据库查询失败 [${namespace}.${database}]: ${errorInfo.message}`,
+          sql,
+          params,
+          error
+        )
+      } finally {
+        if (prevNamespace && prevDatabase) {
+          try {
+            await this.db.use({ namespace: prevNamespace, database: prevDatabase })
+          } catch (restoreError) {
+            this.logger.error('[SurrealDBQueryService] Failed to restore previous database', {
+              prevNamespace,
+              prevDatabase,
+              restoreError:
+                restoreError instanceof Error ? restoreError.message : String(restoreError)
+            })
+
+            // 若主查询成功但恢复失败，则必须抛错，避免后续串库。
+            if (!primaryError) {
+              throw new DatabaseOperationError(
+                `数据库操作失败 [USE] restore previous db: ${prevNamespace}.${prevDatabase}`,
+                'USE',
+                'custom',
+                { namespace: prevNamespace, database: prevDatabase },
+                restoreError
+              )
+            }
+          }
+        }
       }
-    }
+    })
   }
 
   /**
@@ -553,7 +633,7 @@ export class SurrealDBQueryService {
     try {
       return await this.queryInDatabase(namespace, database, sql, params)
     } catch (error) {
-      console.error('[SurrealDBQueryService] Vector search failed', {
+      this.logger.error('[SurrealDBQueryService] Vector search failed', {
         namespace,
         database,
         k,
@@ -591,10 +671,12 @@ export class SurrealDBQueryService {
         params: params,
         result_count: resultCount,
         timestamp: new Date(),
-        source: 'shared_utils'
+        source: this.operationLogSource
       })
     } catch (error) {
-      console.error('[SurrealDBQueryService] Failed to log operation', error)
+      this.logger.error('[SurrealDBQueryService] Failed to log operation', {
+        error: error instanceof Error ? error.message : String(error)
+      })
     } finally {
       this.enableLogging = true
     }
@@ -658,7 +740,7 @@ export class SurrealDBQueryService {
       const error = new DatabaseConnectionError(
         'SurrealDBQueryService is not connected. Call connect() first.'
       )
-      console.error('[SurrealDBQueryService] Database operation attempted without connection')
+      this.logger.error('[SurrealDBQueryService] Database operation attempted without connection')
       throw error
     }
   }

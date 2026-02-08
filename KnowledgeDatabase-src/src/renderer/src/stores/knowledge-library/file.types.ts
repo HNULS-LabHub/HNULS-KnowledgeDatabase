@@ -18,10 +18,16 @@ export interface FileNode {
   updateTime?: string
   /** 上传时间（ISO格式或格式化字符串） */
   uploadTime?: string
-  /** 解析状态（当前阶段为空） */
-  status?: 'parsed' | 'parsing' | 'failed' | 'pending'
-  /** 分块数量（当前阶段为空） */
+  /** 解析状态 */
+  status?: 'parsed' | 'parsing' | 'failed' | 'pending' | 'embedded'
+  /** 分块数量 */
   chunkCount?: number
+  /** 嵌入信息（当文件已有嵌入向量时） */
+  embeddingInfo?: Array<{
+    configName: string
+    dimensions: number
+    status: 'pending' | 'running' | 'completed' | 'failed'
+  }>
   /** 解析相关元数据（当前阶段为空） */
   metadata?: {
     tokenCount?: number

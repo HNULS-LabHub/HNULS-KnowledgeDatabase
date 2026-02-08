@@ -169,14 +169,15 @@ export class FileScannerService {
    */
   private async enrichFilesWithStatus(kbRoot: string, files: FileNode[], databaseName?: string): Promise<void> {
     try {
-      // 提取所有文件的相对路径
-      const filePaths = files.map((file) => file.path)
+      // 提取所有文件的相对路径（path 在 FileNode 上是可选的，这里做一次过滤）
+      const filePaths = files.flatMap((file) => (file.path ? [file.path] : []))
 
       // 批量获取状态信息
       const statusMap = await this.fileStatusService.getBatchFileStatus(kbRoot, filePaths, databaseName)
 
       // 更新文件节点的状态信息
       for (const file of files) {
+        if (!file.path) continue
         const statusInfo = statusMap.get(file.path)
         if (statusInfo) {
           file.status = statusInfo.status

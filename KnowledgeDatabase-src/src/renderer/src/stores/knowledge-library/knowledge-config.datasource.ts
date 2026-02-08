@@ -38,7 +38,7 @@ export class KnowledgeConfigDataSource {
   static async getDocumentConfig(
     knowledgeBaseId: number,
     fileKey: string
-  ): Promise<Required<DocumentConfig>> {
+  ): Promise<{ chunking: Required<import('@shared/chunking.types').ChunkingConfig>; embeddingConfigId?: string }> {
     const result = await window.api.knowledgeConfig.getDocumentConfig(knowledgeBaseId, fileKey)
     if (!result.success || !result.data) {
       throw new Error(result.error || 'Failed to get document config')

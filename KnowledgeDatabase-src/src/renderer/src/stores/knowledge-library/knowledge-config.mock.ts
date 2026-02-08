@@ -50,7 +50,7 @@ export class KnowledgeConfigMockDataSource {
   static async getDocumentConfig(
     knowledgeBaseId: number,
     fileKey: string
-  ): Promise<Required<DocumentConfig>> {
+  ): Promise<{ chunking: Required<import('@shared/chunking.types').ChunkingConfig>; embeddingConfigId?: string }> {
     const config = await this.getConfig(knowledgeBaseId)
     const docConfig = config.documents[fileKey] || {}
 
@@ -58,7 +58,8 @@ export class KnowledgeConfigMockDataSource {
       chunking: {
         mode: 'recursive',
         maxChars: docConfig.chunking?.maxChars ?? config.global.chunking.maxChars
-      }
+      },
+      embeddingConfigId: docConfig.embeddingConfigId
     }
   }
 

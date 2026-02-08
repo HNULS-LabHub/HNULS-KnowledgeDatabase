@@ -1,5 +1,6 @@
 import { BaseIPCHandler } from './base-handler'
 import { UserConfigService } from '../services/user-config-service'
+import type { UserConfig } from '../services/user-config-service/types'
 
 export class UserConfigIPCHandler extends BaseIPCHandler {
   constructor(private readonly userConfigService: UserConfigService) {
@@ -18,7 +19,7 @@ export class UserConfigIPCHandler extends BaseIPCHandler {
 
   async handleUpdate(
     _event: unknown,
-    patch: unknown
+    patch: Partial<UserConfig>
   ): Promise<{ success: true; data: unknown } | { success: false; error: string }> {
     const config = await this.userConfigService.updateConfig(patch)
     return { success: true, data: config }

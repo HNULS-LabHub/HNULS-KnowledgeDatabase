@@ -1,15 +1,6 @@
 import type { FileNode } from './file.types'
 
 /**
- * IPC 响应格式
- */
-interface IPCResponse<T> {
-  success: boolean
-  data?: T
-  error?: string
-}
-
-/**
  * 移动结果
  */
 export interface MoveResult {

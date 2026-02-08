@@ -13,8 +13,7 @@ import { OpenAICompatibleEmbeddingClient } from './embedding-client'
 import { RerankClient } from './reranker/rerank-client'
 import type { KnowledgeConfig } from '../../../preload/types/knowledge-config.types'
 import type { PersistedModelProviderConfig } from '../model-config/types'
-import { SurrealDBQueryService } from '@shared-utils/surrealdb-query'
-import type { SurrealDBService } from '../surrealdb-service'
+import type { SurrealDBService, QueryService } from '../surrealdb-service'
 
 type ResolvedEmbeddingConfig = {
   id: string
@@ -30,15 +29,14 @@ export class VectorRetrievalService {
   private readonly embeddingClient = new OpenAICompatibleEmbeddingClient()
   private readonly rerankClient = new RerankClient()
 
-  private readonly surrealQuery = new SurrealDBQueryService()
-  private connectPromise: Promise<void> | null = null
 
   constructor(
     private readonly surrealDBService: SurrealDBService,
     private readonly knowledgeLibraryService: KnowledgeLibraryService
-  ) {
-    // 召回查询不需要写入 operation_log
-    this.surrealQuery.setLogging(false)
+  ) {}
+
+  private getQueryService(): QueryService {
+    return this.surrealDBService.getQueryService()
   }
 
   // ==========================================================================
@@ -115,7 +113,10 @@ export class VectorRetrievalService {
     }
 
     // 4) KNN 查询
-    await this.ensureSurrealConnected()
+    const queryService = this.getQueryService()
+    if (!queryService.isConnected()) {
+      throw new Error('Database not connected')
+    }
     const namespace = this.getNamespace()
 
     // ========== [Feature] fileKey/fileKeys 筛选逻辑（v3 新增） ==========
@@ -150,12 +151,7 @@ export class VectorRetrievalService {
       ORDER BY distance ASC;
     `
 
-    const raw = await this.surrealQuery.queryInDatabase<any>(
-      namespace,
-      kb.databaseName,
-      sql,
-      queryParams
-    )
+    const raw = await queryService.queryInDatabase<any>(namespace, kb.databaseName, sql, queryParams)
 
     const records = this.extractRecords(raw)
 
@@ -465,35 +461,6 @@ export class VectorRetrievalService {
     return this.surrealDBService.getQueryService().getNamespace() || 'knowledge'
   }
 
-  private getSystemDatabase(): string {
-    return this.surrealDBService.getQueryService().getDatabase() || 'system'
-  }
-
-  private async ensureSurrealConnected(): Promise<void> {
-    if (this.surrealQuery.isConnected()) return
-
-    if (this.connectPromise) {
-      return await this.connectPromise
-    }
-
-    const serverUrl = this.surrealDBService.getServerUrl()
-    const credentials = this.surrealDBService.getCredentials()
-
-    this.connectPromise = this.surrealQuery
-      .connect(serverUrl, {
-        username: credentials.username,
-        password: credentials.password,
-        namespace: this.getNamespace(),
-        database: this.getSystemDatabase()
-      })
-      .catch((err) => {
-        // 允许后续重试
-        this.connectPromise = null
-        throw err
-      })
-
-    await this.connectPromise
-  }
 
   // ==========================================================================
   // Helpers

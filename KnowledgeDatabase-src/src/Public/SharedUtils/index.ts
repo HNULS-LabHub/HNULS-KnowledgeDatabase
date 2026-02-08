@@ -13,4 +13,4 @@ export {
   parseSurrealDBError
 } from './surrealdb-query'
 
-export type { SurrealDBConfig } from './surrealdb-query'
+export type { SurrealDBConfig, SurrealDBLogger } from './surrealdb-query'

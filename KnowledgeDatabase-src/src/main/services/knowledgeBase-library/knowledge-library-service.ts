@@ -810,6 +810,7 @@ export class KnowledgeLibraryService {
 
       // 批量 UPSERT 文档记录
       for (const file of files) {
+        if (!file.path) continue
         const hints = this.buildFileHints(file.path)
 
         const sql = `

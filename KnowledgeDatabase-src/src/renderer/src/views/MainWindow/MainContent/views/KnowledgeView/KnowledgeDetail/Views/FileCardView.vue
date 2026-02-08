@@ -110,7 +110,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
 import { useFileSelectionStore } from '@renderer/stores/knowledge-library/file-selection.store'
-import type { FileNode } from '../../types'
+import type { FileNode } from '@renderer/stores/knowledge-library/file.types'
 
 const props = defineProps<{
   knowledgeBaseId: number

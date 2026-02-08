@@ -69,7 +69,7 @@ export interface KnowledgeConfigAPI {
   getDocumentConfig(
     knowledgeBaseId: number,
     fileKey: string
-  ): Promise<APIResponse<Required<DocumentConfig>>>
+  ): Promise<APIResponse<{ chunking: Required<ChunkingConfig>; embeddingConfigId?: string }>>
   updateDocumentConfig(
     knowledgeBaseId: number,
     fileKey: string,

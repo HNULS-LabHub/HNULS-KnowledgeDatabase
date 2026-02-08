@@ -34,7 +34,7 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
    */
   const getDocumentConfig = computed(
     () =>
-      (kbId: number, fileKey: string): Required<DocumentConfig> | null => {
+      (kbId: number, fileKey: string): { chunking: Required<import('@shared/chunking.types').ChunkingConfig>; embeddingConfigId?: string } | null => {
         const config = configByKbId.value.get(kbId)
         if (!config) return null
 
@@ -57,7 +57,8 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
               mode: 'semantic',
               maxChars: docConfig.chunking?.maxChars ?? globalChunking.maxChars,
               overlapChars: docOverlapChars
-            }
+            },
+            embeddingConfigId: docConfig.embeddingConfigId
           }
         }
 
@@ -65,7 +66,8 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
           chunking: {
             mode: 'recursive',
             maxChars: docConfig.chunking?.maxChars ?? globalChunking.maxChars
-          }
+          },
+          embeddingConfigId: docConfig.embeddingConfigId
         }
       }
   )

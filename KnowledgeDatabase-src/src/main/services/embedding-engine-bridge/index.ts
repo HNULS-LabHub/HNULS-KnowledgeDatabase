@@ -206,7 +206,7 @@ export class EmbeddingEngineBridge {
           try {
             listener(result)
           } catch (err) {
-            console.error('[EmbeddingEngineBridge] Completed listener error:', err)
+            logger.error('[EmbeddingEngineBridge] Completed listener error', err)
           }
         }
 
@@ -235,7 +235,7 @@ export class EmbeddingEngineBridge {
           try {
             listener(error)
           } catch (err) {
-            console.error('[EmbeddingEngineBridge] Failed listener error:', err)
+            logger.error('[EmbeddingEngineBridge] Failed listener error', err)
           }
         }
         this.taskParamsByDocument.delete(msg.documentId)
@@ -283,7 +283,7 @@ export class EmbeddingEngineBridge {
             pending.reject(new Error(msg.message))
           }
         }
-        console.error('[EmbeddingEngineBridge] Error:', msg.message)
+        logger.error('[EmbeddingEngineBridge] Error', { message: msg.message })
         break
       }
     }
@@ -423,18 +423,13 @@ export class EmbeddingEngineBridge {
     }>
   > {
     if (!this.queryService || !this.queryService.isConnected()) {
-      console.warn('[EmbeddingEngineBridge] QueryService not available, skip search')
-      return []
+      throw new Error('QueryService not available for embedding search')
     }
 
     const kbService = this.getKnowledgeLibraryService()
     const kb = await kbService.getById(params.knowledgeBaseId)
     if (!kb?.databaseName) {
-      console.warn(
-        '[EmbeddingEngineBridge] Knowledge base not found for search',
-        params.knowledgeBaseId
-      )
-      return []
+      throw new Error(`Knowledge base not found for embedding search (ID: ${params.knowledgeBaseId})`)
     }
 
     const namespace = this.queryService.getNamespace() || 'knowledge'
@@ -474,7 +469,7 @@ export class EmbeddingEngineBridge {
         ef,
         error: error instanceof Error ? error.message : String(error)
       })
-      return []
+      throw error
     }
   }
 
@@ -502,125 +497,16 @@ export class EmbeddingEngineBridge {
 
   private getKnowledgeLibraryService(): KnowledgeLibraryService {
     if (!this.knowledgeLibraryService) {
-      this.knowledgeLibraryService = new KnowledgeLibraryService()
+      throw new Error('KnowledgeLibraryService not injected into EmbeddingEngineBridge')
     }
     return this.knowledgeLibraryService
   }
 
   private getDocumentService(): DocumentService {
     if (!this.documentService) {
-      this.documentService = new DocumentService()
+      throw new Error('DocumentService not injected into EmbeddingEngineBridge')
     }
     return this.documentService
-  }
-
-  // ==========================================================================
-  // 内部：流式单个 chunk 写入暂存表
-  // ==========================================================================
-
-  /**
-   * 处理单个 chunk 完成，立即写入暂存表
-   */
-  private async handleChunkCompleted(msg: {
-    documentId: string
-    taskId: string
-    chunkIndex: number
-    embedding: number[]
-  }): Promise<void> {
-    const params = this.taskParamsByDocument.get(msg.documentId)
-    if (!params) {
-      logger.warn('[EmbeddingEngineBridge] Task params not found for chunk', {
-        documentId: msg.documentId,
-        chunkIndex: msg.chunkIndex
-      })
-      return
-    }
-
-    // 校验基础参数
-    const knowledgeBaseIdRaw = params.meta?.knowledgeBaseId
-    const knowledgeBaseId = knowledgeBaseIdRaw ? Number(knowledgeBaseIdRaw) : NaN
-    if (!knowledgeBaseId || Number.isNaN(knowledgeBaseId)) {
-      return
-    }
-
-    const embeddingConfigId = params.embeddingConfig?.id
-    const embeddingDimensions = msg.embedding.length
-
-    if (!embeddingConfigId || !embeddingDimensions) {
-      return
-    }
-
-    // 获取知识库信息
-    const kbService = this.getKnowledgeLibraryService()
-    const kb = await kbService.getById(knowledgeBaseId)
-    if (!kb?.databaseName || !kb.documentPath) {
-      return
-    }
-
-    // 获取 chunk 元数据
-    const documentService = this.getDocumentService()
-    const kbRoot = documentService.getFullDirectoryPath(kb.documentPath)
-    const fallbackFileName = params.meta?.fileName || path.basename(params.documentId)
-
-    const chunkingResult = await this.loadChunkingResult(kbRoot, fallbackFileName)
-    const fileKey = chunkingResult?.fileKey || params.documentId
-    const fileName = chunkingResult ? path.basename(chunkingResult.fileKey) : fallbackFileName
-
-    // 获取当前 chunk 的文本内容
-    const chunks = chunkingResult?.chunks?.length
-      ? chunkingResult.chunks
-      : this.fallbackChunksFromParams(params)
-
-    const currentChunk = chunks?.find((c) => c.index === msg.chunkIndex)
-    if (!currentChunk) {
-      logger.warn('[EmbeddingEngineBridge] Chunk not found', {
-        documentId: msg.documentId,
-        chunkIndex: msg.chunkIndex
-      })
-      return
-    }
-
-    const namespace = this.queryService?.getNamespace() || 'knowledge'
-    const now = Date.now()
-
-    // 构建单条暂存记录
-    const stagingRecord: VectorStagingRecord = {
-      embedding: msg.embedding,
-      embedding_config_id: embeddingConfigId,
-      dimensions: embeddingDimensions,
-      target_namespace: namespace,
-      target_database: kb.databaseName,
-      document_id: msg.documentId,
-      chunk_index: msg.chunkIndex,
-      content: currentChunk.content,
-      char_count: currentChunk.size ?? currentChunk.content.length,
-      start_char: currentChunk.startChar ?? null,
-      end_char: currentChunk.endChar ?? null,
-      file_key: fileKey,
-      file_name: fileName,
-      processed: false,
-      created_at: now
-    }
-
-    try {
-      // 🔥 立即写入暂存表（单条）
-      await vectorStagingService.insert(stagingRecord)
-
-      logger.debug('[EmbeddingEngineBridge] Chunk streamed to staging table', {
-        documentId: msg.documentId,
-        chunkIndex: msg.chunkIndex,
-        fileKey
-      })
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error)
-      logger.error('[EmbeddingEngineBridge] Failed to stream chunk to staging table', {
-        documentId: msg.documentId,
-        chunkIndex: msg.chunkIndex,
-        fileKey,
-        error: errorMsg
-      })
-      // 不中断任务，继续处理后续 chunk
-    }
   }
 
   // ==========================================================================
@@ -631,7 +517,7 @@ export class EmbeddingEngineBridge {
     this.syncQueue = this.syncQueue
       .then(() => this.syncToStagingTable(result, params))
       .catch((err) => {
-        console.error('[EmbeddingEngineBridge] Failed to write to staging table:', err)
+        logger.error('[EmbeddingEngineBridge] Failed to write to staging table', err)
       })
   }
 
@@ -776,7 +662,7 @@ export class EmbeddingEngineBridge {
       const key = JSON.stringify(activeConfig)
       return meta.results[key] || null
     } catch (error) {
-      console.warn('[EmbeddingEngineBridge] Failed to load chunking result', error)
+      logger.warn('[EmbeddingEngineBridge] Failed to load chunking result', error)
       return null
     }
   }

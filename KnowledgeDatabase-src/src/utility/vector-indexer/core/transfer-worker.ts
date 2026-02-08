@@ -222,30 +222,6 @@ export class TransferWorker {
     await this.client.queryInDatabase(STAGING_NAMESPACE, STAGING_DATABASE, sql, { ids })
   }
 
-  /**
-   * 删除已处理的暂存记录
-   * 索引成功后清理暂存表，释放存储空间
-   */
-  private async deleteProcessedRecords(ids: string[]): Promise<void> {
-    if (ids.length === 0) return
-
-    const sql = `
-      DELETE FROM ${STAGING_TABLE}
-      WHERE id IN $ids
-      RETURN NONE;
-    `
-
-    try {
-      await this.client.queryInDatabase(STAGING_NAMESPACE, STAGING_DATABASE, sql, { ids })
-      log(`Cleaned up ${ids.length} staging records`)
-    } catch (error) {
-      // 删除失败不影响主流程，记录警告即可
-      // 因为已经标记 processed=true，下次轮询不会重复处理
-      const msg = error instanceof Error ? error.message : String(error)
-      console.warn(`[TransferWorker] Failed to cleanup staging records: ${msg}`)
-    }
-  }
-
   // ==========================================================================
   // 目标表操作
   // ==========================================================================

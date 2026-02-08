@@ -66,7 +66,8 @@ export class MinerUApiClient {
     const res = await fetch(uploadUrl, {
       method: 'PUT',
       // 不要设置 Content-Type（按文档要求）
-      body: fileBuffer
+      // node-fetch 类型层面不接受 Buffer，转换成 Uint8Array 以满足 BodyInit
+      body: new Uint8Array(fileBuffer)
     })
 
     if (!res.ok) {

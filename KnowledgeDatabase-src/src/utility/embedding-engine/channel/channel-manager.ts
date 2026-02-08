@@ -157,7 +157,7 @@ export class ChannelManager {
   /**
    * 处理通道错误
    */
-  private handleChannelError(channelId: string, error: unknown): void {
+  private handleChannelError(channelId: string, _error: unknown): void {
     const channel = this.channels.find((ch) => ch.id === channelId)
     if (!channel) return
 

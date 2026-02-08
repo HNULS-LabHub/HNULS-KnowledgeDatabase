@@ -50,7 +50,7 @@ const log = (msg: string, data?: unknown): void => {
 // ============================================================================
 
 export class MainBridge {
-  private parentPort: Electron.MessagePortMain | null = null
+  private parentPort: Electron.ParentPort | null = null
   private pendingRetrievalRequests: Map<string, PendingRequest<RetrievalSearchResult>> = new Map()
   private pendingModelListRequests: Map<string, PendingRequest<ModelListResult>> = new Map()
   private requestCounter = 0
@@ -58,7 +58,7 @@ export class MainBridge {
   /**
    * 绑定 parentPort（由 entry.ts 在启动时调用）
    */
-  bind(parentPort: Electron.MessagePortMain): void {
+  bind(parentPort: Electron.ParentPort): void {
     this.parentPort = parentPort
     log('Bound to parentPort')
   }

@@ -223,7 +223,7 @@ export class KnowledgeConfigService {
   async getDocumentConfig(
     knowledgeBaseDocumentPath: string,
     fileKey: string
-  ): Promise<Required<DocumentConfig>> {
+  ): Promise<{ chunking: Required<KnowledgeGlobalConfig['chunking']>; embeddingConfigId?: string }> {
     const config = await this.readConfig(knowledgeBaseDocumentPath)
     const docConfig = config.documents[fileKey] || {}
 
