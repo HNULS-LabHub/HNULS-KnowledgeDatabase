@@ -70,10 +70,15 @@
 
       <!-- 分块配置（仅在可用时显示） -->
       <template v-if="canChunk">
-        <!-- 分块模式（单向：跟随全局配置） -->
+        <!-- 分块模式 -->
         <div class="flex flex-col gap-2">
           <label class="text-xs font-medium text-slate-700">分块模式</label>
-          <WhiteSelect :model-value="globalMode" :options="chunkingModeOptions" disabled />
+          <WhiteSelect
+            :model-value="effectiveMode"
+            :options="chunkingModeOptions"
+            :placeholder="`跟随全局设置 (${globalMode})`"
+            @update:modelValue="handleModeChange"
+          />
           <p class="text-xs text-slate-500 leading-relaxed">
             {{ selectedModeOption.description }}
           </p>
@@ -103,7 +108,7 @@
         </div>
 
         <!-- 重叠分块字符数（仅 semantic 模式） -->
-        <div v-if="globalMode === 'semantic'" class="flex flex-col gap-2">
+        <div v-if="effectiveMode === 'semantic'" class="flex flex-col gap-2">
           <label class="text-xs font-medium text-slate-700">重叠分块字符数</label>
           <input
             v-model.number="localOverlapChars"
@@ -253,7 +258,7 @@ const globalOverlapChars = computed(() =>
 )
 
 const selectedModeOption = computed(() => {
-  return chunkingModeOptions.find((o) => o.value === globalMode.value) ?? chunkingModeOptions[0]
+  return chunkingModeOptions.find((o) => o.value === effectiveMode.value) ?? chunkingModeOptions[0]
 })
 
 // 文档配置（单向：只覆盖数值，不覆盖 mode）
@@ -263,8 +268,13 @@ const rawDocChunking = computed(() => {
 })
 
 // 本地编辑值（文档级覆盖）
+const localMode = ref<ChunkingMode | undefined>()
 const localMaxChars = ref<number | undefined>()
 const localOverlapChars = ref<number | undefined>()
+
+const effectiveMode = computed<ChunkingMode>(() => localMode.value ?? globalMode.value)
+
+const hasCustomMode = computed(() => localMode.value !== undefined && localMode.value !== globalMode.value)
 
 const hasCustomMaxChars = computed(
   () => localMaxChars.value !== undefined && localMaxChars.value !== globalMaxChars.value
@@ -272,13 +282,13 @@ const hasCustomMaxChars = computed(
 
 const hasCustomOverlapChars = computed(
   () =>
-    globalMode.value === 'semantic' &&
+    effectiveMode.value === 'semantic' &&
     localOverlapChars.value !== undefined &&
     localOverlapChars.value !== globalOverlapChars.value
 )
 
 const hasCustomChunkingConfig = computed(
-  () => hasCustomMaxChars.value || hasCustomOverlapChars.value
+  () => hasCustomMode.value || hasCustomMaxChars.value || hasCustomOverlapChars.value
 )
 
 // 初始化配置
@@ -296,8 +306,10 @@ onMounted(async () => {
 watch(
   rawDocChunking,
   (chunking) => {
+    const chunkingAny = chunking as any
+    localMode.value = chunkingAny?.mode
     localMaxChars.value = chunking?.maxChars
-    localOverlapChars.value = chunking?.overlapChars
+    localOverlapChars.value = chunkingAny?.overlapChars
   },
   { immediate: true }
 )
@@ -312,20 +324,16 @@ const handleSave = async () => {
   if (!props.knowledgeBaseId || !props.fileKey) return
 
   try {
-    // recursive：仅支持 maxChars 覆盖
-    if (globalMode.value === 'recursive') {
-      if (!hasCustomMaxChars.value) {
-        await configStore.clearDocumentConfig(props.knowledgeBaseId, props.fileKey)
-      } else {
-        await configStore.updateDocumentConfig(props.knowledgeBaseId, props.fileKey, {
-          chunking: { maxChars: localMaxChars.value! }
-        })
-      }
+    if (!hasCustomChunkingConfig.value) {
+      await configStore.clearDocumentConfig(props.knowledgeBaseId, props.fileKey)
       return
     }
 
-    // semantic：支持 maxChars / overlapChars 覆盖
     const chunking: any = {}
+
+    if (hasCustomMode.value && localMode.value) {
+      chunking.mode = localMode.value
+    }
 
     if (hasCustomMaxChars.value && localMaxChars.value !== undefined) {
       chunking.maxChars = localMaxChars.value
@@ -336,16 +344,18 @@ const handleSave = async () => {
       chunking.overlapChars = normalizeOverlap(localOverlapChars.value, effectiveMax)
     }
 
-    if (Object.keys(chunking).length === 0) {
-      await configStore.clearDocumentConfig(props.knowledgeBaseId, props.fileKey)
-    } else {
-      await configStore.updateDocumentConfig(props.knowledgeBaseId, props.fileKey, {
-        chunking
-      })
-    }
+    await configStore.updateDocumentConfig(props.knowledgeBaseId, props.fileKey, {
+      chunking
+    })
   } catch (error) {
     console.error('[ChunkingPanel] Failed to save config:', error)
   }
+}
+
+const handleModeChange = async (v: string | number | null) => {
+  if (v !== 'recursive' && v !== 'semantic') return
+  localMode.value = v
+  await handleSave()
 }
 
 // 回正
@@ -353,6 +363,7 @@ const handleReset = async () => {
   if (!props.knowledgeBaseId || !props.fileKey) return
 
   try {
+    localMode.value = undefined
     localMaxChars.value = undefined
     localOverlapChars.value = undefined
     await configStore.clearDocumentConfig(props.knowledgeBaseId, props.fileKey)

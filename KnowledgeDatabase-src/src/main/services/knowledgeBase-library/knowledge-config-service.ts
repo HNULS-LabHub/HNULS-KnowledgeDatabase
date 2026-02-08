@@ -228,19 +228,24 @@ export class KnowledgeConfigService {
     const docConfig = config.documents[fileKey] || {}
 
     const globalChunking = config.global.chunking
+    const docChunkingAny = docConfig.chunking as any
 
-    // 合并全局配置和文档配置（单向：mode 统一由全局控制）
-    if (globalChunking.mode === 'semantic') {
-      const docChunkingAny = docConfig.chunking as any
+    // 合并全局配置和文档配置（文档级可覆盖 mode）
+    const effectiveMode: 'recursive' | 'semantic' = docChunkingAny?.mode ?? globalChunking.mode
+
+    if (effectiveMode === 'semantic') {
+      const baseMaxChars = docConfig.chunking?.maxChars ?? globalChunking.maxChars
+      const baseOverlapChars =
+        globalChunking.mode === 'semantic' ? globalChunking.overlapChars : 0
       const docOverlapChars =
         typeof docChunkingAny?.overlapChars === 'number'
           ? docChunkingAny.overlapChars
-          : globalChunking.overlapChars
+          : baseOverlapChars
 
       return {
         chunking: {
           mode: 'semantic',
-          maxChars: docConfig.chunking?.maxChars ?? globalChunking.maxChars,
+          maxChars: baseMaxChars,
           overlapChars: docOverlapChars
         },
         embeddingConfigId: docConfig.embeddingConfigId ?? config.global.embedding?.defaultConfigId

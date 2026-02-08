@@ -40,13 +40,23 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
 
         const docConfig = config.documents[fileKey] || {}
         const globalChunking = config.global.chunking
+        const docChunkingAny = docConfig.chunking as any
 
-        if (globalChunking.mode === 'semantic') {
+        const effectiveMode = docChunkingAny?.mode ?? globalChunking.mode
+
+        if (effectiveMode === 'semantic') {
+          const baseOverlapChars =
+            globalChunking.mode === 'semantic' ? globalChunking.overlapChars : 0
+          const docOverlapChars =
+            typeof docChunkingAny?.overlapChars === 'number'
+              ? docChunkingAny.overlapChars
+              : baseOverlapChars
+
           return {
             chunking: {
               mode: 'semantic',
               maxChars: docConfig.chunking?.maxChars ?? globalChunking.maxChars,
-              overlapChars: docConfig.chunking?.overlapChars ?? globalChunking.overlapChars
+              overlapChars: docOverlapChars
             }
           }
         }
