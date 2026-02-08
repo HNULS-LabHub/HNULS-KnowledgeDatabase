@@ -28,7 +28,7 @@
       </div>
 
       <!-- 配置状态指示 -->
-      <div v-if="hasCustomConfig" class="flex items-center gap-2">
+      <div v-if="hasCustomChunkingConfig" class="flex items-center gap-2">
         <span
           class="text-[10px] font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
         >
@@ -70,16 +70,12 @@
 
       <!-- 分块配置（仅在可用时显示） -->
       <template v-if="canChunk">
-        <!-- 分块模式（使用 WhiteSelect，只有一个选项） -->
+        <!-- 分块模式（单向：跟随全局配置） -->
         <div class="flex flex-col gap-2">
           <label class="text-xs font-medium text-slate-700">分块模式</label>
-          <WhiteSelect
-            :model-value="'recursive'"
-            :options="[{ label: '段落分块模式', value: 'recursive' }]"
-            disabled
-          />
+          <WhiteSelect :model-value="globalMode" :options="chunkingModeOptions" disabled />
           <p class="text-xs text-slate-500 leading-relaxed">
-            按照设置的单个分段最大字符数来尽量凑满，结束时优先结束在段尾，其次是句尾。适合层次化文档结构，分块更加精细。
+            {{ selectedModeOption.description }}
           </p>
         </div>
 
@@ -94,8 +90,8 @@
             step="50"
             class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition"
             :class="{
-              'text-slate-400': !hasCustomConfig,
-              'text-slate-900': hasCustomConfig
+              'text-slate-400': !hasCustomMaxChars,
+              'text-slate-900': hasCustomMaxChars
             }"
             :placeholder="`跟随全局设置 (${globalMaxChars})`"
             :disabled="!canChunk"
@@ -104,6 +100,27 @@
           <p class="text-xs text-slate-400">
             建议范围：500-2000 字符，过小可能导致上下文丢失，过大可能影响检索效果
           </p>
+        </div>
+
+        <!-- 重叠分块字符数（仅 semantic 模式） -->
+        <div v-if="globalMode === 'semantic'" class="flex flex-col gap-2">
+          <label class="text-xs font-medium text-slate-700">重叠分块字符数</label>
+          <input
+            v-model.number="localOverlapChars"
+            type="number"
+            min="0"
+            :max="Math.max(0, (localMaxChars ?? globalMaxChars) - 1)"
+            step="10"
+            class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition"
+            :class="{
+              'text-slate-400': !hasCustomOverlapChars,
+              'text-slate-900': hasCustomOverlapChars
+            }"
+            :placeholder="`跟随全局设置 (${globalOverlapChars})`"
+            :disabled="!canChunk"
+            @blur="handleSave"
+          />
+          <p class="text-xs text-slate-400">建议范围：maxChars 的 10%~20%</p>
         </div>
 
         <!-- 分块操作按钮（左半分块，右半预览） -->
@@ -206,26 +223,63 @@ defineEmits<{
 
 const configStore = useKnowledgeConfigStore()
 
+// 分块模式选项（单向：由全局控制）
+const chunkingModeOptions = [
+  {
+    label: '段落分块模式',
+    value: 'recursive',
+    description:
+      '按照设置的单个分段最大字符数来尽量凑满，结束时优先结束在段尾，其次是句尾。适合层次化文档结构，分块更加精细。'
+  },
+  {
+    label: '语义分块模式（段落优先 + 重叠）',
+    value: 'semantic',
+    description:
+      '优先按段落边界分割；段落过长时降级到句子边界；并支持重叠分块（overlap），增强相邻分块的上下文连续性。'
+  }
+] as const
+
+type ChunkingMode = (typeof chunkingModeOptions)[number]['value']
+
 // 全局配置
 const globalConfig = computed(() =>
   props.knowledgeBaseId ? configStore.getGlobalConfig(props.knowledgeBaseId) : null
 )
+
+const globalMode = computed<ChunkingMode>(() => globalConfig.value?.chunking.mode ?? 'recursive')
 const globalMaxChars = computed(() => globalConfig.value?.chunking.maxChars ?? 1000)
-
-// 文档配置
-const documentConfig = computed(() =>
-  props.knowledgeBaseId && props.fileKey
-    ? configStore.getDocumentConfig(props.knowledgeBaseId, props.fileKey)
-    : null
-)
-const hasCustomConfig = computed(() =>
-  props.knowledgeBaseId && props.fileKey
-    ? configStore.hasCustomConfig(props.knowledgeBaseId, props.fileKey)
-    : false
+const globalOverlapChars = computed(() =>
+  globalConfig.value?.chunking.mode === 'semantic' ? globalConfig.value.chunking.overlapChars : 0
 )
 
-// 本地编辑值
+const selectedModeOption = computed(() => {
+  return chunkingModeOptions.find((o) => o.value === globalMode.value) ?? chunkingModeOptions[0]
+})
+
+// 文档配置（单向：只覆盖数值，不覆盖 mode）
+const rawDocChunking = computed(() => {
+  if (!props.knowledgeBaseId || !props.fileKey) return undefined
+  return configStore.getConfig(props.knowledgeBaseId)?.documents?.[props.fileKey]?.chunking
+})
+
+// 本地编辑值（文档级覆盖）
 const localMaxChars = ref<number | undefined>()
+const localOverlapChars = ref<number | undefined>()
+
+const hasCustomMaxChars = computed(
+  () => localMaxChars.value !== undefined && localMaxChars.value !== globalMaxChars.value
+)
+
+const hasCustomOverlapChars = computed(
+  () =>
+    globalMode.value === 'semantic' &&
+    localOverlapChars.value !== undefined &&
+    localOverlapChars.value !== globalOverlapChars.value
+)
+
+const hasCustomChunkingConfig = computed(
+  () => hasCustomMaxChars.value || hasCustomOverlapChars.value
+)
 
 // 初始化配置
 onMounted(async () => {
@@ -240,27 +294,53 @@ onMounted(async () => {
 
 // 监听配置变化
 watch(
-  documentConfig,
-  (config) => {
-    if (config) {
-      localMaxChars.value = hasCustomConfig.value ? config.chunking.maxChars : undefined
-    }
+  rawDocChunking,
+  (chunking) => {
+    localMaxChars.value = chunking?.maxChars
+    localOverlapChars.value = chunking?.overlapChars
   },
   { immediate: true }
 )
+
+const normalizeOverlap = (value: number, effectiveMaxChars: number) => {
+  const upper = Math.max(0, effectiveMaxChars - 1)
+  return Math.min(Math.max(0, Math.floor(value)), upper)
+}
 
 // 保存配置
 const handleSave = async () => {
   if (!props.knowledgeBaseId || !props.fileKey) return
 
   try {
-    if (localMaxChars.value === undefined || localMaxChars.value === globalMaxChars.value) {
-      // 清除独立配置（回正）
+    // recursive：仅支持 maxChars 覆盖
+    if (globalMode.value === 'recursive') {
+      if (!hasCustomMaxChars.value) {
+        await configStore.clearDocumentConfig(props.knowledgeBaseId, props.fileKey)
+      } else {
+        await configStore.updateDocumentConfig(props.knowledgeBaseId, props.fileKey, {
+          chunking: { maxChars: localMaxChars.value! }
+        })
+      }
+      return
+    }
+
+    // semantic：支持 maxChars / overlapChars 覆盖
+    const chunking: any = {}
+
+    if (hasCustomMaxChars.value && localMaxChars.value !== undefined) {
+      chunking.maxChars = localMaxChars.value
+    }
+
+    if (hasCustomOverlapChars.value && localOverlapChars.value !== undefined) {
+      const effectiveMax = chunking.maxChars ?? globalMaxChars.value
+      chunking.overlapChars = normalizeOverlap(localOverlapChars.value, effectiveMax)
+    }
+
+    if (Object.keys(chunking).length === 0) {
       await configStore.clearDocumentConfig(props.knowledgeBaseId, props.fileKey)
     } else {
-      // 保存独立配置
       await configStore.updateDocumentConfig(props.knowledgeBaseId, props.fileKey, {
-        chunking: { mode: 'recursive', maxChars: localMaxChars.value }
+        chunking
       })
     }
   } catch (error) {
@@ -274,6 +354,7 @@ const handleReset = async () => {
 
   try {
     localMaxChars.value = undefined
+    localOverlapChars.value = undefined
     await configStore.clearDocumentConfig(props.knowledgeBaseId, props.fileKey)
   } catch (error) {
     console.error('[ChunkingPanel] Failed to reset config:', error)

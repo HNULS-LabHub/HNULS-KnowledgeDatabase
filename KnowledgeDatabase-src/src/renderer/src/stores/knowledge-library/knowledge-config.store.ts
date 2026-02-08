@@ -39,10 +39,22 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
         if (!config) return null
 
         const docConfig = config.documents[fileKey] || {}
+        const globalChunking = config.global.chunking
+
+        if (globalChunking.mode === 'semantic') {
+          return {
+            chunking: {
+              mode: 'semantic',
+              maxChars: docConfig.chunking?.maxChars ?? globalChunking.maxChars,
+              overlapChars: docConfig.chunking?.overlapChars ?? globalChunking.overlapChars
+            }
+          }
+        }
+
         return {
           chunking: {
             mode: 'recursive',
-            maxChars: docConfig.chunking?.maxChars ?? config.global.chunking.maxChars
+            maxChars: docConfig.chunking?.maxChars ?? globalChunking.maxChars
           }
         }
       }

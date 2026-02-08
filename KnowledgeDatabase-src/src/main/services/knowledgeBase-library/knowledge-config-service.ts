@@ -7,6 +7,9 @@ import type {
   DocumentConfig
 } from '../../../preload/types/knowledge-config.types'
 
+const CHUNKING_MAXCHARS_MIN = 100
+const CHUNKING_MAXCHARS_MAX = 10000
+
 export class KnowledgeConfigService {
   private readonly defaultVersion = '1.0.0'
 
@@ -27,6 +30,119 @@ export class KnowledgeConfigService {
         maxChars: 1000
       }
     }
+  }
+
+  // ==========================================================================
+  // 配置规范化（兼容旧版本 / 容错）
+  // ==========================================================================
+
+  private normalizeMaxChars(input: unknown, fallback: number): number {
+    const raw = typeof input === 'number' ? input : Number(input)
+    const n = Number.isFinite(raw) ? Math.floor(raw) : fallback
+    if (!Number.isFinite(n)) return fallback
+    return Math.min(Math.max(CHUNKING_MAXCHARS_MIN, n), CHUNKING_MAXCHARS_MAX)
+  }
+
+  private normalizeOverlapChars(input: unknown, maxChars: number): number {
+    const defaultOverlap = Math.min(200, Math.max(0, Math.floor(maxChars * 0.1)))
+
+    const raw = typeof input === 'number' ? input : Number(input)
+    const n = Number.isFinite(raw) ? Math.floor(raw) : defaultOverlap
+
+    const upper = Math.max(0, maxChars - 1)
+    if (!Number.isFinite(n)) return 0
+    return Math.min(Math.max(0, n), upper)
+  }
+
+  private normalizeGlobalChunking(input: any): KnowledgeGlobalConfig['chunking'] {
+    const mode = input?.mode === 'semantic' ? 'semantic' : 'recursive'
+    const maxChars = this.normalizeMaxChars(input?.maxChars, 1000)
+
+    if (mode === 'semantic') {
+      const overlapChars = this.normalizeOverlapChars(input?.overlapChars, maxChars)
+      return {
+        mode: 'semantic',
+        maxChars,
+        overlapChars
+      }
+    }
+
+    return {
+      mode: 'recursive',
+      maxChars
+    }
+  }
+
+  private normalizeDocumentChunking(
+    input: any,
+    globalChunking: KnowledgeGlobalConfig['chunking']
+  ): DocumentConfig['chunking'] | undefined {
+    if (!input || typeof input !== 'object') return undefined
+
+    // 单向：文档配置不允许覆盖 mode（mode 统一由全局控制）
+    const out: any = {}
+
+    if (input.maxChars !== undefined) {
+      const raw = typeof input.maxChars === 'number' ? input.maxChars : Number(input.maxChars)
+      if (Number.isFinite(raw)) {
+        out.maxChars = this.normalizeMaxChars(raw, globalChunking.maxChars)
+      }
+    }
+
+    if (input.overlapChars !== undefined) {
+      const raw = typeof input.overlapChars === 'number' ? input.overlapChars : Number(input.overlapChars)
+      if (Number.isFinite(raw)) {
+        const effectiveMax = out.maxChars ?? globalChunking.maxChars
+        out.overlapChars = this.normalizeOverlapChars(raw, effectiveMax)
+      }
+    }
+
+    if (Object.keys(out).length === 0) return undefined
+    return out
+  }
+
+  private normalizeConfigInPlace(config: any): KnowledgeConfig {
+    if (!config || typeof config !== 'object') {
+      return {
+        version: this.defaultVersion,
+        global: this.getDefaultGlobalConfig(),
+        documents: {}
+      }
+    }
+
+    if (typeof config.version !== 'string') {
+      config.version = this.defaultVersion
+    }
+
+    if (!config.global || typeof config.global !== 'object') {
+      config.global = {}
+    }
+
+    config.global.chunking = this.normalizeGlobalChunking(config.global.chunking)
+
+    if (!config.documents || typeof config.documents !== 'object') {
+      config.documents = {}
+    }
+
+    for (const [fileKey, docConfig] of Object.entries(config.documents)) {
+      if (!docConfig || typeof docConfig !== 'object') {
+        delete config.documents[fileKey]
+        continue
+      }
+
+      const normalized = this.normalizeDocumentChunking(
+        (docConfig as any).chunking,
+        config.global.chunking
+      )
+
+      if (normalized) {
+        ;(docConfig as any).chunking = normalized
+      } else {
+        delete (docConfig as any).chunking
+      }
+    }
+
+    return config as KnowledgeConfig
   }
 
   /**
@@ -55,7 +171,8 @@ export class KnowledgeConfigService {
 
     try {
       const content = await fs.readFile(configPath, 'utf-8')
-      return JSON.parse(content)
+      const parsed = JSON.parse(content)
+      return this.normalizeConfigInPlace(parsed)
     } catch (error) {
       logger.error('Failed to read knowledge config', error)
       return {
@@ -110,12 +227,32 @@ export class KnowledgeConfigService {
     const config = await this.readConfig(knowledgeBaseDocumentPath)
     const docConfig = config.documents[fileKey] || {}
 
-    // 合并全局配置和文档配置
+    const globalChunking = config.global.chunking
+
+    // 合并全局配置和文档配置（单向：mode 统一由全局控制）
+    if (globalChunking.mode === 'semantic') {
+      const docChunkingAny = docConfig.chunking as any
+      const docOverlapChars =
+        typeof docChunkingAny?.overlapChars === 'number'
+          ? docChunkingAny.overlapChars
+          : globalChunking.overlapChars
+
+      return {
+        chunking: {
+          mode: 'semantic',
+          maxChars: docConfig.chunking?.maxChars ?? globalChunking.maxChars,
+          overlapChars: docOverlapChars
+        },
+        embeddingConfigId: docConfig.embeddingConfigId ?? config.global.embedding?.defaultConfigId
+      }
+    }
+
     return {
       chunking: {
         mode: 'recursive',
-        maxChars: docConfig.chunking?.maxChars ?? config.global.chunking.maxChars
-      }
+        maxChars: docConfig.chunking?.maxChars ?? globalChunking.maxChars
+      },
+      embeddingConfigId: docConfig.embeddingConfigId ?? config.global.embedding?.defaultConfigId
     }
   }
 

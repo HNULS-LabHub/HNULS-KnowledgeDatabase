@@ -22,17 +22,25 @@ export const useChunkingStore = defineStore('chunking', () => {
     return fileStates.value.get(fileKey) ?? null
   })
 
+  function isSameChunkingConfig(a: ChunkingConfig, b: ChunkingConfig): boolean {
+    if (a.mode !== b.mode) return false
+    if (a.maxChars !== b.maxChars) return false
+
+    if (a.mode === 'semantic' && b.mode === 'semantic') {
+      return a.overlapChars === b.overlapChars
+    }
+
+    return true
+  }
+
   /**
    * 检查文件是否有分块结果
    */
   const hasChunks = computed(() => (fileKey: string, config: ChunkingConfig): boolean => {
     const state = fileStates.value.get(fileKey)
     if (!state) return false
-    return (
-      state.config.mode === config.mode &&
-      state.config.maxChars === config.maxChars &&
-      state.chunks.length > 0
-    )
+
+    return isSameChunkingConfig(state.config, config) && state.chunks.length > 0
   })
 
   /**
@@ -49,12 +57,7 @@ export const useChunkingStore = defineStore('chunking', () => {
   ): Promise<FileChunkingState> {
     // 如果已有状态且配置相同且有分块，直接返回
     const existing = fileStates.value.get(fileKey)
-    if (
-      existing &&
-      existing.config.mode === config.mode &&
-      existing.config.maxChars === config.maxChars &&
-      existing.chunks.length > 0
-    ) {
+    if (existing && isSameChunkingConfig(existing.config, config) && existing.chunks.length > 0) {
       return existing
     }
 

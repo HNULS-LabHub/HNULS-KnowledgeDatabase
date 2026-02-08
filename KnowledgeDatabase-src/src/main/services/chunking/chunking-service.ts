@@ -52,7 +52,7 @@ import { KnowledgeLibraryService } from '../knowledgeBase-library/knowledge-libr
 import { MinerUMetaStore } from '../mineru-parser/meta-store'
 import { getDocDir as getParserDocDir } from '../mineru-parser/util'
 import { IChunkingStrategy } from './strategies'
-import { RecursiveChunkingStrategy } from './strategies'
+import { RecursiveChunkingStrategy, SemanticChunkingStrategy } from './strategies'
 import { ChunkMetaStore } from './chunk-meta-store'
 import { isPlainTextFile, getChunkDocDir } from './util'
 import type { ChunkingRequest, ChunkingResult, GetChunkingResultRequest } from './types'
@@ -67,6 +67,7 @@ export class ChunkingService {
   constructor() {
     // 注册分块策略插件
     this.registerStrategy(new RecursiveChunkingStrategy())
+    this.registerStrategy(new SemanticChunkingStrategy())
 
     // 初始化服务
     this.chunkMetaStore = new ChunkMetaStore()

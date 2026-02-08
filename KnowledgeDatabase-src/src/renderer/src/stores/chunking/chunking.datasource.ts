@@ -18,10 +18,17 @@ export const ChunkingDataSource = {
     options?: { knowledgeBaseId?: number }
   ): Promise<FileChunkingState> {
     // 确保 config 是纯对象，避免 Vue 响应式代理导致 IPC 序列化失败
-    const plainConfig: ChunkingConfig = {
-      mode: config.mode,
-      maxChars: config.maxChars
-    }
+    const plainConfig: ChunkingConfig =
+      config.mode === 'semantic'
+        ? {
+            mode: 'semantic',
+            maxChars: config.maxChars,
+            overlapChars: config.overlapChars
+          }
+        : {
+            mode: 'recursive',
+            maxChars: config.maxChars
+          }
 
     if (!options?.knowledgeBaseId) {
       // 如果没有 knowledgeBaseId，返回空状态
@@ -80,10 +87,17 @@ export const ChunkingDataSource = {
     }
   ): Promise<FileChunkingState> {
     // 确保 config 是纯对象，避免 Vue 响应式代理导致 IPC 序列化失败
-    const plainConfig: ChunkingConfig = {
-      mode: config.mode,
-      maxChars: config.maxChars
-    }
+    const plainConfig: ChunkingConfig =
+      config.mode === 'semantic'
+        ? {
+            mode: 'semantic',
+            maxChars: config.maxChars,
+            overlapChars: config.overlapChars
+          }
+        : {
+            mode: 'recursive',
+            maxChars: config.maxChars
+          }
 
     const request: ChunkingRequest = {
       knowledgeBaseId: options.knowledgeBaseId,

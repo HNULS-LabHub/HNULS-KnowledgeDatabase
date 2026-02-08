@@ -3,12 +3,34 @@
  * @description 跨进程（Main / Utility / Preload / Renderer）通用的分块契约
  */
 
-export interface ChunkingConfig {
+/**
+ * 分块模式
+ */
+export type ChunkingMode = 'recursive' | 'semantic'
+
+/**
+ * Recursive：原有段落分块模式（无 overlap）
+ */
+export type RecursiveChunkingConfig = {
   /** 分块模式 */
   mode: 'recursive'
   /** 单个分段最大字符数 */
   maxChars: number
 }
+
+/**
+ * Semantic：语义分块模式（段落优先，必要时降级到句子；支持 overlap）
+ */
+export type SemanticChunkingConfig = {
+  /** 分块模式 */
+  mode: 'semantic'
+  /** 单个分段最大字符数 */
+  maxChars: number
+  /** 重叠字符数（仅 semantic 模式生效） */
+  overlapChars: number
+}
+
+export type ChunkingConfig = RecursiveChunkingConfig | SemanticChunkingConfig
 
 export interface Chunk {
   /** 分块 ID */

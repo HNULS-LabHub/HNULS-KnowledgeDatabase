@@ -9,5 +9,6 @@ export type {
   ChunkingRequest,
   GetChunkingResultRequest
 } from './types'
-export { IChunkingStrategy } from './strategies'
+export type { IChunkingStrategy } from './strategies'
 export { RecursiveChunkingStrategy } from './strategies'
+export { SemanticChunkingStrategy } from './strategies'
