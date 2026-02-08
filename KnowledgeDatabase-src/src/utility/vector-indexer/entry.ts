@@ -145,22 +145,12 @@ async function startIndexer(
     stagingPoller = new StagingPoller(surrealClient, mergedConfig)
 
     // 启动轮询
-    stagingPoller.start(
-      async (groups) => {
-        lastPollTime = Date.now()
-        if (transferWorker) {
-          await transferWorker.processGroups(groups)
-        }
-      },
-      (message) => {
-        // cleanup 日志回调 - 通过 error 消息发送到主进程以便看到
-        log(`[Cleanup] ${message}`)
-        sendMessage({
-          type: 'indexer:error',
-          message: `[Cleanup] ${message}`
-        })
+    stagingPoller.start(async (groups) => {
+      lastPollTime = Date.now()
+      if (transferWorker) {
+        await transferWorker.processGroups(groups)
       }
-    )
+    })
 
     isRunning = true
     log('Started successfully')

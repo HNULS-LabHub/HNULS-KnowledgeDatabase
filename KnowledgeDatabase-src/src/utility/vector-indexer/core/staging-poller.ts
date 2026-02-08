@@ -65,7 +65,6 @@ export class StagingPoller {
   private timer: ReturnType<typeof setTimeout> | null = null
   private isRunning = false
   private onRecordsCallback?: (groups: GroupedRecords[]) => Promise<void>
-  private onCleanupCallback?: (message: string) => void
 
   constructor(client: SurrealClient, config: IndexerConfig) {
     this.client = client
@@ -80,10 +79,7 @@ export class StagingPoller {
    * 启动轮询
    * @param onRecords 当获取到记录时的回调
    */
-  start(
-    onRecords: (groups: GroupedRecords[]) => Promise<void>,
-    onCleanup?: (message: string) => void
-  ): void {
+  start(onRecords: (groups: GroupedRecords[]) => Promise<void>): void {
     if (this.isRunning) {
       log('Already running')
       return
@@ -91,7 +87,6 @@ export class StagingPoller {
 
     this.isRunning = true
     this.onRecordsCallback = onRecords
-    this.onCleanupCallback = onCleanup
     log('Started')
     this.scheduleNextPoll(0) // 立即执行第一次
   }
@@ -129,8 +124,7 @@ export class StagingPoller {
       const records = await this.fetchUnprocessedRecords()
 
       if (records.length === 0) {
-        // 无待处理数据 → 批量清理已处理记录，再进入 idle
-        await this.cleanupProcessedRecords()
+        // 无待处理数据 → 进入 idle（清理由 getStagingStatus 负责）
         this.scheduleNextPoll(this.config.pollIntervalIdle)
         return
       }
@@ -240,12 +234,9 @@ export class StagingPoller {
    */
   private async cleanupProcessedRecords(): Promise<void> {
     try {
-      const msg1 = 'Entering idle state, cleaning up staging table...'
-      log(msg1)
-      this.onCleanupCallback?.(msg1)
+      log('Cleaning up staging table (drop + recreate)...')
       
       // 🔥 直接删表重建（比 DELETE 快且不会返回大向量数据）
-      // 不用查 count，直接 REMOVE 就行，即使表为空也没影响
       const sql = `
         REMOVE TABLE IF EXISTS ${STAGING_TABLE};
         DEFINE TABLE IF NOT EXISTS ${STAGING_TABLE} SCHEMALESS;
@@ -253,15 +244,11 @@ export class StagingPoller {
       `
       await this.client.queryInDatabase(STAGING_NAMESPACE, STAGING_DATABASE, sql)
       
-      const msg2 = 'Successfully cleaned up staging table (drop + recreate)'
-      log(msg2)
-      this.onCleanupCallback?.(msg2)
+      log('Successfully cleaned up staging table')
     } catch (error) {
-      // queryInDatabase 内部已经打印了详细错误日志，这里只记录高层信息
       const errorMsg = `Failed to cleanup: ${error instanceof Error ? error.message : String(error)}`
       console.error('[StagingPoller]', errorMsg)
-      this.onCleanupCallback?.(errorMsg)
-      // 重要：不 throw，让 poll 继续运行
+      // 重要：不 throw，让调用方继续运行
     }
   }
 
