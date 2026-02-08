@@ -9,6 +9,7 @@ export const DEFAULT_USER_CONFIG: UserConfig = {
     apiKey: ''
   },
   embedding: {
-    concurrency: 5
+    concurrency: 5,
+    hnswBatchSize: 10
   }
 }

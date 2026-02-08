@@ -9,6 +9,8 @@ export interface MinerUConfig {
 
 export interface UserEmbeddingConfig {
   concurrency: number
+  /** HNSW 索引每批次处理的记录数 */
+  hnswBatchSize: number
 }
 
 export interface UserConfig {

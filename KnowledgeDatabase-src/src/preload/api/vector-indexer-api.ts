@@ -4,14 +4,15 @@
  */
 
 import { ipcRenderer } from 'electron'
-import type { VectorIndexerAPI, StagingStatus } from '../types/vector-indexer.types'
+import type { VectorIndexerAPI, StagingStatus, IndexerConfigUpdate } from '../types/vector-indexer.types'
 
 // ============================================================================
 // IPC Channel 常量
 // ============================================================================
 
 const IPC_CHANNELS = {
-  GET_STAGING_STATUS: 'vector-indexer:get-staging-status'
+  GET_STAGING_STATUS: 'vector-indexer:get-staging-status',
+  UPDATE_CONFIG: 'vector-indexer:update-config'
 } as const
 
 // ============================================================================
@@ -21,5 +22,8 @@ const IPC_CHANNELS = {
 export const vectorIndexerAPI: VectorIndexerAPI = {
   async getStagingStatus(): Promise<StagingStatus | null> {
     return ipcRenderer.invoke(IPC_CHANNELS.GET_STAGING_STATUS)
+  },
+  async updateConfig(config: IndexerConfigUpdate): Promise<void> {
+    return ipcRenderer.invoke(IPC_CHANNELS.UPDATE_CONFIG, config)
   }
 }

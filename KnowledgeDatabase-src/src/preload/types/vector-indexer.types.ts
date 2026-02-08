@@ -22,6 +22,13 @@ export interface StagingStatus {
 }
 
 /**
+ * 索引器配置（可更新部分）
+ */
+export interface IndexerConfigUpdate {
+  batchSize?: number
+}
+
+/**
  * 向量索引器 API
  */
 export interface VectorIndexerAPI {
@@ -29,4 +36,8 @@ export interface VectorIndexerAPI {
    * 获取暂存表状态
    */
   getStagingStatus(): Promise<StagingStatus | null>
+  /**
+   * 更新索引器配置
+   */
+  updateConfig(config: IndexerConfigUpdate): Promise<void>
 }

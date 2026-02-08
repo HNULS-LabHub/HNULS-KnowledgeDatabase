@@ -12,7 +12,8 @@ import { logger } from '../services/logger'
 // ============================================================================
 
 const IPC_CHANNELS = {
-  GET_STAGING_STATUS: 'vector-indexer:get-staging-status'
+  GET_STAGING_STATUS: 'vector-indexer:get-staging-status',
+  UPDATE_CONFIG: 'vector-indexer:update-config'
 } as const
 
 // ============================================================================
@@ -33,6 +34,18 @@ export function registerVectorIndexerHandlers(): void {
     }
   })
 
+  /**
+   * 更新索引器配置
+   */
+  ipcMain.handle(IPC_CHANNELS.UPDATE_CONFIG, async (_event, config: { batchSize?: number }) => {
+    try {
+      vectorIndexerBridge.updateConfig(config)
+      logger.info('[VectorIndexerHandler] Config updated:', config)
+    } catch (error) {
+      logger.error('[VectorIndexerHandler] Failed to update config:', error)
+    }
+  })
+
   logger.info('[VectorIndexerHandler] Handlers registered')
 }
 
@@ -41,5 +54,6 @@ export function registerVectorIndexerHandlers(): void {
  */
 export function unregisterVectorIndexerHandlers(): void {
   ipcMain.removeHandler(IPC_CHANNELS.GET_STAGING_STATUS)
+  ipcMain.removeHandler(IPC_CHANNELS.UPDATE_CONFIG)
   logger.info('[VectorIndexerHandler] Handlers unregistered')
 }

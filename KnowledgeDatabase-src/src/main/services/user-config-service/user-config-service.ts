@@ -34,6 +34,10 @@ export class UserConfigService {
       minerU: {
         ...DEFAULT_USER_CONFIG.minerU,
         ...(parsed.minerU || {})
+      },
+      embedding: {
+        ...DEFAULT_USER_CONFIG.embedding,
+        ...(parsed.embedding || {})
       }
     }
   }
@@ -47,6 +51,10 @@ export class UserConfigService {
       minerU: {
         ...current.minerU,
         ...(patch.minerU || {})
+      },
+      embedding: {
+        ...current.embedding,
+        ...(patch.embedding || {})
       },
       updatedAt: new Date().toISOString()
     }

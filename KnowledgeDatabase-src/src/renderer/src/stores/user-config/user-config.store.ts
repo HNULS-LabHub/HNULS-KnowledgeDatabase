@@ -60,7 +60,17 @@ export const useUserConfigStore = defineStore('user-config', () => {
   async function updateEmbeddingConcurrency(concurrency: number): Promise<void> {
     await update({
       embedding: {
+        ...config.value?.embedding,
         concurrency
+      }
+    })
+  }
+
+  async function updateHnswBatchSize(hnswBatchSize: number): Promise<void> {
+    await update({
+      embedding: {
+        ...config.value?.embedding,
+        hnswBatchSize
       }
     })
   }
@@ -74,6 +84,7 @@ export const useUserConfigStore = defineStore('user-config', () => {
     fetch,
     update,
     updateMinerUApiKey,
-    updateEmbeddingConcurrency
+    updateEmbeddingConcurrency,
+    updateHnswBatchSize
   }
 })

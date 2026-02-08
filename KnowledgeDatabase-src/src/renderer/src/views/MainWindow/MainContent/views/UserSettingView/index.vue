@@ -55,7 +55,7 @@
           <div
             class="UserSettingView_sectionContent bg-white rounded-xl p-6 shadow-sm border border-slate-200"
           >
-            <div class="UserSettingView_formGroup">
+            <div class="UserSettingView_formGroup mb-6">
               <label class="UserSettingView_label block text-sm font-medium text-slate-700 mb-2">
                 并行数
               </label>
@@ -78,6 +78,32 @@
               </div>
               <p class="UserSettingView_helpText mt-2 text-sm text-slate-500">
                 配置嵌入服务的并行处理数，范围：1-50。离开输入框后自动保存。
+              </p>
+            </div>
+
+            <div class="UserSettingView_formGroup">
+              <label class="UserSettingView_label block text-sm font-medium text-slate-700 mb-2">
+                HNSW 每批次数
+              </label>
+              <div class="relative">
+                <input
+                  v-model.number="draftHnswBatchSize"
+                  type="number"
+                  min="1"
+                  max="1000"
+                  class="UserSettingView_input w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
+                  placeholder="输入每批次数"
+                  @blur="handleHnswBatchSizeBlur"
+                />
+                <div
+                  class="UserSettingView_status absolute right-3 top-1/2 -translate-y-1/2 text-sm"
+                  :class="statusClass"
+                >
+                  {{ statusText }}
+                </div>
+              </div>
+              <p class="UserSettingView_helpText mt-2 text-sm text-slate-500">
+                配置 HNSW 索引每批次处理的向量数，范围：1-1000。离开输入框后自动保存。
               </p>
             </div>
           </div>
@@ -138,6 +164,7 @@ const userConfigStore = useUserConfigStore()
 
 const draftMinerUApiKey = ref('')
 const draftEmbeddingConcurrency = ref(5)
+const draftHnswBatchSize = ref(10)
 const modelCardStyle = computed(() => ({
   backgroundImage:
     "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='200' viewBox='0 0 320 200'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23eef2ff' stop-opacity='0.8'/%3E%3Cstop offset='100%25' stop-color='%23e0f2fe' stop-opacity='0.8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg fill='url(%23g)'%3E%3Cpolygon points='0,0 80,0 0,80'/%3E%3Cpolygon points='80,0 160,0 120,60'/%3E%3Cpolygon points='160,0 240,0 200,70'/%3E%3Cpolygon points='240,0 320,0 320,80'/%3E%3Cpolygon points='0,80 60,120 0,200'/%3E%3Cpolygon points='60,120 140,80 120,200'/%3E%3Cpolygon points='140,80 220,120 200,200'/%3E%3Cpolygon points='220,120 320,80 320,200'/%3E%3C/g%3E%3C/svg%3E\")",
@@ -149,6 +176,7 @@ onMounted(async (): Promise<void> => {
   await userConfigStore.fetch()
   draftMinerUApiKey.value = userConfigStore.config?.minerU.apiKey || ''
   draftEmbeddingConcurrency.value = userConfigStore.config?.embedding.concurrency || 5
+  draftHnswBatchSize.value = userConfigStore.config?.embedding.hnswBatchSize || 10
 })
 
 const statusText = computed(() => {
@@ -183,6 +211,19 @@ const handleEmbeddingBlur = async (): Promise<void> => {
     await userConfigStore.updateEmbeddingConcurrency(draftEmbeddingConcurrency.value)
     // 同步到嵌入引擎后端
     await window.api.embedding.setConcurrency(draftEmbeddingConcurrency.value)
+  } catch {
+    // store already holds error state
+  }
+}
+
+const handleHnswBatchSizeBlur = async (): Promise<void> => {
+  const current = userConfigStore.config?.embedding.hnswBatchSize ?? 10
+  if (draftHnswBatchSize.value === current) return
+
+  try {
+    await userConfigStore.updateHnswBatchSize(draftHnswBatchSize.value)
+    // 同步到向量索引器后端
+    await window.api.vectorIndexer.updateConfig({ batchSize: draftHnswBatchSize.value })
   } catch {
     // store already holds error state
   }
