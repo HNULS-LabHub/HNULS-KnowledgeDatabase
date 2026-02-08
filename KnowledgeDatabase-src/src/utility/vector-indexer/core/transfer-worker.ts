@@ -103,39 +103,31 @@ export class TransferWorker {
 
   /**
    * 处理分组后的记录
-   * 并行处理最多 maxConcurrentTables 个表
+   * 串行处理记录数最多的 1 个 group（≤batchSize 条）
    */
   async processGroups(groups: GroupedRecords[]): Promise<void> {
     if (groups.length === 0) return
 
-    // 限制并发数
-    const maxConcurrent = this.config.maxConcurrentTables
-    const availableSlots = maxConcurrent - this.activeTransfers.size
+    // 按记录数降序，取最大的 group
+    const sorted = [...groups].sort((a, b) => b.records.length - a.records.length)
+    const biggest = sorted[0]
 
-    if (availableSlots <= 0) {
-      log('All slots occupied, skipping this batch')
-      return
+    // 最多取 batchSize 条（默认 100）
+    const limit = this.config.batchSize
+    const records = biggest.records.slice(0, limit)
+
+    const subGroup: GroupedRecords = {
+      ...biggest,
+      records
     }
 
-    // 选择要处理的分组（优先处理记录数多的）
-    const sortedGroups = [...groups].sort((a, b) => b.records.length - a.records.length)
-    const groupsToProcess = sortedGroups
-      .filter((g) => !this.activeTransfers.has(g.targetKey))
-      .slice(0, availableSlots)
-
-    if (groupsToProcess.length === 0) {
-      log('No groups to process (all targets are busy)')
-      return
-    }
-
-    log(`Processing ${groupsToProcess.length} groups`, {
-      tables: groupsToProcess.map((g) => g.tableName),
-      totalRecords: groupsToProcess.reduce((sum, g) => sum + g.records.length, 0)
+    log(`Processing group`, {
+      table: subGroup.tableName,
+      records: records.length,
+      totalPending: biggest.records.length
     })
 
-    // 并行处理
-    const promises = groupsToProcess.map((group) => this.processGroup(group))
-    await Promise.allSettled(promises)
+    await this.processGroup(subGroup)
   }
 
   /**
@@ -161,10 +153,9 @@ export class TransferWorker {
       // Step 4: 分批插入目标表
       await this.insertToTargetTable(namespace, database, tableName, records)
 
-      // Step 5: 清理暂存表（先标记已处理，再删除）
+      // Step 5: 标记已处理（不立即删除，留给 idle 时批量清理）
       const recordIds = records.map((r) => r.id)
       await this.markProcessed(recordIds)
-      await this.deleteProcessedRecords(recordIds)
 
       const duration = Date.now() - startTime
       this.totalTransferred += records.length
@@ -207,7 +198,8 @@ export class TransferWorker {
     const sql = `
       UPDATE ${STAGING_TABLE}
       SET processing_started_at = time::now()
-      WHERE id IN $ids;
+      WHERE id IN $ids
+      RETURN NONE;
     `
 
     await this.client.queryInDatabase(STAGING_NAMESPACE, STAGING_DATABASE, sql, { ids })
@@ -223,7 +215,8 @@ export class TransferWorker {
     const sql = `
       UPDATE ${STAGING_TABLE}
       SET processed = true, processing_started_at = NULL
-      WHERE id IN $ids;
+      WHERE id IN $ids
+      RETURN NONE;
     `
 
     await this.client.queryInDatabase(STAGING_NAMESPACE, STAGING_DATABASE, sql, { ids })
@@ -238,7 +231,8 @@ export class TransferWorker {
 
     const sql = `
       DELETE FROM ${STAGING_TABLE}
-      WHERE id IN $ids;
+      WHERE id IN $ids
+      RETURN NONE;
     `
 
     try {
@@ -288,7 +282,7 @@ export class TransferWorker {
         params[`idx${i}`] = idx
       })
 
-      const sql = `DELETE FROM \`${tableName}\` WHERE ${conditions};`
+      const sql = `DELETE FROM \`${tableName}\` WHERE ${conditions} RETURN NONE;`
 
       try {
         await this.client.queryInDatabase(namespace, database, sql, params)

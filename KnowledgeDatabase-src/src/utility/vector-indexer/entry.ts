@@ -6,6 +6,9 @@
 import { SurrealClient } from './db/surreal-client'
 import { StagingPoller } from './core/staging-poller'
 import { TransferWorker } from './core/transfer-worker'
+import {
+  DEFAULT_INDEXER_CONFIG
+} from '@shared/vector-indexer-ipc.types'
 import type {
   MainToIndexerMessage,
   IndexerToMainMessage,
@@ -51,16 +54,10 @@ let transferWorker: TransferWorker | null = null
 let isRunning = false
 
 // ============================================================================
-// 默认配置
+// 默认配置（来自共享类型）
 // ============================================================================
 
-const defaultConfig: IndexerConfig = {
-  batchSize: 4000,
-  maxConcurrentTables: 5,
-  pollIntervalActive: 1000, // 降低到 500ms，更快响应
-  pollIntervalIdle: 5000,
-  processingTimeout: 5 * 60 * 1000
-}
+const defaultConfig: IndexerConfig = DEFAULT_INDEXER_CONFIG
 
 // ============================================================================
 // 统计信息
@@ -148,12 +145,22 @@ async function startIndexer(
     stagingPoller = new StagingPoller(surrealClient, mergedConfig)
 
     // 启动轮询
-    stagingPoller.start(async (groups) => {
-      lastPollTime = Date.now()
-      if (transferWorker) {
-        await transferWorker.processGroups(groups)
+    stagingPoller.start(
+      async (groups) => {
+        lastPollTime = Date.now()
+        if (transferWorker) {
+          await transferWorker.processGroups(groups)
+        }
+      },
+      (message) => {
+        // cleanup 日志回调 - 通过 error 消息发送到主进程以便看到
+        log(`[Cleanup] ${message}`)
+        sendMessage({
+          type: 'indexer:error',
+          message: `[Cleanup] ${message}`
+        })
       }
-    })
+    )
 
     isRunning = true
     log('Started successfully')

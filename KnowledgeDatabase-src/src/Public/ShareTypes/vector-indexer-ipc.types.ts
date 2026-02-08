@@ -38,7 +38,7 @@ export interface IndexerConfig {
  * 默认配置
  */
 export const DEFAULT_INDEXER_CONFIG: IndexerConfig = {
-  batchSize: 4000,
+  batchSize: 10,
   maxConcurrentTables: 5,
   pollIntervalActive: 1000,
   pollIntervalIdle: 5000,
