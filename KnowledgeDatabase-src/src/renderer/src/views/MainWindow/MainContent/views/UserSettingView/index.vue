@@ -83,7 +83,7 @@
 
             <div class="UserSettingView_formGroup">
               <label class="UserSettingView_label block text-sm font-medium text-slate-700 mb-2">
-                HNSW 每批次数
+                向量索引批次大小
               </label>
               <div class="relative">
                 <input
@@ -92,7 +92,7 @@
                   min="1"
                   max="1000"
                   class="UserSettingView_input w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/70 backdrop-blur-sm transition-all duration-200"
-                  placeholder="输入每批次数"
+                  placeholder="输入批次大小"
                   @blur="handleHnswBatchSizeBlur"
                 />
                 <div
@@ -103,7 +103,7 @@
                 </div>
               </div>
               <p class="UserSettingView_helpText mt-2 text-sm text-slate-500">
-                配置 HNSW 索引每批次处理的向量数，范围：1-1000。离开输入框后自动保存。
+                配置向量索引器每批次从暂存表读取的记录数，范围：1-1000。较大值提高吞吐量但占用更多内存。离开输入框后自动保存。
               </p>
             </div>
           </div>

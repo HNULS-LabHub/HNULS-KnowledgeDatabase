@@ -1,4 +1,4 @@
-import { AppService } from './services'
+import { AppService, UserConfigService } from './services'
 import { IPCManager } from './ipc'
 import { globalMonitorBridge } from './services/global-monitor-bridge'
 import { embeddingEngineBridge } from './services/embedding-engine-bridge'
@@ -99,8 +99,13 @@ class Application {
         namespace: 'knowledge'
       })
 
-      // 启动索引循环
-      await vectorIndexerBridge.startIndexer()
+      // 读取用户配置的 batchSize
+      const userConfigService = new UserConfigService()
+      const userConfig = await userConfigService.getConfig()
+      const batchSize = userConfig.embedding.hnswBatchSize
+
+      // 启动索引循环（传入用户配置）
+      await vectorIndexerBridge.startIndexer({ batchSize })
 
       // 监听事件（可选：用于日志记录）
       vectorIndexerBridge.onBatchCompleted(({ tableName, count, duration }) => {

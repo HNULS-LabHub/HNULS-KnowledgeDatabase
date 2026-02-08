@@ -65,6 +65,7 @@ export const useFileListStore = defineStore('file-list', () => {
     currentPage,
     pageSize,
     // Getters
+    files: computed(() => fileDataStore.files), // ✅ 暴露 files 供 FileListView 访问
     totalFiles,
     totalPages,
     startIndex,

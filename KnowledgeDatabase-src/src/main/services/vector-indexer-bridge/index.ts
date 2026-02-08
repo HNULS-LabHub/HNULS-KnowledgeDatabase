@@ -471,6 +471,53 @@ export class VectorIndexerBridge {
       params.embeddingConfigId
     )
 
+    // 构造目标向量表名（与 transfer-worker 一致）
+    const safeId = String(params.embeddingConfigId).replace(/[^a-zA-Z0-9_]/g, '_')
+    const vectorTableName = `emb_cfg_${safeId}_${params.dimensions}_chunks`
+
+    // ✅ 直接查询目标向量表中该文档的实际 chunk 数量
+    //    这样无论分多少批搬运，最终都是准确的实际值
+    let actualChunkCount = params.chunkCount
+    try {
+      const countSql = `SELECT count() AS count FROM \`${vectorTableName}\` WHERE file_key = $fileKey GROUP ALL;`
+      const countResult = await this.queryService.queryInDatabase(
+        params.targetNamespace,
+        params.targetDatabase,
+        countSql,
+        { fileKey: params.fileKey }
+      )
+      
+      logger.debug('[VectorIndexerBridge] COUNT query result', {
+        fileKey: params.fileKey,
+        vectorTableName,
+        rawResult: countResult
+      })
+      
+      const counted = (countResult as any)?.[0]?.[0]?.count ?? (countResult as any)?.[0]?.count
+      if (typeof counted === 'number' && counted > 0) {
+        actualChunkCount = counted
+        logger.info('[VectorIndexerBridge] Using actual chunk count from vector table', {
+          fileKey: params.fileKey,
+          batchCount: params.chunkCount,
+          actualCount: actualChunkCount
+        })
+      } else {
+        logger.warn('[VectorIndexerBridge] COUNT query returned invalid result, using batch count', {
+          fileKey: params.fileKey,
+          counted,
+          batchCount: params.chunkCount
+        })
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      logger.error('[VectorIndexerBridge] COUNT query failed, using batch count', {
+        fileKey: params.fileKey,
+        vectorTableName,
+        error: errorMsg,
+        batchCount: params.chunkCount
+      })
+    }
+
     // UPSERT 到 kb_document_embedding 关联表
     // 唯一索引: (file_key, embedding_config_id, dimensions)
     const sql = `
@@ -493,15 +540,15 @@ export class VectorIndexerBridge {
         embeddingConfigId: params.embeddingConfigId,
         embeddingConfigName: embeddingConfigName ?? null,
         dimensions: params.dimensions,
-        chunkCount: params.chunkCount
+        chunkCount: actualChunkCount
       })
 
-      logger.debug('[VectorIndexerBridge] Updated kb_document_embedding status', {
+      logger.info('[VectorIndexerBridge] Updated kb_document_embedding status', {
         fileKey: params.fileKey,
         embeddingConfigId: params.embeddingConfigId,
         embeddingConfigName,
         dimensions: params.dimensions,
-        chunkCount: params.chunkCount
+        chunkCount: actualChunkCount
       })
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error)
