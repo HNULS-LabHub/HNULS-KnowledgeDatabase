@@ -790,7 +790,7 @@ export class KnowledgeLibraryService {
 
       // 使用 FileScannerService 扫描文档（注入 QueryService 以支持嵌入信息查询）
       const scanner = new FileScannerService(this.queryService)
-      const files = await scanner.scanDirectory(kbRoot)
+      const files = await scanner.scanDirectory(kbRoot, kb.databaseName)
 
       if (files.length === 0) {
         logger.debug('[KnowledgeLibraryService] No documents found in knowledge base', {

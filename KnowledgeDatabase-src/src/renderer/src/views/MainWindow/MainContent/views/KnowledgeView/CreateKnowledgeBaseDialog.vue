@@ -105,10 +105,17 @@
                         v-model="formData.name"
                         type="text"
                         class="form-input"
-                        placeholder="例如：产品文档库"
-                        maxlength="50"
+                        :class="{ 'input-error': nameError }"
+                        placeholder="例如：product_docs"
+                        maxlength="64"
                         required
+                        @input="validateName"
+                        @blur="validateName"
                       />
+                      <p v-if="nameError" class="form-error">{{ nameError }}</p>
+                      <p v-else class="form-hint naming-hint">
+                        💡 只能使用字母、数字和下划线，不能以数字开头，建议使用英文或拼音（如 species_research）
+                      </p>
                     </div>
 
                     <div class="form-group">
@@ -253,6 +260,7 @@ const formData = ref<KnowledgeBaseFormData>({
 
 const iconTab = ref<'preset' | 'custom'>('preset')
 const rgb = reactive({ r: 37, g: 99, b: 235 }) // Default blue
+const nameError = ref<string>('')
 
 // Helper: Component -> Hex
 const componentToHex = (c: number) => {
@@ -301,10 +309,57 @@ const handleOverlayClick = () => {
   handleClose()
 }
 
+/**
+ * 验证知识库名称
+ */
+const validateName = () => {
+  const name = formData.value.name.trim()
+  
+  if (!name) {
+    nameError.value = ''
+    return false
+  }
+
+  // 1. 长度检查
+  if (name.length > 64) {
+    nameError.value = '名称不能超过 64 个字符'
+    return false
+  }
+
+  // 2. 不能以数字开头
+  if (/^[0-9]/.test(name)) {
+    nameError.value = '名称不能以数字开头'
+    return false
+  }
+
+  // 3. 只允许字母、数字、下划线
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+    nameError.value = '名称只能包含字母、数字和下划线'
+    return false
+  }
+
+  // 4. 检查保留关键字
+  const reserved = ['system', 'admin', 'root', 'database', 'namespace']
+  if (reserved.includes(name.toLowerCase())) {
+    nameError.value = '不能使用系统保留名称'
+    return false
+  }
+
+  nameError.value = ''
+  return true
+}
+
 const handleSubmit = () => {
   if (!formData.value.name.trim()) {
+    nameError.value = '知识库名称不能为空'
     return
   }
+  
+  // 验证名称
+  if (!validateName()) {
+    return
+  }
+  
   if (!formData.value.icon) {
     formData.value.icon = defaultIcon
   }
@@ -321,6 +376,7 @@ const resetForm = () => {
     icon: defaultIcon
   }
   iconTab.value = 'preset'
+  nameError.value = ''
   const defRgb = hexToRgb('#2563eb')
   if (defRgb) {
     Object.assign(rgb, defRgb)
@@ -769,6 +825,48 @@ watch(
   font-size: 0.75rem;
   color: #94a3b8;
   flex-shrink: 0;
+}
+
+.naming-hint {
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.form-error {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.75rem;
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+.input-error {
+  border-color: #ef4444 !important;
+}
+
+.input-error:focus {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.naming-hint {
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.form-error {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.75rem;
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+.input-error {
+  border-color: #ef4444 !important;
+}
+
+.input-error:focus {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
 }
 
 /* 按钮组 */

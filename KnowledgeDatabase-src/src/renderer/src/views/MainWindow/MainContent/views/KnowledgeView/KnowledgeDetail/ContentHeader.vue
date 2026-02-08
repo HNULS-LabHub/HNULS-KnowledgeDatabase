@@ -51,6 +51,20 @@
             </svg>
           </button>
 
+          <!-- 刷新按钮 -->
+          <button
+            class="kb-content-header-icon-btn"
+            :class="{ 'kb-content-header-icon-btn-spinning': isRefreshing }"
+            :disabled="isRefreshing"
+            title="刷新文件列表"
+            @click="handleRefresh"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+          </button>
+
           <!-- 搜索组 -->
           <div class="kb-content-header-group">
             <div class="kb-content-header-group-content">
@@ -255,6 +269,7 @@ const showBatchEmbeddingDialog = ref(false)
 
 // 状态筛选对话框
 const showFilterDialog = ref(false)
+const isRefreshing = ref(false)
 
 type StatusKey = 'embedded' | 'parsed' | 'parsing' | 'pending' | 'failed'
 type StatusState = 'include' | 'exclude' | 'ignore'
@@ -278,6 +293,24 @@ const handleResetFilter = () => {
   })
   fileListStore.resetStatusFilter()
   fileCardStore.resetStatusFilter()
+}
+
+/**
+ * 手动刷新文件列表（走打开知识库的同一管线：fetchFiles）
+ */
+async function handleRefresh(): Promise<void> {
+  if (isRefreshing.value) return
+  isRefreshing.value = true
+  try {
+    const kbId = props.knowledgeBaseId
+    await Promise.all([
+      fileListStore.fetchFiles(kbId),
+      fileCardStore.fetchFiles(kbId),
+      fileTreeStore.fetchFiles(kbId)
+    ])
+  } finally {
+    isRefreshing.value = false
+  }
 }
 
 // 选择模式状态
@@ -745,5 +778,15 @@ async function handleBatchEmbedding(configId: string): Promise<void> {
   background: white;
   border-color: #e2e8f0;
   color: #0f172a;
+}
+
+/* 刷新旋转动画 */
+.kb-content-header-icon-btn-spinning svg {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>

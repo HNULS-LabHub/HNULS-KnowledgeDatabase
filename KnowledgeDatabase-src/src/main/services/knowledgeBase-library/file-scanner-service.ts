@@ -25,9 +25,10 @@ export class FileScannerService {
   /**
    * 扫描指定目录下的所有文件
    * @param directoryPath 要扫描的目录路径
+   * @param databaseName 知识库对应的 SurrealDB 数据库名（用于查询嵌入状态）
    * @returns 文件列表（扁平数组）
    */
-  async scanDirectory(directoryPath: string): Promise<FileNode[]> {
+  async scanDirectory(directoryPath: string, databaseName?: string): Promise<FileNode[]> {
     const files: FileNode[] = []
 
     try {
@@ -47,7 +48,7 @@ export class FileScannerService {
       await this.scanDirectoryRecursive(directoryPath, directoryPath, files)
 
       // 批量获取所有文件的状态信息
-      await this.enrichFilesWithStatus(directoryPath, files)
+      await this.enrichFilesWithStatus(directoryPath, files, databaseName)
 
       logger.info(`Scanned ${files.length} files from directory: ${directoryPath}`)
     } catch (error) {
@@ -164,27 +165,27 @@ export class FileScannerService {
    * 为文件列表补充状态和分块数信息
    * @param kbRoot 知识库根目录
    * @param files 文件列表
+   * @param databaseName 知识库对应的 SurrealDB 数据库名
    */
-  private async enrichFilesWithStatus(kbRoot: string, files: FileNode[]): Promise<void> {
+  private async enrichFilesWithStatus(kbRoot: string, files: FileNode[], databaseName?: string): Promise<void> {
     try {
-      // 提取所有文件名
-      const fileNames = files.map((file) => file.name)
+      // 提取所有文件的相对路径
+      const filePaths = files.map((file) => file.path)
 
       // 批量获取状态信息
-      const statusMap = await this.fileStatusService.getBatchFileStatus(kbRoot, fileNames)
+      const statusMap = await this.fileStatusService.getBatchFileStatus(kbRoot, filePaths, databaseName)
 
       // 更新文件节点的状态信息
       for (const file of files) {
-        const statusInfo = statusMap.get(file.name)
+        const statusInfo = statusMap.get(file.path)
         if (statusInfo) {
           file.status = statusInfo.status
           file.chunkCount = statusInfo.chunkCount
-          file.embeddingInfo = statusInfo.embeddingInfo  // 更新嵌入信息
+          file.embeddingInfo = statusInfo.embeddingInfo
         }
       }
     } catch (error) {
       logger.error('Failed to enrich files with status', error)
-      // 即使获取状态失败，也不影响文件列表的返回
     }
   }
 }

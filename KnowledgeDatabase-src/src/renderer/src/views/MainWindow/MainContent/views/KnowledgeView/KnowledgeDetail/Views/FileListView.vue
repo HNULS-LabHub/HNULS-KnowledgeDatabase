@@ -155,14 +155,20 @@
                   </span>
                   <span>{{ statusLabels[file.status || 'pending'] }}</span>
                 </span>
-                <!-- 嵌入模型信息（仅当 status === 'embedded' 时显示） -->
-                <span
-                  v-if="file.status === 'embedded' && getEmbeddingDisplay(file)"
-                  class="text-[10px] text-purple-500 truncate"
-                  :title="getEmbeddingDisplay(file)"
+                <!-- 嵌入模型信息（展示所有嵌入表） -->
+                <div
+                  v-if="file.status === 'embedded' && file.embeddingInfo?.length"
+                  class="flex flex-wrap gap-1 mt-0.5"
                 >
-                  {{ getEmbeddingDisplay(file) }}
-                </span>
+                  <span
+                    v-for="(emb, idx) in file.embeddingInfo"
+                    :key="idx"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-purple-50 text-purple-600 border border-purple-200"
+                    :title="`${emb.configName} (${emb.dimensions}d)`"
+                  >
+                    {{ emb.configName }}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -413,23 +419,6 @@ const statusLabels: Record<string, string> = {
   pending: '待解析'
 }
 
-/**
- * 获取文件的嵌入信息显示文本
- */
-const getEmbeddingDisplay = (file: FileNode): string => {
-  if (!file.embeddingInfo || file.embeddingInfo.length === 0) return ''
-  
-  // 显示第一个嵌入配置
-  const first = file.embeddingInfo[0]
-  const displayName = first.configName || '未知配置'
-  
-  // 如果有多个嵌入，显示 +N
-  if (file.embeddingInfo.length > 1) {
-    return `${displayName} +${file.embeddingInfo.length - 1}`
-  }
-  
-  return displayName
-}
 
 // ============ 文件名处理 ============
 

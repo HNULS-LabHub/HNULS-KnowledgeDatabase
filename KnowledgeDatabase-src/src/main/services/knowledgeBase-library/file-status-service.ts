@@ -54,18 +54,22 @@ export class FileStatusService {
   /**
    * 获取文件的状态信息
    * @param kbRoot 知识库根目录
-   * @param fileName 文件名
+   * @param filePath 文件相对路径
+   * @param databaseName 知识库对应的 SurrealDB 数据库名
    * @returns 状态信息
    */
-  async getFileStatus(kbRoot: string, fileName: string): Promise<FileStatusInfo> {
+  async getFileStatus(kbRoot: string, filePath: string, databaseName?: string): Promise<FileStatusInfo> {
     try {
-      const fileExt = path.extname(fileName).toLowerCase().slice(1) // 去掉点号
-      const fileKey = path.relative(kbRoot, path.join(kbRoot, fileName)).replace(/\\/g, '/')
+      const fileExt = path.extname(filePath).toLowerCase().slice(1) // 去掉点号
+      // 直接使用 filePath 作为 fileKey（已经是相对路径）
+      const fileKey = filePath.replace(/\\/g, '/')
+      // 提取文件名（用于 MinerU 和 Chunk MetaStore 查询）
+      const fileName = path.basename(filePath)
 
       // 1. 查询嵌入信息（最高优先级）
       let embeddingInfo: EmbeddingInfo[] | undefined
-      if (this.queryService && this.queryService.isConnected()) {
-        embeddingInfo = await this.getEmbeddingInfo(fileKey)
+      if (this.queryService && this.queryService.isConnected() && databaseName) {
+        embeddingInfo = await this.getEmbeddingInfo(fileKey, databaseName)
         // 如果有嵌入信息，直接返回 'embedded' 状态
         if (embeddingInfo && embeddingInfo.length > 0) {
           return {
@@ -97,7 +101,7 @@ export class FileStatusService {
         chunkCount
       }
     } catch (error) {
-      logger.error(`Failed to get file status for ${fileName}`, error)
+      logger.error(`Failed to get file status for ${filePath}`, error)
       // 返回默认状态
       return {
         status: 'pending',
@@ -188,20 +192,22 @@ export class FileStatusService {
   /**
    * 批量获取文件状态
    * @param kbRoot 知识库根目录
-   * @param fileNames 文件名列表
-   * @returns 状态信息映射 (fileName -> FileStatusInfo)
+   * @param filePaths 文件相对路径列表
+   * @param databaseName 知识库对应的 SurrealDB 数据库名
+   * @returns 状态信息映射 (filePath -> FileStatusInfo)
    */
   async getBatchFileStatus(
     kbRoot: string,
-    fileNames: string[]
+    filePaths: string[],
+    databaseName?: string
   ): Promise<Map<string, FileStatusInfo>> {
     const statusMap = new Map<string, FileStatusInfo>()
 
     // 并行查询所有文件的状态
     await Promise.all(
-      fileNames.map(async (fileName) => {
-        const status = await this.getFileStatus(kbRoot, fileName)
-        statusMap.set(fileName, status)
+      filePaths.map(async (filePath) => {
+        const status = await this.getFileStatus(kbRoot, filePath, databaseName)
+        statusMap.set(filePath, status)
       })
     )
 
@@ -211,12 +217,15 @@ export class FileStatusService {
   /**
    * 查询文件的嵌入信息
    * @param fileKey 文件的 file_key
+   * @param databaseName 知识库对应的 SurrealDB 数据库名
    * @returns 嵌入信息列表
    */
-  private async getEmbeddingInfo(fileKey: string): Promise<EmbeddingInfo[] | undefined> {
+  private async getEmbeddingInfo(fileKey: string, databaseName: string): Promise<EmbeddingInfo[] | undefined> {
     if (!this.queryService || !this.queryService.isConnected()) {
       return undefined
     }
+
+    const namespace = this.queryService.getNamespace() || 'knowledge'
 
     try {
       const sql = `
@@ -229,7 +238,7 @@ export class FileStatusService {
         AND status = 'completed';
       `
 
-      const result = await this.queryService.query<any[]>(sql, { fileKey })
+      const result = await this.queryService.queryInDatabase<any[]>(namespace, databaseName, sql, { fileKey })
 
       if (!result || result.length === 0 || !result[0]) {
         return undefined
