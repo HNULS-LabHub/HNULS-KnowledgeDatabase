@@ -80,19 +80,7 @@ const handleExternalDrop = (data: { targetPath: string; targetNode: TreeNodeType
 }
 
 // 初始化时获取文件列表
-onMounted(async () => {
-  await fileTreeStore.fetchFiles(props.knowledgeBaseId)
-})
-
-// 监听 knowledgeBaseId 变化，重新加载数据
-watch(
-  () => props.knowledgeBaseId,
-  async (newId) => {
-    if (newId) {
-      await fileTreeStore.fetchFiles(newId)
-    }
-  }
-)
+// 数据由父组件通过 FileDataStore 统一加载，此处不再触发 fetch
 </script>
 
 <style scoped>

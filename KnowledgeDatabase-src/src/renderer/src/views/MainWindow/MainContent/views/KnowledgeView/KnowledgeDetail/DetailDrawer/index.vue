@@ -94,9 +94,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { FileNode } from '../types'
-import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
-import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
-import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
+import { useFileDataStore } from '@renderer/stores/knowledge-library/file-data.store'
 import InfoTab from './InfoTab.vue'
 import ParseTab from './ParseTab/index.vue'
 import PreviewTab from './PreviewTab.vue'
@@ -143,9 +141,7 @@ const close = (): void => {
   }, 300)
 }
 
-const fileListStore = useFileListStore()
-const fileCardStore = useFileCardStore()
-const fileTreeStore = useFileTreeStore()
+const fileDataStore = useFileDataStore()
 
 const handleDelete = async (): Promise<void> => {
   if (!props.fileData || !props.knowledgeBaseId) {
@@ -167,11 +163,7 @@ const handleDelete = async (): Promise<void> => {
     const result = await window.api.file.deleteFile(props.knowledgeBaseId, filePath)
 
     if (result.success) {
-      await Promise.allSettled([
-        fileListStore.fetchFiles(props.knowledgeBaseId),
-        fileCardStore.fetchFiles(props.knowledgeBaseId),
-        fileTreeStore.fetchFiles(props.knowledgeBaseId)
-      ])
+      await fileDataStore.refresh()
 
       close()
 

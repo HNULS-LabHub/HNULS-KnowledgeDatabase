@@ -553,16 +553,7 @@ const goToPage = (page: number) => {
   if (container) container.scrollTop = 0
 }
 
-onMounted(async () => {
-  await fileListStore.fetchFiles(props.knowledgeBaseId)
-})
-
-watch(
-  () => props.knowledgeBaseId,
-  async (newId) => {
-    if (newId) await fileListStore.fetchFiles(newId)
-  }
-)
+// 数据由父组件通过 FileDataStore 统一加载，此处不再触发 fetch
 
 // ============ 工具函数 ============
 

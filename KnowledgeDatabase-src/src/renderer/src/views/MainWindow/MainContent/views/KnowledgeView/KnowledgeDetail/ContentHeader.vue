@@ -225,6 +225,7 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
+import { useFileDataStore } from '@renderer/stores/knowledge-library/file-data.store'
 import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
 import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
 import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
@@ -255,6 +256,7 @@ const tabs = [
 ]
 
 // 使用 Stores
+const fileDataStore = useFileDataStore()
 const fileListStore = useFileListStore()
 const fileCardStore = useFileCardStore()
 const fileTreeStore = useFileTreeStore()
@@ -302,12 +304,7 @@ async function handleRefresh(): Promise<void> {
   if (isRefreshing.value) return
   isRefreshing.value = true
   try {
-    const kbId = props.knowledgeBaseId
-    await Promise.all([
-      fileListStore.fetchFiles(kbId),
-      fileCardStore.fetchFiles(kbId),
-      fileTreeStore.fetchFiles(kbId)
-    ])
+    await fileDataStore.refresh()
   } finally {
     isRefreshing.value = false
   }
@@ -337,7 +334,7 @@ const handleSelectAll = (): void => {
 
   // 根据当前视图获取所有文件ID
   if (props.currentView === 'list') {
-    allFileIds = fileListStore.files.map((f) => f.id)
+    allFileIds = fileDataStore.files.map((f) => f.id)
   } else if (props.currentView === 'card') {
     allFileIds = fileCardStore.filteredFiles.map((f) => f.id)
   } else if (props.currentView === 'tree') {
@@ -391,7 +388,7 @@ function getSelectedFiles(): FileNode[] {
 
   // 根据当前视图获取文件列表
   if (props.currentView === 'list') {
-    allFiles = fileListStore.files
+    allFiles = fileDataStore.files
   } else if (props.currentView === 'card') {
     allFiles = fileCardStore.filteredFiles
   } else if (props.currentView === 'tree') {

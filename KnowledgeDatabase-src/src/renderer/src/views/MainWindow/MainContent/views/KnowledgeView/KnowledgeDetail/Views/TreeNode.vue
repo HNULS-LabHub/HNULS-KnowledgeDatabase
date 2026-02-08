@@ -165,6 +165,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
+import { useFileDataStore } from '@renderer/stores/knowledge-library/file-data.store'
 import { useFileSelectionStore } from '@renderer/stores/knowledge-library/file-selection.store'
 import type { TreeNode, FileNode } from '@renderer/stores/knowledge-library/file.types'
 
@@ -183,6 +184,7 @@ const emit = defineEmits<{
 }>()
 
 const fileTreeStore = useFileTreeStore()
+const fileDataStore = useFileDataStore()
 const selectionStore = useFileSelectionStore()
 
 // 拖拽状态
@@ -252,7 +254,7 @@ const handleDelete = async (): Promise<void> => {
     const result = await window.api.file.deleteFile(props.knowledgeBaseId, targetPath)
 
     if (result.success) {
-      await fileTreeStore.fetchFiles(props.knowledgeBaseId)
+      await fileDataStore.refresh()
     } else {
       alert(`删除失败: ${result.error || '未知错误'}`)
     }

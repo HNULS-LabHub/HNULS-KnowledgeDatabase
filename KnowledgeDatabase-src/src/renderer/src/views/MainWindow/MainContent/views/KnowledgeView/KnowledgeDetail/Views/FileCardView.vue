@@ -129,19 +129,7 @@ const files = computed(() => fileCardStore.filteredFiles)
 const loading = computed(() => fileCardStore.loading)
 
 // 初始化时获取文件列表
-onMounted(async () => {
-  await fileCardStore.fetchFiles(props.knowledgeBaseId)
-})
-
-// 监听 knowledgeBaseId 变化，重新加载数据
-watch(
-  () => props.knowledgeBaseId,
-  async (newId) => {
-    if (newId) {
-      await fileCardStore.fetchFiles(newId)
-    }
-  }
-)
+// 数据由父组件通过 FileDataStore 统一加载，此处不再触发 fetch
 
 const getStatusText = (status?: string) => {
   const statusMap = {

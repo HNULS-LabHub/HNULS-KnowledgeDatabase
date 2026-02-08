@@ -25,9 +25,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
-import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
-import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
-import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
+import { useFileDataStore } from '@renderer/stores/knowledge-library/file-data.store'
 import type { TaskHandle } from '@preload/types'
 
 const props = defineProps<{
@@ -47,9 +45,7 @@ let externalDropTargetPath: string | null = null
 const activeImportTasks: Map<string, TaskHandle> = new Map()
 
 const knowledgeLibraryStore = useKnowledgeLibraryStore()
-const fileListStore = useFileListStore()
-const fileCardStore = useFileCardStore()
-const fileTreeStore = useFileTreeStore()
+const fileDataStore = useFileDataStore()
 
 // 获取当前知识库名称
 const currentKnowledgeBase = computed(() => {
@@ -90,7 +86,7 @@ function setupGlobalListeners(): void {
     }
 
     // 刷新文件列表
-    refreshFilesForKnowledgeBase(props.knowledgeBaseId)
+    refreshFilesForKnowledgeBase(data.meta?.knowledgeBaseId ?? props.knowledgeBaseId)
   })
 
   // 监听所有导入错误
@@ -272,11 +268,7 @@ const handleDrop = async (event: DragEvent): Promise<void> => {
 
 // 刷新指定知识库的文件列表
 function refreshFilesForKnowledgeBase(kbId: number): void {
-  Promise.allSettled([
-    fileListStore.fetchFiles(kbId),
-    fileCardStore.fetchFiles(kbId),
-    fileTreeStore.fetchFiles(kbId)
-  ]).then(() => {
+  fileDataStore.fetchFiles(kbId).then(() => {
     console.log('[DropZone] Files refreshed for knowledge base', { kbId })
   })
 }

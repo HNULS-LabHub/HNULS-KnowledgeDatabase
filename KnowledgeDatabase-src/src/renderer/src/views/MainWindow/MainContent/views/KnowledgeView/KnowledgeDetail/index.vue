@@ -75,9 +75,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
-import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
-import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
+import { useFileDataStore } from '@renderer/stores/knowledge-library/file-data.store'
 import Sidebar from './Sidebar.vue'
 import ContentHeader from './ContentHeader.vue'
 import DetailDrawer from './DetailDrawer/index.vue'
@@ -131,10 +129,8 @@ function handleBack() {
 
 defineExpose({ handleBack })
 
-// 获取各个 Store 实例
-const fileListStore = useFileListStore()
-const fileCardStore = useFileCardStore()
-const fileTreeStore = useFileTreeStore()
+// 获取数据源 Store 实例
+const fileDataStore = useFileDataStore()
 
 const CurrentViewComponent = computed(() => {
   switch (currentViewType.value) {
@@ -148,22 +144,12 @@ const CurrentViewComponent = computed(() => {
   }
 })
 
-// 监听视图切换，确保数据已加载
+// 监听知识库切换，统一通过 FileDataStore 获取一次数据
 watch(
-  [() => currentViewType.value, () => props.kb.id],
-  async ([viewType, kbId]) => {
-    if (currentNav.value === 'files') {
-      switch (viewType) {
-        case 'list':
-          await fileListStore.fetchFiles(kbId)
-          break
-        case 'card':
-          await fileCardStore.fetchFiles(kbId)
-          break
-        case 'tree':
-          await fileTreeStore.fetchFiles(kbId)
-          break
-      }
+  () => props.kb.id,
+  async (kbId) => {
+    if (kbId) {
+      await fileDataStore.fetchFiles(kbId)
     }
   },
   { immediate: true }

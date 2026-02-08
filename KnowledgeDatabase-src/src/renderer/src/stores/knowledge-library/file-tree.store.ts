@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { FileDataSource } from './file.datasource'
+import { useFileDataStore } from './file-data.store'
 import type { FileNode, TreeNode } from './file.types'
 import type { MoveResult, BatchMoveResult } from './file.datasource'
 
@@ -8,11 +8,9 @@ import type { MoveResult, BatchMoveResult } from './file.datasource'
  * 文件树 Store（树形视图）
  */
 export const useFileTreeStore = defineStore('file-tree', () => {
-  // State
-  const files = ref<FileNode[]>([])
-  const loading = ref(false)
-  const error = ref<string | null>(null)
-  const currentKnowledgeBaseId = ref<number | null>(null)
+  const fileDataStore = useFileDataStore()
+
+  // State（视图）
   // 使用数组而不是 Set，避免 Pinia 序列化问题
   const expandedFolders = ref<(string | number)[]>([])
 
@@ -21,7 +19,7 @@ export const useFileTreeStore = defineStore('file-tree', () => {
    * 将扁平数组转换为树形结构
    */
   const treeStructure = computed(() => {
-    return buildTreeFromFiles(files.value)
+    return buildTreeFromFiles(fileDataStore.files)
   })
 
   // Actions
@@ -29,19 +27,7 @@ export const useFileTreeStore = defineStore('file-tree', () => {
    * 获取文件列表
    */
   async function fetchFiles(knowledgeBaseId: number): Promise<void> {
-    loading.value = true
-    error.value = null
-    currentKnowledgeBaseId.value = knowledgeBaseId
-
-    try {
-      files.value = await FileDataSource.getAll(knowledgeBaseId)
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch files'
-      console.error('Failed to fetch files:', err)
-      files.value = []
-    } finally {
-      loading.value = false
-    }
+    await fileDataStore.fetchFiles(knowledgeBaseId)
   }
 
   /**
@@ -96,9 +82,7 @@ export const useFileTreeStore = defineStore('file-tree', () => {
    * 刷新数据
    */
   async function refresh(): Promise<void> {
-    if (currentKnowledgeBaseId.value !== null) {
-      await fetchFiles(currentKnowledgeBaseId.value)
-    }
+    await fileDataStore.refresh()
   }
 
   /**
@@ -128,8 +112,8 @@ export const useFileTreeStore = defineStore('file-tree', () => {
       )
 
       if (result.success) {
-        // 刷新树结构
-        await refresh()
+        // 刷新树结构（全局数据源）
+        await fileDataStore.refresh()
       }
 
       return result
@@ -153,8 +137,8 @@ export const useFileTreeStore = defineStore('file-tree', () => {
     try {
       const result = await FileDataSource.moveMultiple(knowledgeBaseId, moves, conflictPolicy)
 
-      // 刷新树结构
-      await refresh()
+      // 刷新树结构（全局数据源）
+      await fileDataStore.refresh()
 
       return result
     } catch (error) {
@@ -262,12 +246,11 @@ export const useFileTreeStore = defineStore('file-tree', () => {
 
   return {
     // State
-    files,
-    loading,
-    error,
     expandedFolders,
     // Getters
     treeStructure,
+    loading: computed(() => fileDataStore.loading),
+    error: computed(() => fileDataStore.error),
     // Actions
     fetchFiles,
     toggleFolder,
