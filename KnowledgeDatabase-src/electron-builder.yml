@@ -12,6 +12,11 @@ files:
 extraResources:
   - from: 'vendor'
     to: 'vendor'
+  - from: 'build'
+    to: 'build'
+    filter:
+      - 'icon.ico'
+      - 'icon.png'
 asarUnpack:
   - resources/**
 win:

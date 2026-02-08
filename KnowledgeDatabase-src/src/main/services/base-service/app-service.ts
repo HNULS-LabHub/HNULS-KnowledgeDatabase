@@ -1,5 +1,6 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, Tray, Menu, nativeImage } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
+import path from 'path'
 import { WindowService } from './window-service'
 import { SurrealDBService } from '../surrealdb-service'
 import { DocumentService } from '../knowledgeBase-library/document-service'
@@ -12,6 +13,7 @@ export class AppService {
   private surrealDBService: SurrealDBService
   private documentService: DocumentService
   private knowledgeLibraryService: KnowledgeLibraryService
+  private tray: Tray | null = null
 
   constructor() {
     this.windowService = new WindowService()
@@ -111,7 +113,73 @@ export class AppService {
     // Create main window
     this.windowService.createMainWindow()
 
+    // Create tray icon
+    this.createTray()
+
     this.setupAppEvents()
+  }
+
+  private createTray(): void {
+    try {
+      // 根据打包状态选择正确的图标路径
+      const getIconPath = () => {
+        if (app.isPackaged) {
+          // 打包后：从 resources 目录读取
+          return process.platform === 'win32'
+            ? path.join(process.resourcesPath, 'build', 'icon.ico')
+            : path.join(process.resourcesPath, 'resources', 'icon.png')
+        } else {
+          // 开发环境：从项目目录读取
+          return process.platform === 'win32'
+            ? path.join(__dirname, '../../../build/icon.ico')
+            : path.join(__dirname, '../../../resources/icon.png')
+        }
+      }
+
+      const iconPath = getIconPath()
+      const icon = nativeImage.createFromPath(iconPath)
+      
+      if (icon.isEmpty()) {
+        logger.error('Failed to load tray icon', { iconPath, isPackaged: app.isPackaged })
+        // 创建空托盘（至少保证托盘功能可用）
+        this.tray = new Tray(nativeImage.createEmpty())
+      } else {
+        this.tray = new Tray(icon)
+      }
+
+      // 设置托盘提示
+      this.tray.setToolTip('知识库管理系统')
+
+      // 创建右键菜单
+      const contextMenu = Menu.buildFromTemplate([
+        {
+          label: '退出应用',
+          click: () => {
+            logger.info('User clicked quit from tray menu')
+            app.quit()
+          }
+        }
+      ])
+
+      // 设置托盘右键菜单
+      this.tray.setContextMenu(contextMenu)
+
+      // 可选：单击托盘图标显示/隐藏主窗口
+      this.tray.on('click', () => {
+        const mainWindow = this.windowService.getMainWindow()
+        if (mainWindow) {
+          if (mainWindow.isVisible()) {
+            mainWindow.hide()
+          } else {
+            mainWindow.show()
+          }
+        }
+      })
+
+      logger.info('Tray icon created successfully')
+    } catch (error) {
+      logger.error('Failed to create tray icon', error)
+    }
   }
 
   private setupAppEvents(): void {
@@ -123,10 +191,11 @@ export class AppService {
       }
     })
 
+    // 阻止 Windows 下关闭窗口时退出应用（保持托盘运行）
     app.on('window-all-closed', () => {
-      if (process.platform !== 'darwin') {
-        app.quit()
-      }
+      // macOS 下保持应用在 Dock 中运行
+      // Windows/Linux 下保持应用在托盘中运行
+      logger.info('All windows closed, app continues running in tray')
     })
 
     // Graceful shutdown
