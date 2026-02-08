@@ -23,9 +23,15 @@ export interface FileNode {
   /** 上传时间（ISO格式或格式化字符串） */
   uploadTime?: string
   /** 解析状态（当前阶段为空） */
-  status?: 'parsed' | 'parsing' | 'failed' | 'pending'
+  status?: 'parsed' | 'parsing' | 'failed' | 'pending' | 'embedded'
   /** 分块数量（当前阶段为空） */
   chunkCount?: number
+  /** 嵌入信息（当文件已有嵌入向量时） */
+  embeddingInfo?: {
+    configName: string  // 嵌入模型配置名，如 "text-embedding-3-small"
+    dimensions: number  // 向量维度
+    status: 'pending' | 'running' | 'completed' | 'failed'  // 嵌入任务状态
+  }[]
   /** 解析相关元数据（当前阶段为空） */
   metadata?: {
     tokenCount?: number

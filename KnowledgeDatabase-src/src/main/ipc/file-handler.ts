@@ -5,6 +5,7 @@ import { DocumentService } from '../services/knowledgeBase-library/document-serv
 import { FileScannerService } from '../services/knowledgeBase-library/file-scanner-service'
 import { FileMoveService } from '../services/knowledgeBase-library/file-move-service'
 import { KnowledgeConfigService } from '../services/knowledgeBase-library/knowledge-config-service'
+import type { QueryService } from '../services/surrealdb-service/query-service'
 
 /**
  * 文件操作 IPC 处理器
@@ -15,10 +16,13 @@ export class FileIPCHandler extends BaseIPCHandler {
   private fileMoveService: FileMoveService
   private knowledgeConfigService: KnowledgeConfigService
 
-  constructor(private knowledgeLibraryService: KnowledgeLibraryService) {
+  constructor(
+    private knowledgeLibraryService: KnowledgeLibraryService,
+    queryService?: QueryService
+  ) {
     super()
     this.documentService = new DocumentService()
-    this.fileScannerService = new FileScannerService()
+    this.fileScannerService = new FileScannerService(queryService)
     this.knowledgeConfigService = new KnowledgeConfigService()
     this.fileMoveService = new FileMoveService(
       knowledgeLibraryService,

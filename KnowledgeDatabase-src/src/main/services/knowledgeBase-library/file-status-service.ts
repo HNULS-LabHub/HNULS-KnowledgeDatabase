@@ -3,28 +3,52 @@ import { MinerUMetaStore } from '../mineru-parser/meta-store'
 import { ChunkMetaStore } from '../chunking/chunk-meta-store'
 import { logger } from '../logger'
 import { safeDocName } from '../mineru-parser/util'
+import type { QueryService } from '../surrealdb-service/query-service'
+
+/**
+ * 嵌入信息
+ */
+export interface EmbeddingInfo {
+  configName: string
+  dimensions: number
+  status: 'pending' | 'running' | 'completed' | 'failed'
+}
 
 /**
  * 文件状态信息
  */
 export interface FileStatusInfo {
   /** 解析状态 */
-  status: 'parsed' | 'parsing' | 'failed' | 'pending'
+  status: 'parsed' | 'parsing' | 'failed' | 'pending' | 'embedded'
   /** 分块数量 */
   chunkCount?: number
+  /** 嵌入信息（当文件已有嵌入向量时） */
+  embeddingInfo?: EmbeddingInfo[]
 }
 
 /**
  * 文件状态服务
  * 负责查询文件的解析状态和分块数量
  */
+// 纯文本格式，不需要解析
+const TEXT_FORMATS = new Set(['md', 'txt', 'markdown', 'text'])
+
 export class FileStatusService {
   private mineruMetaStore: MinerUMetaStore
   private chunkMetaStore: ChunkMetaStore
+  private queryService?: QueryService
 
-  constructor() {
+  constructor(queryService?: QueryService) {
     this.mineruMetaStore = new MinerUMetaStore()
     this.chunkMetaStore = new ChunkMetaStore()
+    this.queryService = queryService
+  }
+
+  /**
+   * 设置 QueryService（用于查询嵌入信息）
+   */
+  setQueryService(queryService: QueryService): void {
+    this.queryService = queryService
   }
 
   /**
@@ -35,10 +59,34 @@ export class FileStatusService {
    */
   async getFileStatus(kbRoot: string, fileName: string): Promise<FileStatusInfo> {
     try {
-      // 1. 获取解析状态
+      const fileExt = path.extname(fileName).toLowerCase().slice(1) // 去掉点号
+      const fileKey = path.relative(kbRoot, path.join(kbRoot, fileName)).replace(/\\/g, '/')
+
+      // 1. 查询嵌入信息（最高优先级）
+      let embeddingInfo: EmbeddingInfo[] | undefined
+      if (this.queryService && this.queryService.isConnected()) {
+        embeddingInfo = await this.getEmbeddingInfo(fileKey)
+        // 如果有嵌入信息，直接返回 'embedded' 状态
+        if (embeddingInfo && embeddingInfo.length > 0) {
+          return {
+            status: 'embedded',
+            embeddingInfo
+          }
+        }
+      }
+
+      // 2. 纯文本格式不需要解析，直接跳过 pending
+      if (TEXT_FORMATS.has(fileExt)) {
+        return {
+          status: 'parsed',  // 纯文本直接视为已解析
+          chunkCount: undefined
+        }
+      }
+
+      // 3. 获取解析状态（非纯文本格式）
       const status = await this.getParsingStatus(kbRoot, fileName)
 
-      // 2. 如果已解析，获取分块数量
+      // 4. 如果已解析，获取分块数量
       let chunkCount: number | undefined = undefined
       if (status === 'parsed') {
         chunkCount = await this.getChunkCount(kbRoot, fileName)
@@ -158,5 +206,54 @@ export class FileStatusService {
     )
 
     return statusMap
+  }
+
+  /**
+   * 查询文件的嵌入信息
+   * @param fileKey 文件的 file_key
+   * @returns 嵌入信息列表
+   */
+  private async getEmbeddingInfo(fileKey: string): Promise<EmbeddingInfo[] | undefined> {
+    if (!this.queryService || !this.queryService.isConnected()) {
+      return undefined
+    }
+
+    try {
+      const sql = `
+        SELECT
+          embedding_config_name,
+          dimensions,
+          status
+        FROM kb_document_embedding
+        WHERE file_key = $fileKey
+        AND status = 'completed';
+      `
+
+      const result = await this.queryService.query<any[]>(sql, { fileKey })
+
+      if (!result || result.length === 0 || !result[0]) {
+        return undefined
+      }
+
+      // 解析查询结果（SurrealDB 返回格式）
+      const records = result[0] as any[]
+      if (!Array.isArray(records) || records.length === 0) {
+        return undefined
+      }
+
+      // 过滤出有效的嵌入记录
+      const embeddings: EmbeddingInfo[] = records
+        .filter((record: any) => record.embedding_config_name && record.dimensions)
+        .map((record: any) => ({
+          configName: record.embedding_config_name,
+          dimensions: record.dimensions,
+          status: record.status || 'completed'
+        }))
+
+      return embeddings.length > 0 ? embeddings : undefined
+    } catch (error) {
+      logger.debug(`Failed to query embedding info for ${fileKey}`, error)
+      return undefined
+    }
   }
 }

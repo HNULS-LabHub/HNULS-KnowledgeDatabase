@@ -13,14 +13,14 @@ export const useFileCardStore = defineStore('file-card', () => {
   const error = ref<string | null>(null)
   const currentKnowledgeBaseId = ref<number | null>(null)
   const searchQuery = ref('')
+  const statusFilter = ref<(file: FileNode) => boolean>(() => true)
 
   // Getters
   const filteredFiles = computed(() => {
-    if (!searchQuery.value.trim()) {
-      return files.value
-    }
-    const query = searchQuery.value.toLowerCase()
-    return files.value.filter((file) => file.name.toLowerCase().includes(query))
+    const bySearch = searchQuery.value.trim()
+      ? files.value.filter((file) => file.name.toLowerCase().includes(searchQuery.value.toLowerCase()))
+      : files.value
+    return bySearch.filter((file) => statusFilter.value(file))
   })
 
   // Actions
@@ -51,6 +51,20 @@ export const useFileCardStore = defineStore('file-card', () => {
   }
 
   /**
+   * 设置状态筛选器
+   */
+  function setStatusFilter(predicate: (file: FileNode) => boolean): void {
+    statusFilter.value = predicate
+  }
+
+  /**
+   * 重置状态筛选器
+   */
+  function resetStatusFilter(): void {
+    statusFilter.value = () => true
+  }
+
+  /**
    * 刷新数据
    */
   async function refresh(): Promise<void> {
@@ -70,6 +84,8 @@ export const useFileCardStore = defineStore('file-card', () => {
     // Actions
     fetchFiles,
     setSearchQuery,
+    setStatusFilter,
+    resetStatusFilter,
     refresh
   }
 })

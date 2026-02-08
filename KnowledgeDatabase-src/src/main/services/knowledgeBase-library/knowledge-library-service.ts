@@ -788,8 +788,8 @@ export class KnowledgeLibraryService {
       // 获取知识库根目录
       const kbRoot = this.documentService.getFullDirectoryPath(kb.documentPath)
 
-      // 使用 FileScannerService 扫描文档
-      const scanner = new FileScannerService()
+      // 使用 FileScannerService 扫描文档（注入 QueryService 以支持嵌入信息查询）
+      const scanner = new FileScannerService(this.queryService)
       const files = await scanner.scanDirectory(kbRoot)
 
       if (files.length === 0) {

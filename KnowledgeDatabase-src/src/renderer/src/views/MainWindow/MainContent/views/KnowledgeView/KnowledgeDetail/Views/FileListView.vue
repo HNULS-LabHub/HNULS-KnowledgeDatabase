@@ -145,15 +145,25 @@
               class="flex items-center px-4 py-3.5 text-sm"
               :style="{ width: displayColumns[1].width + 'px' }"
             >
-              <span
-                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border"
-                :class="statusClasses[file.status || 'pending']"
-              >
-                <span :class="{ 'animate-spin': file.status === 'parsing' }">
-                  {{ statusIcons[file.status || 'pending'] }}
+              <div class="flex flex-col gap-0.5 w-full">
+                <span
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border w-fit"
+                  :class="statusClasses[file.status || 'pending']"
+                >
+                  <span :class="{ 'animate-spin': file.status === 'parsing' }">
+                    {{ statusIcons[file.status || 'pending'] }}
+                  </span>
+                  <span>{{ statusLabels[file.status || 'pending'] }}</span>
                 </span>
-                <span>{{ statusLabels[file.status || 'pending'] }}</span>
-              </span>
+                <!-- 嵌入模型信息（仅当 status === 'embedded' 时显示） -->
+                <span
+                  v-if="file.status === 'embedded' && getEmbeddingDisplay(file)"
+                  class="text-[10px] text-purple-500 truncate"
+                  :title="getEmbeddingDisplay(file)"
+                >
+                  {{ getEmbeddingDisplay(file) }}
+                </span>
+              </div>
             </div>
 
             <!-- 大小列 -->
@@ -380,6 +390,7 @@ const selectionStore = useFileSelectionStore()
 // ============ 状态配置 ============
 
 const statusClasses: Record<string, string> = {
+  embedded: 'bg-purple-50 text-purple-600 border-purple-200',  // 嵌入状态（最高优先级）
   parsed: 'bg-emerald-50 text-emerald-600 border-emerald-200',
   parsing: 'bg-amber-50 text-amber-600 border-amber-200',
   failed: 'bg-red-50 text-red-600 border-red-200',
@@ -387,6 +398,7 @@ const statusClasses: Record<string, string> = {
 }
 
 const statusIcons: Record<string, string> = {
+  embedded: '✨',  // 星星图标表示已嵌入
   parsed: '✓',
   parsing: '⟳',
   failed: '✕',
@@ -394,10 +406,29 @@ const statusIcons: Record<string, string> = {
 }
 
 const statusLabels: Record<string, string> = {
+  embedded: '已嵌入',  // 优先显示嵌入状态
   parsed: '已解析',
   parsing: '解析中',
   failed: '解析失败',
   pending: '待解析'
+}
+
+/**
+ * 获取文件的嵌入信息显示文本
+ */
+const getEmbeddingDisplay = (file: FileNode): string => {
+  if (!file.embeddingInfo || file.embeddingInfo.length === 0) return ''
+  
+  // 显示第一个嵌入配置
+  const first = file.embeddingInfo[0]
+  const displayName = first.configName || '未知配置'
+  
+  // 如果有多个嵌入，显示 +N
+  if (file.embeddingInfo.length > 1) {
+    return `${displayName} +${file.embeddingInfo.length - 1}`
+  }
+  
+  return displayName
 }
 
 // ============ 文件名处理 ============

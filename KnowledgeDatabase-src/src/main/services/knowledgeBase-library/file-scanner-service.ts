@@ -3,6 +3,7 @@ import * as path from 'path'
 import { logger } from '../logger'
 import type { FileNode } from '../../../renderer/src/stores/knowledge-library/file.types'
 import { FileStatusService } from './file-status-service'
+import type { QueryService } from '../surrealdb-service/query-service'
 
 /**
  * 文件扫描服务
@@ -11,8 +12,15 @@ import { FileStatusService } from './file-status-service'
 export class FileScannerService {
   private fileStatusService: FileStatusService
 
-  constructor() {
-    this.fileStatusService = new FileStatusService()
+  constructor(queryService?: QueryService) {
+    this.fileStatusService = new FileStatusService(queryService)
+  }
+
+  /**
+   * 设置 QueryService（用于迟后注入）
+   */
+  setQueryService(queryService: QueryService): void {
+    this.fileStatusService.setQueryService(queryService)
   }
   /**
    * 扫描指定目录下的所有文件
@@ -171,6 +179,7 @@ export class FileScannerService {
         if (statusInfo) {
           file.status = statusInfo.status
           file.chunkCount = statusInfo.chunkCount
+          file.embeddingInfo = statusInfo.embeddingInfo  // 更新嵌入信息
         }
       }
     } catch (error) {

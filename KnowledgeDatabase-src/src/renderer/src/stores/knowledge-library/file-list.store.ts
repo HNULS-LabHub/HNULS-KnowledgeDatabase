@@ -9,6 +9,7 @@ import type { FileNode } from './file.types'
 export const useFileListStore = defineStore('file-list', () => {
   // State
   const files = ref<FileNode[]>([])
+  const statusFilter = ref<(file: FileNode) => boolean>(() => true)
   const loading = ref(false)
   const error = ref<string | null>(null)
   const currentPage = ref(1)
@@ -21,8 +22,10 @@ export const useFileListStore = defineStore('file-list', () => {
   const startIndex = computed(() => (currentPage.value - 1) * pageSize.value)
   const endIndex = computed(() => Math.min(startIndex.value + pageSize.value, totalFiles.value))
 
+  const filteredFiles = computed(() => files.value.filter((f) => statusFilter.value(f)))
+
   const paginatedFiles = computed(() => {
-    return files.value.slice(startIndex.value, endIndex.value)
+    return filteredFiles.value.slice(startIndex.value, endIndex.value)
   })
 
   // Actions
@@ -65,6 +68,22 @@ export const useFileListStore = defineStore('file-list', () => {
   }
 
   /**
+   * 设置状态筛选器
+   */
+  function setStatusFilter(predicate: (file: FileNode) => boolean): void {
+    statusFilter.value = predicate
+    currentPage.value = 1
+  }
+
+  /**
+   * 重置筛选器
+   */
+  function resetStatusFilter(): void {
+    statusFilter.value = () => true
+    currentPage.value = 1
+  }
+
+  /**
    * 刷新数据
    */
   async function refresh(): Promise<void> {
@@ -85,11 +104,14 @@ export const useFileListStore = defineStore('file-list', () => {
     totalPages,
     startIndex,
     endIndex,
+    filteredFiles,
     paginatedFiles,
     // Actions
     fetchFiles,
     goToPage,
     setPageSize,
-    refresh
+    refresh,
+    setStatusFilter,
+    resetStatusFilter
   }
 })

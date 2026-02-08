@@ -38,6 +38,19 @@
             </div>
           </div>
 
+          <!-- 筛选按钮 -->
+          <button
+            class="kb-content-header-icon-btn"
+            title="筛选文档状态"
+            @click="showFilterDialog = true"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 5h16" />
+              <path d="M7 12h10" />
+              <path d="M10 19h4" />
+            </svg>
+          </button>
+
           <!-- 搜索组 -->
           <div class="kb-content-header-group">
             <div class="kb-content-header-group-content">
@@ -186,10 +199,18 @@
     :knowledge-base-id="knowledgeBaseId"
     @confirm="handleBatchEmbedding"
   />
+
+  <!-- 状态筛选对话框 -->
+  <StatusFilterDialog
+    v-model="showFilterDialog"
+    :initial-state="statusFilterState"
+    @apply="handleApplyFilter"
+    @reset="handleResetFilter"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
 import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
 import { useFileTreeStore } from '@renderer/stores/knowledge-library/file-tree.store'
@@ -198,7 +219,7 @@ import { useBatchOperations } from '@renderer/composables/useBatchOperations'
 import type { ViewType } from '../types'
 import type { FileNode } from '@renderer/stores/knowledge-library/file.types'
 import PageSizeSelector from './PageSizeSelector.vue'
-import { BatchEmbeddingDialog } from './ContentHeaderComponents'
+import { BatchEmbeddingDialog, StatusFilterDialog } from './ContentHeaderComponents'
 
 const props = defineProps<{
   title: string
@@ -231,6 +252,33 @@ const { isBatchParsing, isBatchChunking, batchParseDocuments, batchChunkDocument
 
 // 批量嵌入对话框状态
 const showBatchEmbeddingDialog = ref(false)
+
+// 状态筛选对话框
+const showFilterDialog = ref(false)
+
+type StatusKey = 'embedded' | 'parsed' | 'parsing' | 'pending' | 'failed'
+type StatusState = 'include' | 'exclude' | 'ignore'
+
+const statusFilterState = reactive<Record<StatusKey, StatusState>>({
+  embedded: 'ignore',
+  parsed: 'ignore',
+  parsing: 'ignore',
+  pending: 'ignore',
+  failed: 'ignore'
+})
+
+const handleApplyFilter = (predicate: (file: FileNode) => boolean) => {
+  fileListStore.setStatusFilter(predicate)
+  fileCardStore.setStatusFilter(predicate)
+}
+
+const handleResetFilter = () => {
+  ;(Object.keys(statusFilterState) as StatusKey[]).forEach((k) => {
+    statusFilterState[k] = 'ignore'
+  })
+  fileListStore.resetStatusFilter()
+  fileCardStore.resetStatusFilter()
+}
 
 // 选择模式状态
 const isSelectionModeEnabled = computed(() => {
@@ -508,6 +556,7 @@ async function handleBatchEmbedding(configId: string): Promise<void> {
   gap: 0.5rem;
   flex-shrink: 0;
 }
+
 
 /* 视图切换器 */
 .kb-content-header-view-switcher {

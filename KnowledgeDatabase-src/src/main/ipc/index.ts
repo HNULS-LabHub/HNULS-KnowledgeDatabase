@@ -40,8 +40,9 @@ export class IPCManager {
     // 使用传入的 KnowledgeLibraryService（已注入 QueryService）
     this.handlers.push(new KnowledgeLibraryIPCHandler(knowledgeLibraryService))
 
-    // 注册文件处理器
-    this.handlers.push(new FileIPCHandler(knowledgeLibraryService))
+    // 注册文件处理器（传入 QueryService 以支持嵌入信息查询）
+    const queryService = surrealDBService.getQueryService()
+    this.handlers.push(new FileIPCHandler(knowledgeLibraryService, queryService))
 
     // 注册文件导入处理器
     this.handlers.push(new FileImportIPCHandler(knowledgeLibraryService))
