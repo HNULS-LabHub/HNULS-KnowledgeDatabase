@@ -90,7 +90,8 @@ export class KnowledgeConfigService {
     }
 
     if (input.overlapChars !== undefined) {
-      const raw = typeof input.overlapChars === 'number' ? input.overlapChars : Number(input.overlapChars)
+      const raw =
+        typeof input.overlapChars === 'number' ? input.overlapChars : Number(input.overlapChars)
       if (Number.isFinite(raw)) {
         const effectiveMax = out.maxChars ?? globalChunking.maxChars
         out.overlapChars = this.normalizeOverlapChars(raw, effectiveMax)
@@ -223,7 +224,10 @@ export class KnowledgeConfigService {
   async getDocumentConfig(
     knowledgeBaseDocumentPath: string,
     fileKey: string
-  ): Promise<{ chunking: Required<KnowledgeGlobalConfig['chunking']>; embeddingConfigId?: string }> {
+  ): Promise<{
+    chunking: Required<KnowledgeGlobalConfig['chunking']>
+    embeddingConfigId?: string
+  }> {
     const config = await this.readConfig(knowledgeBaseDocumentPath)
     const docConfig = config.documents[fileKey] || {}
 
@@ -235,8 +239,7 @@ export class KnowledgeConfigService {
 
     if (effectiveMode === 'semantic') {
       const baseMaxChars = docConfig.chunking?.maxChars ?? globalChunking.maxChars
-      const baseOverlapChars =
-        globalChunking.mode === 'semantic' ? globalChunking.overlapChars : 0
+      const baseOverlapChars = globalChunking.mode === 'semantic' ? globalChunking.overlapChars : 0
       const docOverlapChars =
         typeof docChunkingAny?.overlapChars === 'number'
           ? docChunkingAny.overlapChars

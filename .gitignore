@@ -1,3 +1,5 @@
 .specstory/history/*.md
 
 .VSCodeCounter
+
+vendor/python-embed/

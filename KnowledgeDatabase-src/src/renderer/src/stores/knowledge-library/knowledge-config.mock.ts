@@ -50,7 +50,10 @@ export class KnowledgeConfigMockDataSource {
   static async getDocumentConfig(
     knowledgeBaseId: number,
     fileKey: string
-  ): Promise<{ chunking: Required<import('@shared/chunking.types').ChunkingConfig>; embeddingConfigId?: string }> {
+  ): Promise<{
+    chunking: Required<import('@shared/chunking.types').ChunkingConfig>
+    embeddingConfigId?: string
+  }> {
     const config = await this.getConfig(knowledgeBaseId)
     const docConfig = config.documents[fileKey] || {}
 

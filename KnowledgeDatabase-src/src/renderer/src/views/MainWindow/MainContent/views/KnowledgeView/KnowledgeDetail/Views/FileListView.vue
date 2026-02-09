@@ -396,7 +396,7 @@ const selectionStore = useFileSelectionStore()
 // ============ 状态配置 ============
 
 const statusClasses: Record<string, string> = {
-  embedded: 'bg-purple-50 text-purple-600 border-purple-200',  // 嵌入状态（最高优先级）
+  embedded: 'bg-purple-50 text-purple-600 border-purple-200', // 嵌入状态（最高优先级）
   parsed: 'bg-emerald-50 text-emerald-600 border-emerald-200',
   parsing: 'bg-amber-50 text-amber-600 border-amber-200',
   failed: 'bg-red-50 text-red-600 border-red-200',
@@ -404,7 +404,7 @@ const statusClasses: Record<string, string> = {
 }
 
 const statusIcons: Record<string, string> = {
-  embedded: '✨',  // 星星图标表示已嵌入
+  embedded: '✨', // 星星图标表示已嵌入
   parsed: '✓',
   parsing: '⟳',
   failed: '✕',
@@ -412,13 +412,12 @@ const statusIcons: Record<string, string> = {
 }
 
 const statusLabels: Record<string, string> = {
-  embedded: '已嵌入',  // 优先显示嵌入状态
+  embedded: '已嵌入', // 优先显示嵌入状态
   parsed: '已解析',
   parsing: '解析中',
   failed: '解析失败',
   pending: '待解析'
 }
-
 
 // ============ 文件名处理 ============
 

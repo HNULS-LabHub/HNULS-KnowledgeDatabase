@@ -34,7 +34,13 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
    */
   const getDocumentConfig = computed(
     () =>
-      (kbId: number, fileKey: string): { chunking: Required<import('@shared/chunking.types').ChunkingConfig>; embeddingConfigId?: string } | null => {
+      (
+        kbId: number,
+        fileKey: string
+      ): {
+        chunking: Required<import('@shared/chunking.types').ChunkingConfig>
+        embeddingConfigId?: string
+      } | null => {
         const config = configByKbId.value.get(kbId)
         if (!config) return null
 

@@ -46,7 +46,7 @@ async function checkDependencies() {
  */
 async function svgToPng(svgPath, pngPath, size) {
   const sharp = (await import('sharp')).default
-  
+
   await sharp(svgPath, { density: 300 })
     .resize(size, size, {
       fit: 'contain',
@@ -61,11 +61,11 @@ async function svgToPng(svgPath, pngPath, size) {
  */
 async function generateIco() {
   console.log('🎨 Generating ICO file...')
-  
+
   // Create temporary directory for PNG files
   const tempDir = path.join(buildDir, '.temp-icons')
   await fs.mkdir(tempDir, { recursive: true })
-  
+
   try {
     // Generate PNG files for each size
     const pngFiles = []
@@ -75,13 +75,11 @@ async function generateIco() {
       pngFiles.push(tempPng)
       console.log(`  ✓ Generated ${size}x${size} PNG`)
     }
-    
+
     // Convert PNGs to ICO using png-to-ico
     try {
       const pngToIco = (await import('png-to-ico')).default
-      const buffers = await Promise.all(
-        pngFiles.map(file => fs.readFile(file))
-      )
+      const buffers = await Promise.all(pngFiles.map((file) => fs.readFile(file)))
       const icoBuffer = await pngToIco(buffers)
       await fs.writeFile(icoOutput, icoBuffer)
       console.log(`✅ Successfully generated ${path.relative(projectRoot, icoOutput)}`)
@@ -122,23 +120,20 @@ async function checkSource() {
 async function main() {
   console.log('🚀 Starting icon generation...')
   console.log(`Source: ${path.relative(projectRoot, svgSource)}`)
-  
+
   // Check prerequisites
   if (!(await checkSource())) {
     process.exit(1)
   }
-  
+
   if (!(await checkDependencies())) {
     process.exit(1)
   }
-  
+
   try {
     // Generate both ICO and PNG
-    await Promise.all([
-      generateIco(),
-      generatePng()
-    ])
-    
+    await Promise.all([generateIco(), generatePng()])
+
     console.log('🎉 Icon generation finished.')
   } catch (error) {
     console.error('❌ Icon generation failed:', error)

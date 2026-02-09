@@ -6,9 +6,7 @@
 import { SurrealClient } from './db/surreal-client'
 import { StagingPoller } from './core/staging-poller'
 import { TransferWorker } from './core/transfer-worker'
-import {
-  DEFAULT_INDEXER_CONFIG
-} from '@shared/vector-indexer-ipc.types'
+import { DEFAULT_INDEXER_CONFIG } from '@shared/vector-indexer-ipc.types'
 import type {
   MainToIndexerMessage,
   IndexerToMainMessage,

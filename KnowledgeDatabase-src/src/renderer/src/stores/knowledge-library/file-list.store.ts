@@ -21,9 +21,7 @@ export const useFileListStore = defineStore('file-list', () => {
   const startIndex = computed(() => (currentPage.value - 1) * pageSize.value)
   const endIndex = computed(() => Math.min(startIndex.value + pageSize.value, totalFiles.value))
 
-  const filteredFiles = computed(() =>
-    fileDataStore.files.filter((f) => statusFilter.value(f))
-  )
+  const filteredFiles = computed(() => fileDataStore.files.filter((f) => statusFilter.value(f)))
 
   const paginatedFiles = computed(() => {
     return filteredFiles.value.slice(startIndex.value, endIndex.value)

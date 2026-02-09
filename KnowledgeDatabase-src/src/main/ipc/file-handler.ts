@@ -66,7 +66,10 @@ export class FileIPCHandler extends BaseIPCHandler {
       const directoryPath = this.documentService.getFullDirectoryPath(knowledgeBase.documentPath)
 
       // 扫描目录（传入 databaseName 以查询嵌入状态）
-      const files = await this.fileScannerService.scanDirectory(directoryPath, knowledgeBase.databaseName)
+      const files = await this.fileScannerService.scanDirectory(
+        directoryPath,
+        knowledgeBase.databaseName
+      )
 
       return {
         success: true,
@@ -110,7 +113,10 @@ export class FileIPCHandler extends BaseIPCHandler {
       const directoryPath = this.documentService.getFullDirectoryPath(knowledgeBase.documentPath)
 
       // 扫描目录（传入 databaseName 以查询嵌入状态）
-      const files = await this.fileScannerService.scanDirectory(directoryPath, knowledgeBase.databaseName)
+      const files = await this.fileScannerService.scanDirectory(
+        directoryPath,
+        knowledgeBase.databaseName
+      )
 
       // 更新知识库的文档数量
       await this.knowledgeLibraryService.update(knowledgeBaseId, {

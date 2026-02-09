@@ -215,9 +215,7 @@ export class SemanticChunkingStrategy implements IChunkingStrategy {
       chunks.push(buffer.join(''))
     }
 
-    return chunks
-      .map((c) => c.trim())
-      .filter((c) => c.length > 0)
+    return chunks.map((c) => c.trim()).filter((c) => c.length > 0)
   }
 
   private createChunk(index: number, content: string): Chunk {

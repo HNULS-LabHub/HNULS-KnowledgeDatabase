@@ -167,13 +167,21 @@ export class FileScannerService {
    * @param files 文件列表
    * @param databaseName 知识库对应的 SurrealDB 数据库名
    */
-  private async enrichFilesWithStatus(kbRoot: string, files: FileNode[], databaseName?: string): Promise<void> {
+  private async enrichFilesWithStatus(
+    kbRoot: string,
+    files: FileNode[],
+    databaseName?: string
+  ): Promise<void> {
     try {
       // 提取所有文件的相对路径（path 在 FileNode 上是可选的，这里做一次过滤）
       const filePaths = files.flatMap((file) => (file.path ? [file.path] : []))
 
       // 批量获取状态信息
-      const statusMap = await this.fileStatusService.getBatchFileStatus(kbRoot, filePaths, databaseName)
+      const statusMap = await this.fileStatusService.getBatchFileStatus(
+        kbRoot,
+        filePaths,
+        databaseName
+      )
 
       // 更新文件节点的状态信息
       for (const file of files) {

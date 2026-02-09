@@ -138,7 +138,7 @@ export class AppService {
 
       const iconPath = getIconPath()
       const icon = nativeImage.createFromPath(iconPath)
-      
+
       if (icon.isEmpty()) {
         logger.error('Failed to load tray icon', { iconPath, isPackaged: app.isPackaged })
         // 创建空托盘（至少保证托盘功能可用）

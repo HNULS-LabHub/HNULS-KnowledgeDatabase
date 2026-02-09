@@ -29,7 +29,6 @@ export class VectorRetrievalService {
   private readonly embeddingClient = new OpenAICompatibleEmbeddingClient()
   private readonly rerankClient = new RerankClient()
 
-
   constructor(
     private readonly surrealDBService: SurrealDBService,
     private readonly knowledgeLibraryService: KnowledgeLibraryService
@@ -151,7 +150,12 @@ export class VectorRetrievalService {
       ORDER BY distance ASC;
     `
 
-    const raw = await queryService.queryInDatabase<any>(namespace, kb.databaseName, sql, queryParams)
+    const raw = await queryService.queryInDatabase<any>(
+      namespace,
+      kb.databaseName,
+      sql,
+      queryParams
+    )
 
     const records = this.extractRecords(raw)
 
@@ -460,7 +464,6 @@ export class VectorRetrievalService {
   private getNamespace(): string {
     return this.surrealDBService.getQueryService().getNamespace() || 'knowledge'
   }
-
 
   // ==========================================================================
   // Helpers

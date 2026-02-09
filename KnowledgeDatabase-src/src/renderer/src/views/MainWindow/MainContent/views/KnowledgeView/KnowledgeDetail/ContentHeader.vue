@@ -587,7 +587,6 @@ async function handleBatchEmbedding(configId: string): Promise<void> {
   flex-shrink: 0;
 }
 
-
 /* 视图切换器 */
 .kb-content-header-view-switcher {
   display: flex;
@@ -783,7 +782,11 @@ async function handleBatchEmbedding(configId: string): Promise<void> {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

@@ -229,13 +229,13 @@ export class StagingPoller {
   /**
    * 批量删除已处理的暂存记录
    * 在切换 idle 之前调用，保持暂存表干净
-   * 
+   *
    * ⚠️ 策略：直接 REMOVE TABLE + 重建，避免逐条 DELETE 大向量记录导致 payload 过大
    */
   private async cleanupProcessedRecords(): Promise<void> {
     try {
       log('Cleaning up staging table (drop + recreate)...')
-      
+
       // 🔥 直接删表重建（比 DELETE 快且不会返回大向量数据）
       const sql = `
         REMOVE TABLE IF EXISTS ${STAGING_TABLE};
@@ -243,7 +243,7 @@ export class StagingPoller {
         DEFINE INDEX IF NOT EXISTS idx_staging_processed ON ${STAGING_TABLE} FIELDS processed;
       `
       await this.client.queryInDatabase(STAGING_NAMESPACE, STAGING_DATABASE, sql)
-      
+
       log('Successfully cleaned up staging table')
     } catch (error) {
       const errorMsg = `Failed to cleanup: ${error instanceof Error ? error.message : String(error)}`

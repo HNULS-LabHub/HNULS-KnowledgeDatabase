@@ -17,7 +17,13 @@
               class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
               @click="handleClose"
             >
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                class="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path d="M18 6 6 18" />
                 <path d="m6 6 12 12" />
               </svg>
@@ -26,9 +32,7 @@
 
           <!-- 内容 -->
           <div class="px-6 py-5">
-            <div class="text-xs text-slate-500 mb-4">
-              选择状态条件（包含为 OR，排除为 NOT）
-            </div>
+            <div class="text-xs text-slate-500 mb-4">选择状态条件（包含为 OR，排除为 NOT）</div>
 
             <div class="flex flex-col gap-3">
               <div
@@ -71,13 +75,11 @@
           </div>
 
           <!-- 底部操作 -->
-          <div class="flex items-center justify-end gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
-            <button class="kb-filter-action-btn" @click="handleReset">
-              重置
-            </button>
-            <button class="kb-filter-action-btn" @click="handleClose">
-              取消
-            </button>
+          <div
+            class="flex items-center justify-end gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200"
+          >
+            <button class="kb-filter-action-btn" @click="handleReset">重置</button>
+            <button class="kb-filter-action-btn" @click="handleClose">取消</button>
             <button class="kb-filter-action-btn kb-filter-action-btn-primary" @click="handleApply">
               应用筛选
             </button>
@@ -185,7 +187,9 @@ const handleReset = () => {
 
 .modal-fade-enter-active .bg-white,
 .modal-fade-leave-active .bg-white {
-  transition: transform 200ms ease, opacity 200ms ease;
+  transition:
+    transform 200ms ease,
+    opacity 200ms ease;
 }
 
 .modal-fade-enter-from .bg-white {

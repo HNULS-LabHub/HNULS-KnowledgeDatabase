@@ -429,7 +429,9 @@ export class EmbeddingEngineBridge {
     const kbService = this.getKnowledgeLibraryService()
     const kb = await kbService.getById(params.knowledgeBaseId)
     if (!kb?.databaseName) {
-      throw new Error(`Knowledge base not found for embedding search (ID: ${params.knowledgeBaseId})`)
+      throw new Error(
+        `Knowledge base not found for embedding search (ID: ${params.knowledgeBaseId})`
+      )
     }
 
     const namespace = this.queryService.getNamespace() || 'knowledge'

@@ -57,7 +57,11 @@ export class FileStatusService {
    * @param databaseName 知识库对应的 SurrealDB 数据库名
    * @returns 状态信息
    */
-  async getFileStatus(kbRoot: string, filePath: string, databaseName?: string): Promise<FileStatusInfo> {
+  async getFileStatus(
+    kbRoot: string,
+    filePath: string,
+    databaseName?: string
+  ): Promise<FileStatusInfo> {
     try {
       const fileExt = path.extname(filePath).toLowerCase().slice(1) // 去掉点号
       // 直接使用 filePath 作为 fileKey（已经是相对路径）
@@ -81,7 +85,7 @@ export class FileStatusService {
       // 2. 纯文本格式不需要解析，直接跳过 pending
       if (TEXT_FORMATS.has(fileExt)) {
         return {
-          status: 'parsed',  // 纯文本直接视为已解析
+          status: 'parsed', // 纯文本直接视为已解析
           chunkCount: undefined
         }
       }
@@ -219,7 +223,10 @@ export class FileStatusService {
    * @param databaseName 知识库对应的 SurrealDB 数据库名
    * @returns 嵌入信息列表
    */
-  private async getEmbeddingInfo(fileKey: string, databaseName: string): Promise<EmbeddingInfo[] | undefined> {
+  private async getEmbeddingInfo(
+    fileKey: string,
+    databaseName: string
+  ): Promise<EmbeddingInfo[] | undefined> {
     if (!this.queryService || !this.queryService.isConnected()) {
       return undefined
     }
@@ -237,7 +244,9 @@ export class FileStatusService {
         AND status = 'completed';
       `
 
-      const result = await this.queryService.queryInDatabase<any[]>(namespace, databaseName, sql, { fileKey })
+      const result = await this.queryService.queryInDatabase<any[]>(namespace, databaseName, sql, {
+        fileKey
+      })
 
       if (!result || result.length === 0 || !result[0]) {
         return undefined

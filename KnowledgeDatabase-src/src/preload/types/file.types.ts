@@ -28,9 +28,9 @@ export interface FileNode {
   chunkCount?: number
   /** 嵌入信息（当文件已有嵌入向量时） */
   embeddingInfo?: {
-    configName: string  // 嵌入模型配置名，如 "text-embedding-3-small"
-    dimensions: number  // 向量维度
-    status: 'pending' | 'running' | 'completed' | 'failed'  // 嵌入任务状态
+    configName: string // 嵌入模型配置名，如 "text-embedding-3-small"
+    dimensions: number // 向量维度
+    status: 'pending' | 'running' | 'completed' | 'failed' // 嵌入任务状态
   }[]
   /** 解析相关元数据（当前阶段为空） */
   metadata?: {

@@ -4,7 +4,11 @@
  */
 
 import { ipcRenderer } from 'electron'
-import type { VectorIndexerAPI, StagingStatus, IndexerConfigUpdate } from '../types/vector-indexer.types'
+import type {
+  VectorIndexerAPI,
+  StagingStatus,
+  IndexerConfigUpdate
+} from '../types/vector-indexer.types'
 
 // ============================================================================
 // IPC Channel 常量

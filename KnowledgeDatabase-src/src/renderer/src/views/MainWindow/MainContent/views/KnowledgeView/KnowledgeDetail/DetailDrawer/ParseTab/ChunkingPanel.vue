@@ -274,7 +274,9 @@ const localOverlapChars = ref<number | undefined>()
 
 const effectiveMode = computed<ChunkingMode>(() => localMode.value ?? globalMode.value)
 
-const hasCustomMode = computed(() => localMode.value !== undefined && localMode.value !== globalMode.value)
+const hasCustomMode = computed(
+  () => localMode.value !== undefined && localMode.value !== globalMode.value
+)
 
 const hasCustomMaxChars = computed(
   () => localMaxChars.value !== undefined && localMaxChars.value !== globalMaxChars.value

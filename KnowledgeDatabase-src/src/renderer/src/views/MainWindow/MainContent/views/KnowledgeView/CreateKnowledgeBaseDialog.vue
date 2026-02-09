@@ -114,7 +114,8 @@
                       />
                       <p v-if="nameError" class="form-error">{{ nameError }}</p>
                       <p v-else class="form-hint naming-hint">
-                        💡 只能使用字母、数字和下划线，不能以数字开头，建议使用英文或拼音（如 species_research）
+                        💡 只能使用字母、数字和下划线，不能以数字开头，建议使用英文或拼音（如
+                        species_research）
                       </p>
                     </div>
 
@@ -314,7 +315,7 @@ const handleOverlayClick = () => {
  */
 const validateName = () => {
   const name = formData.value.name.trim()
-  
+
   if (!name) {
     nameError.value = ''
     return false
@@ -354,12 +355,12 @@ const handleSubmit = () => {
     nameError.value = '知识库名称不能为空'
     return
   }
-  
+
   // 验证名称
   if (!validateName()) {
     return
   }
-  
+
   if (!formData.value.icon) {
     formData.value.icon = defaultIcon
   }
