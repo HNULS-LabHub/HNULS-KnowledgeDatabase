@@ -122,7 +122,7 @@ export class TaskSubmissionService {
     const chunksSql = `
       SELECT chunk_index, content
       FROM ${sourceTable}
-      WHERE document.file_key = $fileKey
+      WHERE file_key = $fileKey OR document.file_key = $fileKey
       ORDER BY chunk_index ASC;
     `
 

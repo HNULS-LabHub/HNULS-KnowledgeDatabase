@@ -133,7 +133,7 @@ export class TaskScheduler {
     try {
       const tasks = this.client.extractRecords(
         await this.client.query(
-          `SELECT * FROM kg_task WHERE status IN ['pending', 'failed'] ORDER BY created_at ASC LIMIT 10;`
+          `SELECT * FROM kg_task WHERE status IN ['pending'] ORDER BY created_at ASC LIMIT 10;`
         )
       )
 
@@ -159,13 +159,13 @@ export class TaskScheduler {
   private async processTask(task: any): Promise<void> {
     const taskIdStr = rid(task.id) // "kg_task:xxx"
 
-    if (task.status === 'pending' || task.status === 'failed') {
+    if (task.status === 'pending') {
       await this.client.query(`UPDATE ${taskIdStr} SET status = 'progressing';`)
     }
 
     const pendingChunks = this.client.extractRecords(
       await this.client.query(
-        `SELECT * FROM kg_chunk WHERE task_id = $tid AND status IN ['pending', 'failed'] ORDER BY chunk_index ASC LIMIT $lim;`,
+        `SELECT * FROM kg_chunk WHERE task_id = $tid AND status IN ['pending'] ORDER BY chunk_index ASC LIMIT $lim;`,
         { tid: taskIdStr, lim: this.maxConcurrency }
       )
     )

@@ -54,6 +54,10 @@ export const useKgBuildStore = defineStore('kg-build', () => {
     })
 
     // 构造提交参数
+    // 注意：IPC structured clone 不能克隆 Vue/Pinia 的 Proxy 对象（会报: An object could not be cloned）
+    // 这里显式把 entityTypes 转成纯数组再传给后端。
+    const safeEntityTypes = Array.from(kgConfig.entityTypes ?? [])
+
     const submitParams: KGSubmitTaskParams = {
       fileKey,
       sourceNamespace: 'knowledge',
@@ -61,7 +65,7 @@ export const useKgBuildStore = defineStore('kg-build', () => {
       sourceTable: embeddingTableName,
       config: {
         model: `${kgConfig.llmProviderId}/${kgConfig.llmModelId}`,
-        entityTypes: kgConfig.entityTypes
+        entityTypes: safeEntityTypes
       }
     }
 

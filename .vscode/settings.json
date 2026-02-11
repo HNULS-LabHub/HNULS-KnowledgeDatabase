@@ -1,0 +1,28 @@
+{
+    "favorites.resources": [
+        {
+            "filePath": "KnowledgeDatabase-src\\src\\utility",
+            "group": "Default"
+        },
+        {
+            "filePath": "KnowledgeDatabase-src\\src\\Public\\SharedPrompt",
+            "group": "Default"
+        },
+        {
+            "filePath": "KnowledgeDatabase-src\\src\\Public\\SharedUtils",
+            "group": "Default"
+        },
+        {
+            "filePath": "KnowledgeDatabase-src\\src\\Public\\ShareTypes",
+            "group": "Default"
+        },
+        {
+            "filePath": "KnowledgeDatabase-src\\src\\utility\\Knowledge-graph",
+            "group": "Default"
+        },
+        {
+            "filePath": ".kiro\\skills",
+            "group": "Default"
+        }
+    ]
+}
