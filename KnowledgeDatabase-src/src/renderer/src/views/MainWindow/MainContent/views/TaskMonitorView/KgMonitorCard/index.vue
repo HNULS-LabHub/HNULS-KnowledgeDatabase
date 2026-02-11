@@ -12,6 +12,24 @@
         <span class="text-xs text-slate-500">
           共 <span class="font-semibold text-slate-900">{{ store.total }}</span> 条
         </span>
+        <button
+          class="p-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm disabled:opacity-50"
+          :disabled="store.loading"
+          @click="store.fetchTasks"
+          title="刷新"
+        >
+          <svg
+            :class="['w-[16px] h-[16px]', { 'animate-spin': store.loading }]"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"
+            />
+          </svg>
+        </button>
         <div class="w-28">
           <WhiteSelect
             :model-value="store.pageSize"
