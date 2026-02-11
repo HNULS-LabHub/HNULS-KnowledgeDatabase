@@ -5,6 +5,7 @@ import { WindowService } from './window-service'
 import { SurrealDBService } from '../surrealdb-service'
 import { DocumentService } from '../knowledgeBase-library/document-service'
 import { KnowledgeLibraryService } from '../knowledgeBase-library/knowledge-library-service'
+import { KgMonitorService } from '../knowledge-graph-monitor/kg-monitor-service'
 import { embeddingEngineBridge } from '../embedding-engine-bridge'
 import { logger } from '../logger'
 
@@ -13,6 +14,7 @@ export class AppService {
   private surrealDBService: SurrealDBService
   private documentService: DocumentService
   private knowledgeLibraryService: KnowledgeLibraryService
+  private kgMonitorService: KgMonitorService
   private tray: Tray | null = null
 
   constructor() {
@@ -21,6 +23,7 @@ export class AppService {
     this.documentService = new DocumentService()
     // KnowledgeLibraryService 需要 QueryService，稍后注入
     this.knowledgeLibraryService = new KnowledgeLibraryService()
+    this.kgMonitorService = new KgMonitorService()
   }
 
   async initialize(): Promise<void> {
@@ -50,6 +53,17 @@ export class AppService {
       await this.surrealDBService.initialize()
       await this.surrealDBService.start()
       logger.info('SurrealDB service started successfully')
+      // 配置知识图谱监控服务（主进程直连）
+      const serverUrl = this.surrealDBService.getServerUrl()
+      const credentials = this.surrealDBService.getCredentials()
+      this.kgMonitorService.setConfig({
+        serverUrl,
+        username: credentials.username,
+        password: credentials.password,
+        namespace: 'knowledge',
+        database: 'system'
+      })
+      logger.info('KgMonitorService configured')
 
       // 🎯 注入 QueryService 到 KnowledgeLibraryService
       const queryService = this.surrealDBService.getQueryService()
@@ -224,5 +238,9 @@ export class AppService {
 
   getKnowledgeLibraryService(): KnowledgeLibraryService {
     return this.knowledgeLibraryService
+  }
+
+  getKgMonitorService(): KgMonitorService {
+    return this.kgMonitorService
   }
 }

@@ -14,7 +14,7 @@ AppService (单例管理中心)
   └─ BusinessServiceB → 通过 setQueryService() 注入
 ```
 
-### 禁止事项
+### 禁止事项（这里废弃 只需要注意一个进程一个实例即可 公共的这个别用了）
 
 - ❌ 在 IPC Handler / Bridge / Utility 中 `new SurrealDBQueryService()`
 - ❌ 在 Service 构造器内自行创建 DB 连接

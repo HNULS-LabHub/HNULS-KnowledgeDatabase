@@ -1,0 +1,19 @@
+#V2
+INFO FOR DB;
+SELECT id, file_key, status, chunks_total, chunks_completed, chunks_failed, created_at, updated_at FROM kg_task WHERE (status = 'all' OR status = 'pending') LIMIT 10 START 0;
+SELECT COUNT() AS total FROM kg_task GROUP ALL;
+SELECT id, task_id, chunk_index, status, error, created_at, updated_at FROM kg_chunk WHERE task_id = 'test' LIMIT 10 START 0;
+SELECT COUNT() AS total FROM kg_chunk WHERE task_id = 'test' GROUP ALL;
+CREATE kg_task SET id = 'task:1', file_key = 'test.pdf', status = 'pending', chunks_total = 10, chunks_completed = 0, chunks_failed = 0, created_at = time::now(), updated_at = time::now();
+INFO FOR TABLE kg_task;
+CREATE kg_task SET file_key = 'test.pdf', status = 'pending', chunks_total = 10, chunks_completed = 0, chunks_failed = 0, source_database = 'test_db', source_namespace = 'test_ns', source_table = 'test_table';
+UPDATE kg_task SET status = 'failed', updated_at = time::now() WHERE id = kg_task:dtu2s8y3ihz9n1codrah AND status = 'pending';
+UPDATE kg_task SET status = 'pending', chunks_failed = 0, updated_at = time::now() WHERE id = kg_task:dtu2s8y3ihz9n1codrah AND status = 'failed';
+CREATE kg_task SET file_key = 'another.pdf', status = 'completed', chunks_total = 5, chunks_completed = 5, chunks_failed = 0, source_database = 'test_db', source_namespace = 'test_ns', source_table = 'test_table';
+DELETE FROM kg_chunk WHERE task_id = kg_task:215jpupzun2z9jpsrjwb;
+DELETE kg_task:215jpupzun2z9jpsrjwb;
+INFO FOR TABLE kg_chunk;
+CREATE kg_chunk SET task_id = 'kg_task:dtu2s8y3ihz9n1codrah', chunk_index = 0, content = 'Test chunk content', status = 'pending';
+UPDATE kg_chunk SET status = 'failed', error = 'cancelled by user', updated_at = time::now() WHERE task_id = 'kg_task:dtu2s8y3ihz9n1codrah' AND status = 'pending';
+UPDATE kg_chunk SET status = 'pending', error = NONE, updated_at = time::now() WHERE task_id = 'kg_task:dtu2s8y3ihz9n1codrah' AND status = 'failed';
+DELETE kg_task:dtu2s8y3ihz9n1codrah; DELETE FROM kg_chunk;

@@ -37,7 +37,8 @@ class Application {
       // ❗ 关键：在窗口显示前先注册 IPC handlers，避免渲染进程请求时 handler 未就绪
       this.ipcManager.initialize(
         this.appService.getSurrealDBService(),
-        this.appService.getKnowledgeLibraryService()
+        this.appService.getKnowledgeLibraryService(),
+        this.appService.getKgMonitorService()
       )
 
       // 启动全局监控服务（Utility Process）- 必须在 app ready 之后

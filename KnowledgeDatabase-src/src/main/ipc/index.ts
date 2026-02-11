@@ -9,6 +9,7 @@ import { ChunkingIPCHandler } from './chunking-handler'
 import { ModelConfigIPCHandler } from './model-config-handler'
 import { KnowledgeConfigIPCHandler } from './knowledge-config-handler'
 import { TaskMonitorIPCHandler } from './task-monitor-handler'
+import { KgMonitorIPCHandler } from './kg-monitor-handler'
 import { EmbeddingIPCHandler } from './embedding-handler'
 import { VectorRetrievalIPCHandler } from './vector-retrieval-handler'
 import { AgentIPCHandler } from './agent-handler'
@@ -22,6 +23,7 @@ import {
 } from './knowledge-graph-handler'
 import { SurrealDBService } from '../services/surrealdb-service'
 import { KnowledgeLibraryService } from '../services/knowledgeBase-library'
+import { KgMonitorService } from '../services/knowledge-graph-monitor/kg-monitor-service'
 import { UserConfigService } from '../services/user-config-service'
 import { MinerUParserService } from '../services/mineru-parser'
 import { ChunkingService } from '../services/chunking'
@@ -33,7 +35,8 @@ export class IPCManager {
 
   initialize(
     surrealDBService: SurrealDBService,
-    knowledgeLibraryService: KnowledgeLibraryService
+    knowledgeLibraryService: KnowledgeLibraryService,
+    kgMonitorService: KgMonitorService
   ): void {
     // 注册所有 IPC 处理器
     this.handlers.push(new TestIPCHandler())
@@ -75,6 +78,8 @@ export class IPCManager {
 
     // 注册任务监控处理器
     this.handlers.push(new TaskMonitorIPCHandler())
+    // 注册知识图谱监控处理器
+    this.handlers.push(new KgMonitorIPCHandler(kgMonitorService))
 
     // 注册嵌入服务处理器
     this.handlers.push(new EmbeddingIPCHandler())

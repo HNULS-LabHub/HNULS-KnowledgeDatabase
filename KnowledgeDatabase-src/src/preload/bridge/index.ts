@@ -16,6 +16,7 @@ import { vectorIndexerAPI } from '../api/vector-indexer-api'
 import { vectorRetrievalAPI } from '../api/vector-retrieval-api'
 import { agentAPI } from '../api/agent-api'
 import { knowledgeGraphAPI } from '../api/knowledge-graph-api'
+import { kgMonitorAPI } from '../api/kg-monitor-api'
 
 // 自定义 API 集合
 const customAPI = {
@@ -29,6 +30,7 @@ const customAPI = {
   modelConfig: modelConfigAPI,
   knowledgeConfig: knowledgeConfigAPI,
   taskMonitor: taskMonitorAPI,
+  kgMonitor: kgMonitorAPI,
   embedding: embeddingAPI,
   vectorIndexer: vectorIndexerAPI,
   vectorRetrieval: vectorRetrievalAPI,

@@ -1,5 +1,7 @@
 <template>
-  <div class="h-full bg-slate-50 text-slate-900 font-sans flex flex-col overflow-hidden">
+  <div
+    class="tm-task-monitor-root-4b2a h-full bg-slate-50 text-slate-900 font-sans flex flex-col overflow-hidden"
+  >
     <div class="flex-1 overflow-y-auto">
       <div class="max-w-7xl mx-auto p-6 lg:p-10 space-y-6">
         <!-- Page Header -->
@@ -62,6 +64,8 @@
           </div>
           <div class="text-xs text-slate-400">系统后台任务</div>
         </div>
+        <!-- Knowledge Graph Monitor -->
+        <KgMonitorCard />
 
         <!-- Filter Bar -->
         <div
@@ -297,6 +301,7 @@ import type { WhiteSelectOption } from '@renderer/components/select/WhiteSelect.
 import StatusBadge from './StatusBadge.vue'
 import ProgressBar from './ProgressBar.vue'
 import VectorIndexerRing from './VectorIndexerRing.vue'
+import KgMonitorCard from './KgMonitorCard/index.vue'
 import type { TaskRecord } from '@preload/types'
 
 const store = useTaskMonitorStore()
