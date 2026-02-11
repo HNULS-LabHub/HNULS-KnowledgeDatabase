@@ -21,7 +21,35 @@
             "group": "Default"
         },
         {
-            "filePath": ".kiro\\skills",
+            "filePath": "KnowledgeDatabase-src\\src\\renderer\\src\\components",
+            "group": "Default"
+        },
+        {
+            "filePath": "KnowledgeDatabase-src\\src\\renderer\\src\\composables",
+            "group": "Default"
+        },
+        {
+            "filePath": "KnowledgeDatabase-src\\src\\renderer\\src\\stores",
+            "group": "Default"
+        },
+        {
+            "filePath": "KnowledgeDatabase-src\\src\\renderer\\src\\views",
+            "group": "Default"
+        },
+        {
+            "filePath": "KnowledgeDatabase-src\\src\\renderer\\src\\views\\MainWindow\\MainContent\\views\\TaskMonitorView",
+            "group": "Default"
+        },
+        {
+            "filePath": "KnowledgeDatabase-src\\src\\renderer\\src\\views\\MainWindow\\MainContent\\views\\KnowledgeView",
+            "group": "Default"
+        },
+        {
+            "filePath": "KnowledgeDatabase-src\\src\\renderer\\src\\views\\MainWindow\\MainContent\\views\\UserSettingView",
+            "group": "Default"
+        },
+        {
+            "filePath": ".agent\\skills",
             "group": "Default"
         }
     ]
