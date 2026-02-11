@@ -104,13 +104,46 @@ function sendMessage(msg: KGToMainMessage): void {
 }
 
 // ============================================================================
+// 并发数请求机制
+// ============================================================================
+
+let cachedConcurrency = 5
+let pendingConcurrencyResolve: ((value: number) => void) | null = null
+
+function requestConcurrency(): Promise<number> {
+  return new Promise((resolve) => {
+    pendingConcurrencyResolve = resolve
+    sendMessage({ type: 'kg:request-concurrency' })
+    // 超时 500ms 使用缓存值
+    setTimeout(() => {
+      if (pendingConcurrencyResolve === resolve) {
+        pendingConcurrencyResolve = null
+        resolve(cachedConcurrency)
+      }
+    }, 500)
+  })
+}
+
+function handleConcurrencyResponse(value: number): void {
+  cachedConcurrency = value
+  if (pendingConcurrencyResolve) {
+    pendingConcurrencyResolve(value)
+    pendingConcurrencyResolve = null
+  }
+}
+
+// ============================================================================
 // 初始化核心模块
 // ============================================================================
 
 const surrealClient = new KGSurrealClient()
 const taskSubmission = new TaskSubmissionService(surrealClient)
-const scheduler = new TaskScheduler(surrealClient, sendMessage)
+const scheduler = new TaskScheduler(surrealClient, sendMessage, requestConcurrency)
 const messageHandler = new MessageHandler(surrealClient, taskSubmission, scheduler, sendMessage)
+// 启动调度器（无需等待 init，内部会自行等待连接）
+scheduler.start().catch((error) => {
+  console.error('[KnowledgeGraph] Failed to start scheduler:', error)
+})
 
 // ============================================================================
 // 消息处理
@@ -118,6 +151,14 @@ const messageHandler = new MessageHandler(surrealClient, taskSubmission, schedul
 
 parentPort.on('message', async (event: { data: MainToKGMessage }) => {
   const msg = event.data
+  if (msg.type === 'kg:concurrency-response') {
+    handleConcurrencyResponse(msg.value)
+    return
+  }
+  if (msg.type === 'kg:update-concurrency') {
+    handleConcurrencyResponse(msg.maxConcurrency)
+    return
+  }
   await messageHandler.handle(msg)
 })
 

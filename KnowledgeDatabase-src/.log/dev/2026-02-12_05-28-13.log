@@ -1,0 +1,469 @@
+Debugger attached.
+vite v7.3.1 building ssr environment for development...
+(node:39668) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/code/Large-scale-integrated-project/HNULS-LabHub/HNULS-KnowledgeDatabase/KnowledgeDatabase-src/postcss.config.js?t=1770845294997 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+transforming...
+✓ 108 modules transformed.
+rendering chunks...
+out/main/utility/global-monitor.js             7.54 kB
+out/main/chunks/surrealdb-query-B40R5cX5.js   15.28 kB
+out/main/utility/vector-indexer.js            24.17 kB
+out/main/utility/knowledge-graph.js           24.59 kB
+out/main/utility/embedding.js                 24.67 kB
+out/main/utility/api-server.js                26.55 kB
+out/main/index.js                            317.49 kB
+✓ built in 1.15s
+
+electron main process built successfully
+
+-----
+
+vite v7.3.1 building ssr environment for development...
+(node:39668) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/code/Large-scale-integrated-project/HNULS-LabHub/HNULS-KnowledgeDatabase/KnowledgeDatabase-src/postcss.config.js?t=1770845296123 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+transforming...
+✓ 19 modules transformed.
+rendering chunks...
+out/preload/index.js  18.99 kB
+✓ built in 43ms
+
+electron preload scripts built successfully
+
+-----
+
+dev server running for the electron renderer process at:
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+starting electron app...
+
+
+Debugger attached.
+[2026-02-12 05:28:17] [warn]  log.catchErrors is deprecated. Use log.errorHandler instead
+[2026-02-12 05:28:17] [info]  Logger initialized with level: info
+[2026-02-12 05:28:17] [info]  SurrealDBService created with config {
+  namespace: 'knowledge',
+  database: 'system',
+  portRange: { min: 8000, max: 8100 }
+}
+[2026-02-12 05:28:17] [info]  Initializing documents directory...
+[2026-02-12 05:28:17] [info]  Initialized documents directory: C:\Users\zhaowendao\AppData\Roaming\knowledgedatabase-src\data\documents
+[2026-02-12 05:28:17] [info]  Documents directory initialized successfully
+[2026-02-12 05:28:17] [info]  Initializing SurrealDB service...
+[2026-02-12 05:28:17] [info]  Initializing SurrealDB service
+[2026-02-12 05:28:17] [info]  Port 8000 allocated successfully
+[2026-02-12 05:28:17] [info]  SurrealDB service initialized on port 8000
+[2026-02-12 05:28:18] [warn]  [SurrealDB stderr] 2026-02-11T21:28:18.976929Z  WARN surrealdb::core::kvs::ds: Credentials were provided, but existing root users were found. The root user 'root' will not be created
+2026-02-11T21:28:18.976939Z  WARN surrealdb::core::kvs::ds: Consider removing the --user and --pass arguments from the server start command
+[2026-02-12 05:28:19] [info]  Initializing database schema
+[2026-02-12 05:28:19] [info]  Schema exists: true
+[2026-02-12 05:28:19] [info]  Schema validation result: true
+[2026-02-12 05:28:19] [info]  Schema is valid, no import needed
+[2026-02-12 05:28:19] [info]  SurrealDB server is ready
+[2026-02-12 05:28:19] [info]  [SurrealDBQueryService] Connected to SurrealDB { namespace: 'knowledge', database: 'system', instanceId: 'hlbyv4' }
+[2026-02-12 05:28:19] [info]  QueryService connected to SurrealDB { namespace: 'knowledge', database: 'system', instanceId: 'hlbyv4' }
+[2026-02-12 05:28:19] [info]  QueryService initialized
+[2026-02-12 05:28:19] [info]  SurrealDB service started successfully
+[2026-02-12 05:28:19] [info]  KgMonitorService configured
+[2026-02-12 05:28:19] [info]  ✅ [ServiceTracker] KnowledgeLibraryService[7i9d93] <- QueryService injected { dependencyInstanceId: 'hlbyv4', isConnected: true }
+[2026-02-12 05:28:19] [info]  QueryService injected into KnowledgeLibraryService
+[2026-02-12 05:28:19] [info]  QueryService injected into EmbeddingEngineBridge
+[2026-02-12 05:28:19] [info]  Restoring knowledge base databases...
+[2026-02-12 05:28:19] [info]  Restoring 1 knowledge base databases...
+[2026-02-12 05:28:19] [info]  Knowledge base database restoration completed: 1 restored, 0 failed
+[2026-02-12 05:28:19] [info]  Restored 1 knowledge base databases: test1
+[2026-02-12 05:28:19] [info]  Cleaning up orphaned knowledge base directories...
+[2026-02-12 05:28:19] [info]  Directory cleanup completed: scanned 1 directories, removed 0
+[2026-02-12 05:28:20] [error] Failed to load tray icon {
+  iconPath: 'D:\\code\\Large-scale-integrated-project\\HNULS-LabHub\\HNULS-KnowledgeDatabase\\build\\icon.ico',
+  isPackaged: false
+}
+[2026-02-12 05:28:20] [info]  Tray icon created successfully
+[2026-02-12 05:28:20] [warn]  ⚠️ [ServiceTracker] Multiple instances detected for KnowledgeLibraryService {
+  totalInstances: 2,
+  instances: [
+    { instanceId: '7i9d93', createdAt: '2026-02-11T21:28:17.387Z' },
+    { instanceId: '3qyn55', createdAt: '2026-02-11T21:28:20.037Z' }
+  ]
+}
+[2026-02-12 05:28:20] [info]  [ChunkingService] Registered strategy: recursive
+[2026-02-12 05:28:20] [info]  [ChunkingService] Registered strategy: semantic
+[2026-02-12 05:28:20] [warn]  ⚠️ [ServiceTracker] Multiple instances detected for KnowledgeLibraryService {
+  totalInstances: 3,
+  instances: [
+    { instanceId: '7i9d93', createdAt: '2026-02-11T21:28:17.387Z' },
+    { instanceId: '3qyn55', createdAt: '2026-02-11T21:28:20.037Z' },
+    { instanceId: 'w0ad3a', createdAt: '2026-02-11T21:28:20.041Z' }
+  ]
+}
+[EmbeddingIPCHandler] Registered embedding IPC handlers
+[2026-02-12 05:28:20] [info]  [VectorIndexerHandler] Handlers registered
+[2026-02-12 05:28:20] [info]  [KG-IPCHandler] Handlers registered
+Registered 15 IPC handlers
+[GlobalMonitorBridge] Starting utility process: D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\global-monitor.js
+[2026-02-12 05:28:20] [info]  [MinerUParserService] restored tasks { count: 4 }
+[GlobalMonitorBridge] Ready
+[2026-02-12 05:28:20] [info]  [EmbeddingEngineBridge] Spawning utility process: D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\embedding.js
+[2026-02-12 05:28:20] [info]  [EmbeddingEngineBridge] Process spawned successfully
+[2026-02-12 05:28:21] [info]  [EmbeddingEngineBridge] Ready
+[2026-02-12 05:28:21] [info]  [VectorIndexerBridge] Spawning utility process: D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\vector-indexer.js
+[2026-02-12 05:28:22] [info]  [VectorIndexerBridge] Process ready
+Vector Indexer started successfully
+[2026-02-12 05:28:22] [info]  [ApiServerBridge] VectorRetrievalService injected
+[2026-02-12 05:28:22] [info]  [ApiServerBridge] Spawning utility process: D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\api-server.js
+[2026-02-12 05:28:22] [info]  [VectorIndexerBridge] Indexer started
+[2026-02-12 05:28:22] [info]  [ApiServerBridge] Process ready
+API Server started successfully
+[2026-02-12 05:28:22] [info]  [KnowledgeGraphBridge] Spawning utility process: D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js
+[2026-02-12 05:28:23] [info]  [ApiServerBridge] Server started on 0.0.0.0:3721
+[ApiServer] HTTP server started on http://0.0.0.0:3721
+[2026-02-12 05:28:23] [error] [ApiServerBridge] Error: listen EACCES: permission denied 0.0.0.0:3721 null
+[ApiServer] Error: listen EACCES: permission denied 0.0.0.0:3721 undefined
+[2026-02-12 05:28:23] [info]  [KnowledgeGraphBridge] Process spawned successfully
+[2026-02-12 05:28:23] [info]  [KG-Process] [KG-Scheduler] Scheduler started null
+[2026-02-12 05:28:23] [info]  [KnowledgeGraphBridge] Ready
+[2026-02-12 05:28:23] [info]  [KG-Process] [KG-MessageHandler] Received: kg:init {"type":"kg:init","dbConfig":{"serverUrl":"ws://127.0.0.1:8000","username":"root","password":"root","namespace":"knowledge","database":"system"}} null
+[2026-02-12 05:28:23] [info]  [KG-Process] [KG-SurrealClient] Connected {"serverUrl":"ws://127.0.0.1:8000","namespace":"knowledge","database":"system"} null
+[2026-02-12 05:28:23] [info]  [KG-Process] [KG-TaskSubmission] Initializing kg_task and kg_chunk schemas... null
+[2026-02-12 05:28:23] [info]  [KG-Process] [KG-TaskSubmission] Schema initialized successfully null
+[2026-02-12 05:28:23] [info]  [KG-Process] [KG-Scheduler] Startup cleanup started null
+[2026-02-12 05:28:23] [info]  [KG-Process] [KG-MessageHandler] Initialized successfully null
+Knowledge Graph process started successfully
+[2026-02-12 05:28:23] [info]  📊 [ServiceTracker] Service Diagnostics Report {
+  QueryService: [
+    {
+      instanceId: 'hlbyv4',
+      createdAt: '2026-02-11T21:28:17.383Z',
+      dependencies: {}
+    }
+  ],
+  KnowledgeLibraryService: [
+    {
+      instanceId: '7i9d93',
+      createdAt: '2026-02-11T21:28:17.387Z',
+      dependencies: [Object]
+    },
+    {
+      instanceId: '3qyn55',
+      createdAt: '2026-02-11T21:28:20.037Z',
+      dependencies: {}
+    },
+    {
+      instanceId: 'w0ad3a',
+      createdAt: '2026-02-11T21:28:20.041Z',
+      dependencies: {}
+    }
+  ]
+}
+[2026-02-12 05:28:23] [warn]  ⚠️ [ServiceTracker] KnowledgeLibraryService has 3 instances!
+Application started successfully
+[2026-02-12 05:28:23] [info]  [KG-Process] [KG-Scheduler] Cleanup: deleted 42 completed chunks null
+[2026-02-12 05:28:23] [info]  [KG-Process] [KG-Scheduler] Cleanup: 0 tasks have progressing chunks to mark failed null
+[2026-02-12 05:28:23] [info]  [KG-Process] [KG-Scheduler] Startup cleanup completed null
+[2026-02-12 05:28:23] [error] [KG-Process] [KG-SurrealClient] Query failed: SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1; There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+ResponseError: There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+    at Surreal.queryRaw (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:60066)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Surreal.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:59723)
+    at async KGSurrealClient.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:49:22)
+    at async TaskScheduler.poll (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:358:11)
+[2026-02-12 05:28:23] [error] [KG-Process] [KG-Scheduler] Poll error There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+ResponseError: There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+    at Surreal.queryRaw (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:60066)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Surreal.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:59723)
+    at async KGSurrealClient.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:49:22)
+    at async TaskScheduler.poll (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:358:11)
+[2026-02-12 05:28:25] [error] [KG-Process] [KG-SurrealClient] Query failed: SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1; There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+ResponseError: There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+    at Surreal.queryRaw (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:60066)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Surreal.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:59723)
+    at async KGSurrealClient.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:49:22)
+    at async TaskScheduler.poll (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:358:11)
+[2026-02-12 05:28:25] [error] [KG-Process] [KG-Scheduler] Poll error There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+ResponseError: There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+    at Surreal.queryRaw (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:60066)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Surreal.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:59723)
+    at async KGSurrealClient.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:49:22)
+    at async TaskScheduler.poll (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:358:11)
+[2026-02-12 05:28:27] [error] [KG-Process] [KG-SurrealClient] Query failed: SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1; There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+ResponseError: There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+    at Surreal.queryRaw (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:60066)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Surreal.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:59723)
+    at async KGSurrealClient.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:49:22)
+    at async TaskScheduler.poll (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:358:11)
+[2026-02-12 05:28:27] [error] [KG-Process] [KG-Scheduler] Poll error There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+ResponseError: There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+    at Surreal.queryRaw (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:60066)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Surreal.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:59723)
+    at async KGSurrealClient.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:49:22)
+    at async TaskScheduler.poll (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:358:11)
+[2026-02-12 05:28:29] [error] [KG-Process] [KG-SurrealClient] Query failed: SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1; There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+ResponseError: There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+    at Surreal.queryRaw (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:60066)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Surreal.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:59723)
+    at async KGSurrealClient.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:49:22)
+    at async TaskScheduler.poll (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:358:11)
+[2026-02-12 05:28:29] [error] [KG-Process] [KG-Scheduler] Poll error There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+ResponseError: There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+    at Surreal.queryRaw (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:60066)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Surreal.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:59723)
+    at async KGSurrealClient.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:49:22)
+    at async TaskScheduler.poll (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:358:11)
+[2026-02-12 05:28:31] [error] [KG-Process] [KG-SurrealClient] Query failed: SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1; There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+ResponseError: There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+    at Surreal.queryRaw (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:60066)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Surreal.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:59723)
+    at async KGSurrealClient.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:49:22)
+    at async TaskScheduler.poll (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:358:11)
+[2026-02-12 05:28:31] [error] [KG-Process] [KG-Scheduler] Poll error There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+ResponseError: There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+    at Surreal.queryRaw (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:60066)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Surreal.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:59723)
+    at async KGSurrealClient.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:49:22)
+    at async TaskScheduler.poll (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:358:11)
+[2026-02-12 05:28:33] [error] [KG-Process] [KG-SurrealClient] Query failed: SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1; There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+ResponseError: There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+    at Surreal.queryRaw (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:60066)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Surreal.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:59723)
+    at async KGSurrealClient.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:49:22)
+    at async TaskScheduler.poll (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:358:11)
+[2026-02-12 05:28:33] [error] [KG-Process] [KG-Scheduler] Poll error There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+ResponseError: There was a problem with the database: Parse error: Missing order idiom `created_at` in statement selection
+ --> [1:64]
+  |
+1 | ... ORDER BY created_at ASC LIMIT 1;
+  |              ^^^^^^^^^^^^^^ 
+ --> [1:8]
+  |
+1 | SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC...
+  |        ^^^^^^^ Idiom missing here
+
+    at Surreal.queryRaw (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:60066)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Surreal.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\node_modules\surrealdb\dist\index.cjs:1:59723)
+    at async KGSurrealClient.query (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:49:22)
+    at async TaskScheduler.poll (D:\code\Large-scale-integrated-project\HNULS-LabHub\HNULS-KnowledgeDatabase\KnowledgeDatabase-src\out\main\utility\knowledge-graph.js:358:11)
+
+[logger] process finished: code=null signal=SIGINT

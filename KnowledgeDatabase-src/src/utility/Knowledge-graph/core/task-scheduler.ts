@@ -1,14 +1,18 @@
 /**
- * @file 任务调度器
- * @description 轮询未完成的任务/分块，按配置并行调 LLM（当前留桩）
+ * @file 任务调度器（chunk 驱动）
+ * @description
+ *   - chunk: pending → progressing → completed | failed
+ *   - task: 派生状态，仅存储配置
  *
- * 状态流转：
- * - chunk: pending → progressing → completed/failed
- * - task:  pending → progressing → completed/failed
+ * 启动清理：
+ *   1. 删除 completed chunks（日志数量）
+ *   2. progressing → failed（日志影响任务数）
+ *   3. 对受影响 task 派生更新
  *
- * 启动时清理：
- * - completed 的任务及其 chunks 删除
- * - progressing 的 chunk 转 failed（上次异常中断的）
+ * 核心循环：
+ *   - 静息（idle）：2s 轮询，无重复日志
+ *   - 激活（active）：持续处理 pending chunks
+ *   - 切换必须日志
  */
 
 import type { KGSurrealClient } from '../db/surreal-client'
@@ -48,7 +52,10 @@ async function callLLMStub(
 ): Promise<{ success: boolean; result?: any; error?: string }> {
   await new Promise((r) => setTimeout(r, 200 + Math.random() * 600))
   if (Math.random() < 0.8) {
-    return { success: true, result: { entities: [{ name: 'stub_entity', type: 'concept' }], relations: [] } }
+    return {
+      success: true,
+      result: { entities: [{ name: 'stub_entity', type: 'concept' }], relations: [] }
+    }
   }
   return { success: false, error: 'LLM stub: random failure for testing' }
 }
@@ -60,33 +67,42 @@ async function callLLMStub(
 export class TaskScheduler {
   private client: KGSurrealClient
   private sendMessage: (msg: KGToMainMessage) => void
-  private maxConcurrency = 5
+  private requestConcurrency: () => Promise<number>
+
   private pollTimer: ReturnType<typeof setInterval> | null = null
   private isProcessing = false
+  private cleanupDone = false
+  private isActive = false // 激活/静息状态
 
-  private readonly POLL_INTERVAL_ACTIVE = 2000
-  private readonly POLL_INTERVAL_IDLE = 5000
+  private readonly POLL_INTERVAL = 2000
 
-  constructor(client: KGSurrealClient, sendMessage: (msg: KGToMainMessage) => void) {
+  constructor(
+    client: KGSurrealClient,
+    sendMessage: (msg: KGToMainMessage) => void,
+    requestConcurrency: () => Promise<number>
+  ) {
     this.client = client
     this.sendMessage = sendMessage
+    this.requestConcurrency = requestConcurrency
   }
 
   async start(): Promise<void> {
-    log('Starting scheduler...')
-    try { await this.cleanup() } catch (e) { logError('Cleanup failed, continuing anyway', e) }
-    this.startPolling(this.POLL_INTERVAL_IDLE)
+    if (this.pollTimer) return
     log('Scheduler started')
+    this.startPolling()
   }
 
   stop(): void {
-    if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null }
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
+    }
     log('Scheduler stopped')
   }
 
-  setMaxConcurrency(value: number): void {
-    this.maxConcurrency = Math.max(1, value)
-    log(`Max concurrency updated to ${this.maxConcurrency}`)
+  kick(): void {
+    if (this.isProcessing) return
+    void this.poll()
   }
 
   // ==========================================================================
@@ -94,36 +110,51 @@ export class TaskScheduler {
   // ==========================================================================
 
   private async cleanup(): Promise<void> {
-    log('Running startup cleanup...')
+    log('Startup cleanup started')
 
-    // 1. 删除已完成任务的 chunks，再删任务本身
-    const completedTasks = this.client.extractRecords(
-      await this.client.query(`SELECT * FROM kg_task WHERE status = 'completed';`)
+    // 1. 统计并删除 completed chunks
+    const completedCountResult = this.client.extractRecords(
+      await this.client.query(
+        `SELECT count() AS total FROM kg_chunk WHERE status = 'completed' GROUP ALL;`
+      )
     )
-    for (const task of completedTasks) {
-      const taskIdStr = rid(task.id)
-      await this.client.query(`DELETE kg_chunk WHERE task_id = $tid;`, { tid: taskIdStr })
-      await this.client.query(`DELETE ${taskIdStr};`)
+    const completedCount = Number(completedCountResult[0]?.total ?? 0)
+    if (completedCount > 0) {
+      await this.client.query(`DELETE kg_chunk WHERE status = 'completed';`)
     }
-    if (completedTasks.length > 0) log(`Cleaned up ${completedTasks.length} completed tasks`)
+    log(`Cleanup: deleted ${completedCount} completed chunks`)
 
-    // 2. progressing chunk → failed
-    await this.client.query(
-      `UPDATE kg_chunk SET status = 'failed', error = 'interrupted: process restarted' WHERE status = 'progressing';`
+    // 2. 统计 progressing 影响的 task 数
+    const affectedTasks = this.client.extractRecords(
+      await this.client.query(
+        `SELECT task_id FROM kg_chunk WHERE status = 'progressing' GROUP BY task_id;`
+      )
     )
-    // 3. progressing task → failed
-    await this.client.query(`UPDATE kg_task SET status = 'failed' WHERE status = 'progressing';`)
+    const affectedTaskIds = affectedTasks.map((r: any) => rid(r.task_id))
+    log(`Cleanup: ${affectedTaskIds.length} tasks have progressing chunks to mark failed`)
 
-    log('Cleanup completed')
+    // 3. progressing → failed
+    if (affectedTaskIds.length > 0) {
+      await this.client.query(
+        `UPDATE kg_chunk SET status = 'failed', error = 'interrupted: process restarted' WHERE status = 'progressing';`
+      )
+    }
+
+    // 4. 对受影响 task 派生更新
+    for (const taskId of affectedTaskIds) {
+      await this.reconcileTaskStatus(taskId)
+    }
+
+    log('Startup cleanup completed')
   }
 
   // ==========================================================================
   // 轮询
   // ==========================================================================
 
-  private startPolling(interval: number): void {
+  private startPolling(): void {
     if (this.pollTimer) clearInterval(this.pollTimer)
-    this.pollTimer = setInterval(() => this.poll(), interval)
+    this.pollTimer = setInterval(() => this.poll(), this.POLL_INTERVAL)
   }
 
   private async poll(): Promise<void> {
@@ -131,20 +162,70 @@ export class TaskScheduler {
     this.isProcessing = true
 
     try {
-      const tasks = this.client.extractRecords(
-        await this.client.query(
-          `SELECT * FROM kg_task WHERE status IN ['pending'] ORDER BY created_at ASC LIMIT 10;`
-        )
-      )
-
-      if (tasks.length === 0) {
-        this.startPolling(this.POLL_INTERVAL_IDLE)
+      if (!this.client.isConnected()) {
         this.isProcessing = false
         return
       }
 
-      this.startPolling(this.POLL_INTERVAL_ACTIVE)
-      for (const task of tasks) await this.processTask(task)
+      // 启动清理（仅一次）
+      if (!this.cleanupDone) {
+        try {
+          await this.cleanup()
+          this.cleanupDone = true
+        } catch (e) {
+          logError('Cleanup failed, continuing anyway', e)
+          this.cleanupDone = true
+        }
+      }
+
+      // 核心循环：持续处理 pending chunks
+      while (true) {
+        // 每次循环请求并发数
+        const concurrency = await this.requestConcurrency()
+
+        // 查找最早 pending chunk 对应 task
+        const taskResult = this.client.extractRecords(
+          await this.client.query(
+            `SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1;`
+          )
+        )
+
+        if (taskResult.length === 0) {
+          // 无 pending → 切静息
+          if (this.isActive) {
+            this.isActive = false
+            log('Core scheduler idle')
+          }
+          break
+        }
+
+        // 有 pending → 切激活
+        if (!this.isActive) {
+          this.isActive = true
+          log('Core scheduler activated')
+        }
+
+        const taskIdStr = rid(taskResult[0].task_id)
+
+        // 获取 task 配置
+        const taskRecords = this.client.extractRecords(
+          await this.client.query(`SELECT * FROM ${taskIdStr};`)
+        )
+        const task = taskRecords[0]
+
+        if (!task) {
+          // task 配置缺失，将该 task 的 pending chunks 全部置 failed
+          await this.client.query(
+            `UPDATE kg_chunk SET status = 'failed', error = 'missing task config' WHERE task_id = $tid AND status = 'pending';`,
+            { tid: taskIdStr }
+          )
+          logError(`Task ${taskIdStr} config missing, marked pending chunks as failed`)
+          continue
+        }
+
+        // 处理该 task 的 pending chunks
+        await this.processTaskChunks(taskIdStr, task.config ?? {}, concurrency)
+      }
     } catch (error) {
       logError('Poll error', error)
     } finally {
@@ -153,36 +234,40 @@ export class TaskScheduler {
   }
 
   // ==========================================================================
-  // 任务处理
+  // 任务 chunk 处理
   // ==========================================================================
 
-  private async processTask(task: any): Promise<void> {
-    const taskIdStr = rid(task.id) // "kg_task:xxx"
-
-    if (task.status === 'pending') {
-      await this.client.query(`UPDATE ${taskIdStr} SET status = 'progressing';`)
-    }
-
-    const pendingChunks = this.client.extractRecords(
-      await this.client.query(
-        `SELECT * FROM kg_chunk WHERE task_id = $tid AND status IN ['pending'] ORDER BY chunk_index ASC LIMIT $lim;`,
-        { tid: taskIdStr, lim: this.maxConcurrency }
+  private async processTaskChunks(
+    taskIdStr: string,
+    config: Record<string, any>,
+    concurrency: number
+  ): Promise<void> {
+    // 循环处理该 task 直到无 pending
+    while (true) {
+      const pendingChunks = this.client.extractRecords(
+        await this.client.query(
+          `SELECT * FROM kg_chunk WHERE task_id = $tid AND status = 'pending' ORDER BY chunk_index ASC LIMIT $lim;`,
+          { tid: taskIdStr, lim: concurrency }
+        )
       )
-    )
 
-    if (pendingChunks.length === 0) {
-      await this.finalizeTask(taskIdStr)
-      return
+      if (pendingChunks.length === 0) {
+        // 该 task 无 pending，派生更新后退出
+        await this.reconcileTaskStatus(taskIdStr)
+        break
+      }
+
+      log(`Processing ${taskIdStr}: ${pendingChunks.length} chunks (concurrency=${concurrency})`)
+
+      await Promise.allSettled(pendingChunks.map((c: any) => this.processChunk(c, config)))
+
+      // 每批处理后派生更新
+      await this.reconcileTaskStatus(taskIdStr)
     }
-
-    log(`Processing task ${taskIdStr}: ${pendingChunks.length} chunks (concurrency=${this.maxConcurrency})`)
-
-    await Promise.allSettled(pendingChunks.map((c: any) => this.processChunk(c, task.config)))
-    await this.updateTaskProgress(taskIdStr)
   }
 
   private async processChunk(chunk: any, config: Record<string, any>): Promise<void> {
-    const chunkIdStr = rid(chunk.id) // "kg_chunk:xxx"
+    const chunkIdStr = rid(chunk.id)
 
     await this.client.query(`UPDATE ${chunkIdStr} SET status = 'progressing';`)
 
@@ -211,61 +296,85 @@ export class TaskScheduler {
   }
 
   // ==========================================================================
-  // 进度汇总
+  // 状态派生
   // ==========================================================================
 
-  private async updateTaskProgress(taskIdStr: string): Promise<void> {
+  private deriveStatus(stats: {
+    total: number
+    completed: number
+    failed: number
+    pending: number
+    progressing: number
+  }): 'pending' | 'progressing' | 'completed' | 'failed' {
+    if (stats.total === 0) return 'pending'
+    if (stats.failed > 0) return 'failed'
+    if (stats.completed === stats.total) return 'completed'
+    if (stats.completed > 0 || stats.progressing > 0) return 'progressing'
+    return 'pending'
+  }
+
+  private async reconcileTaskStatus(taskIdStr: string): Promise<void> {
     const statsResult = this.client.extractRecords(
       await this.client.query(
-        `SELECT count(status = 'completed') AS completed, count(status = 'failed') AS failed, count() AS total
+        `SELECT
+           count(status = 'completed') AS completed,
+           count(status = 'failed') AS failed,
+           count(status = 'pending') AS pending,
+           count(status = 'progressing') AS progressing,
+           count() AS total
          FROM kg_chunk WHERE task_id = $tid GROUP ALL;`,
         { tid: taskIdStr }
       )
     )
-    const stats = statsResult[0] ?? { completed: 0, failed: 0, total: 0 }
+    const stats = statsResult[0] ?? {
+      completed: 0,
+      failed: 0,
+      pending: 0,
+      progressing: 0,
+      total: 0
+    }
 
+    const completed = Number(stats.completed ?? 0)
+    const failed = Number(stats.failed ?? 0)
+    const pending = Number(stats.pending ?? 0)
+    const progressing = Number(stats.progressing ?? 0)
+    const total = Number(stats.total ?? 0)
+
+    const status = this.deriveStatus({ total, completed, failed, pending, progressing })
+
+    // 更新 task 状态
     await this.client.query(
-      `UPDATE ${taskIdStr} SET chunks_completed = $completed, chunks_failed = $failed;`,
-      { completed: stats.completed, failed: stats.failed }
+      `UPDATE ${taskIdStr} SET status = $status, chunks_completed = $completed, chunks_failed = $failed, chunks_total = $total, updated_at = time::now();`,
+      { status, completed, failed, total }
     )
 
+    // 发送进度消息
     this.sendMessage({
       type: 'kg:task-progress',
       taskId: taskIdStr,
-      completed: stats.completed,
-      failed: stats.failed,
-      total: stats.total
+      completed,
+      failed,
+      total
     })
 
-    if (stats.total - stats.completed - stats.failed <= 0) {
-      await this.finalizeTask(taskIdStr)
-    }
-  }
-
-  private async finalizeTask(taskIdStr: string): Promise<void> {
-    const statsResult = this.client.extractRecords(
+    // 任务完成：删除 completed chunks，发送完成消息
+    if (status === 'completed') {
       await this.client.query(
-        `SELECT count(status = 'completed') AS completed, count(status = 'failed') AS failed, count() AS total
-         FROM kg_chunk WHERE task_id = $tid GROUP ALL;`,
+        `DELETE kg_chunk WHERE task_id = $tid AND status = 'completed';`,
         { tid: taskIdStr }
       )
-    )
-    const stats = statsResult[0] ?? { completed: 0, failed: 0, total: 0 }
-
-    if (stats.failed > 0) {
-      await this.client.query(
-        `UPDATE ${taskIdStr} SET status = 'failed', chunks_completed = $completed, chunks_failed = $failed;`,
-        { completed: stats.completed, failed: stats.failed }
-      )
-      this.sendMessage({ type: 'kg:task-failed', taskId: taskIdStr, error: `${stats.failed}/${stats.total} chunks failed` })
-      log(`Task ${taskIdStr} failed: ${stats.failed}/${stats.total} chunks failed`)
-    } else {
-      await this.client.query(
-        `UPDATE ${taskIdStr} SET status = 'completed', chunks_completed = $completed, chunks_failed = 0;`,
-        { completed: stats.completed }
-      )
       this.sendMessage({ type: 'kg:task-completed', taskId: taskIdStr })
-      log(`Task ${taskIdStr} completed: ${stats.completed}/${stats.total} chunks`)
+      log(`Task ${taskIdStr} completed: ${completed}/${total} chunks`)
+    }
+
+    // 任务失败：发送失败消息
+    if (status === 'failed') {
+      this.sendMessage({
+        type: 'kg:task-failed',
+        taskId: taskIdStr,
+        error: `${failed}/${total} chunks failed`
+      })
+      log(`Task ${taskIdStr} failed: ${failed}/${total} chunks failed`)
     }
   }
 }

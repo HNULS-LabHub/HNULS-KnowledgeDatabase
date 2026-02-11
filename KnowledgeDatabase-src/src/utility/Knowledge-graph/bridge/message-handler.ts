@@ -73,9 +73,6 @@ export class MessageHandler {
           await this.handleSubmitTask(msg.requestId, msg.data)
           break
 
-        case 'kg:update-concurrency':
-          this.scheduler.setMaxConcurrency(msg.maxConcurrency)
-          break
 
         case 'kg:query-status':
           await this.handleQueryStatus(msg.requestId)
@@ -101,6 +98,8 @@ export class MessageHandler {
       await this.taskSubmission.ensureSchema()
       // 启动调度器
       await this.scheduler.start()
+      // init 完成后立刻触发一次调度，避免等待轮询间隔
+      this.scheduler.kick()
       this.sendMessage({ type: 'kg:init-result', success: true })
       log('Initialized successfully')
     } catch (error) {

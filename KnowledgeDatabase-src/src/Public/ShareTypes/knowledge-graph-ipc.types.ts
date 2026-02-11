@@ -70,6 +70,7 @@ export type MainToKGMessage =
   | { type: 'kg:submit-task'; requestId: string; data: KGSubmitTaskParams }
   | { type: 'kg:update-concurrency'; maxConcurrency: number }
   | { type: 'kg:query-status'; requestId: string }
+  | { type: 'kg:concurrency-response'; value: number }
 
 // ============================================================================
 // KG → Main 消息
@@ -91,3 +92,4 @@ export type KGToMainMessage =
   | { type: 'kg:task-failed'; taskId: string; error: string }
   | { type: 'kg:status'; requestId: string; tasks: KGTaskStatus[] }
   | { type: 'kg:log'; level: 'debug' | 'info' | 'warn' | 'error'; message: string; meta?: any }
+  | { type: 'kg:request-concurrency' }

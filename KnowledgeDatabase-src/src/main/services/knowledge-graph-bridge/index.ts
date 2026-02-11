@@ -35,6 +35,7 @@ export class KnowledgeGraphBridge {
   private isReady = false
   private readyPromise: Promise<void> | null = null
   private readyResolve: (() => void) | null = null
+  private currentConcurrency = 5
 
   /** 初始化完成 Promise */
   private initPromise: Promise<void> | null = null
@@ -142,6 +143,7 @@ export class KnowledgeGraphBridge {
    * 更新最大并行数
    */
   updateConcurrency(maxConcurrency: number): void {
+    this.currentConcurrency = Math.max(1, maxConcurrency)
     this.sendToProcess({ type: 'kg:update-concurrency', maxConcurrency })
   }
 
@@ -248,6 +250,9 @@ export class KnowledgeGraphBridge {
 
       case 'kg:log':
         this.handleLog(msg.level, msg.message, msg.meta)
+        break
+      case 'kg:request-concurrency':
+        this.sendToProcess({ type: 'kg:concurrency-response', value: this.currentConcurrency })
         break
 
       default:
