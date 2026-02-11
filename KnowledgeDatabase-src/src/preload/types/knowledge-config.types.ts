@@ -42,10 +42,26 @@ export interface DocumentConfig {
 /**
  * ֪ʶ��ȫ������
  */
+export interface KnowledgeGraphModelConfig {
+  id: string
+  name: string
+  embeddingConfigId: string
+  llmProviderId: string
+  llmModelId: string
+  chunkConcurrency: number
+  entityTypes: string[]
+  outputLanguage: string
+}
+
+export interface KnowledgeGraphSectionConfig {
+  configs: KnowledgeGraphModelConfig[]
+  defaultConfigId?: string
+}
+
 export interface KnowledgeGlobalConfig {
-  chunking: Required<ChunkingConfig> // ȫ�ֱ�������������
-  embedding?: KnowledgeEmbeddingConfig // Ƕ�����ã���ѡ��
-  // Ԥ����������
+  chunking: Required<ChunkingConfig>
+  embedding?: KnowledgeEmbeddingConfig
+  knowledgeGraph?: KnowledgeGraphSectionConfig
 }
 
 /**

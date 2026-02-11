@@ -7,7 +7,9 @@ import type {
   DocumentConfig,
   KnowledgeEmbeddingConfig,
   EmbeddingModelConfig,
-  EmbeddingModelCandidate
+  EmbeddingModelCandidate,
+  KnowledgeGraphSectionConfig,
+  KnowledgeGraphModelConfig
 } from '@preload/types'
 
 export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
@@ -278,6 +280,80 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
     }
   }
 
+  // ============ 知识图谱配置 ============
+
+  const getKgConfigs = computed(() => (kbId: number): KnowledgeGraphModelConfig[] => {
+    return configByKbId.value.get(kbId)?.global.knowledgeGraph?.configs ?? []
+  })
+
+  const getDefaultKgConfigId = computed(() => (kbId: number): string | null => {
+    return configByKbId.value.get(kbId)?.global.knowledgeGraph?.defaultConfigId ?? null
+  })
+
+  async function createKgConfig(
+    kbId: number,
+    configData: Omit<KnowledgeGraphModelConfig, 'id'>
+  ): Promise<KnowledgeGraphModelConfig> {
+    const newConfig: KnowledgeGraphModelConfig = {
+      id: `kg_cfg_${Date.now()}`,
+      ...configData
+    }
+
+    const currentConfigs = getKgConfigs.value(kbId)
+    const currentDefaultId = getDefaultKgConfigId.value(kbId)
+    const updatedKg: KnowledgeGraphSectionConfig = {
+      configs: JSON.parse(JSON.stringify([...currentConfigs, newConfig])),
+      defaultConfigId: currentDefaultId ?? undefined
+    }
+
+    await updateGlobalConfig(kbId, { knowledgeGraph: updatedKg })
+    return newConfig
+  }
+
+  async function deleteKgConfig(kbId: number, configId: string): Promise<void> {
+    const currentConfigs = getKgConfigs.value(kbId)
+    const currentDefaultId = getDefaultKgConfigId.value(kbId)
+
+    const updatedConfigs = currentConfigs.filter((c) => c.id !== configId)
+    const newDefaultId = configId === currentDefaultId ? undefined : currentDefaultId
+
+    await updateGlobalConfig(kbId, {
+      knowledgeGraph: {
+        configs: JSON.parse(JSON.stringify(updatedConfigs)),
+        defaultConfigId: newDefaultId
+      }
+    })
+  }
+
+  async function updateKgConfig(
+    kbId: number,
+    configId: string,
+    patch: Partial<Omit<KnowledgeGraphModelConfig, 'id'>>
+  ): Promise<void> {
+    const currentConfigs = getKgConfigs.value(kbId)
+    const updatedConfigs = currentConfigs.map((c) =>
+      c.id === configId ? { ...c, ...patch } : c
+    )
+
+    const currentDefaultId = getDefaultKgConfigId.value(kbId)
+    await updateGlobalConfig(kbId, {
+      knowledgeGraph: {
+        configs: JSON.parse(JSON.stringify(updatedConfigs)),
+        defaultConfigId: currentDefaultId ?? undefined
+      }
+    })
+  }
+
+  async function setDefaultKgConfigId(kbId: number, configId: string | null): Promise<void> {
+    const currentConfigs = getKgConfigs.value(kbId)
+    await updateGlobalConfig(kbId, {
+      knowledgeGraph: {
+        configs: JSON.parse(JSON.stringify(currentConfigs)),
+        defaultConfigId: configId ?? undefined
+      }
+    })
+  }
+
   return {
     configByKbId,
     loading,
@@ -298,6 +374,13 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
     updateEmbeddingCandidates,
     deleteEmbeddingConfig,
     setDefaultEmbeddingConfigId,
-    setDocumentEmbeddingConfigId
+    setDocumentEmbeddingConfigId,
+    // 知识图谱配置相关
+    getKgConfigs,
+    getDefaultKgConfigId,
+    createKgConfig,
+    deleteKgConfig,
+    updateKgConfig,
+    setDefaultKgConfigId
   }
 })

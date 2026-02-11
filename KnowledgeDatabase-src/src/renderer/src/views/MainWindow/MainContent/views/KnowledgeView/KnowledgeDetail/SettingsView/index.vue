@@ -37,7 +37,11 @@
       />
 
       <!-- 知识图谱配置区 -->
-      <KnowledgeGraphSection ref="knowledgeGraphRef" :knowledge-base-id="knowledgeBaseId" />
+      <KnowledgeGraphSection
+        ref="knowledgeGraphRef"
+        :knowledge-base-id="knowledgeBaseId"
+        @open-kg-detail="$emit('open-kg-detail', $event)"
+      />
     </div>
   </div>
 </template>
@@ -47,7 +51,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import DocumentParsingSection from './DocumentParsingSection.vue'
 import ChunkingSection from './ChunkingSection.vue'
 import EmbeddingSection from './EmbeddingSection/index.vue'
-import KnowledgeGraphSection from './KnowledgeGraphSection.vue'
+import KnowledgeGraphSection from './KnowledgeGraphSection/index.vue'
 
 const props = defineProps<{
   knowledgeBaseId: number
@@ -55,6 +59,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'open-embedding-detail', config: any): void
+  (e: 'open-kg-detail', config: any): void
 }>()
 
 const sections = [

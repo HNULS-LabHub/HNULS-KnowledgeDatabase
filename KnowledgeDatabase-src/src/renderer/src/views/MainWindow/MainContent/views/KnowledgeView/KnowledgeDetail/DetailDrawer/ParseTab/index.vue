@@ -203,7 +203,7 @@ const sections: Section[] = [
   { id: 'knowledge-graph', label: '知识图谱' }
 ]
 
-const activeSection = ref<string>(sections[0].id)
+const activeSection = ref<string>('')
 const contentRef = ref<HTMLElement | null>(null)
 const documentParsingRef = ref<InstanceType<typeof MinerUPanel> | null>(null)
 const chunkingRef = ref<HTMLElement | null>(null)

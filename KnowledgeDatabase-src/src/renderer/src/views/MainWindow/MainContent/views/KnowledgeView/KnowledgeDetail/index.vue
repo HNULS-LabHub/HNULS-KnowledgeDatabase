@@ -42,6 +42,7 @@
         v-else-if="currentNav === 'settings'"
         :knowledge-base-id="kb.id"
         @open-embedding-detail="handleOpenEmbeddingDetail"
+        @open-kg-detail="handleOpenKgDetail"
       />
 
       <!-- 嵌入配置详情页 (在 content-area 层级切换) -->
@@ -52,6 +53,22 @@
         :config-name="selectedEmbeddingConfig.name"
         :initial-candidates="selectedEmbeddingConfig.candidates || []"
         @back="handleBackFromEmbeddingDetail"
+      />
+
+      <!-- 知识图谱配置详情页 -->
+      <KgDetailView
+        v-else-if="currentNav === 'kg-detail' && selectedKgConfig"
+        :knowledge-base-id="kb.id"
+        :config-id="selectedKgConfig.id"
+        :config-name="selectedKgConfig.name"
+        :initial-config="{
+          llmProviderId: selectedKgConfig.llmProviderId || '',
+          llmModelId: selectedKgConfig.llmModelId || '',
+          chunkConcurrency: selectedKgConfig.chunkConcurrency || 3,
+          entityTypes: selectedKgConfig.entityTypes || [],
+          outputLanguage: selectedKgConfig.outputLanguage || 'zh-CN'
+        }"
+        @back="handleBackFromKgDetail"
       />
 
       <!-- 其他导航项占位 -->
@@ -82,6 +99,7 @@ import DetailDrawer from './DetailDrawer/index.vue'
 import DropZone from './DropZone.vue'
 import SettingsView from './SettingsView/index.vue'
 import EmbeddingDetailView from './SettingsView/EmbeddingSection/EmbeddingDetailView.vue'
+import KgDetailView from './SettingsView/KnowledgeGraphSection/KgDetailView.vue'
 import { FileListView, FileCardView, FileTreeView } from './Views'
 import type { KnowledgeBase, ViewType, NavItem, FileNode } from '../types'
 
@@ -106,6 +124,9 @@ const selectedFile = ref<FileNode | null>(null)
 const knowledgeConfigStore = useKnowledgeConfigStore()
 const selectedEmbeddingConfig = ref<{ id: string; name: string; candidates: any[] } | null>(null)
 
+// 知识图谱配置相关
+const selectedKgConfig = ref<any>(null)
+
 function handleOpenEmbeddingDetail(config: any) {
   selectedEmbeddingConfig.value = config
   currentNav.value = 'embedding-detail'
@@ -117,12 +138,28 @@ function handleBackFromEmbeddingDetail() {
   emit('leave-embedding-detail')
 }
 
+function handleOpenKgDetail(config: any) {
+  selectedKgConfig.value = config
+  currentNav.value = 'kg-detail'
+  emit('enter-embedding-detail', `知识图谱配置 > ${config.name}`)
+}
+
+function handleBackFromKgDetail() {
+  currentNav.value = 'settings'
+  emit('leave-embedding-detail')
+}
+
 // 暴露 handleBack 供面包屑点击返回
 function handleBack() {
   if (currentNav.value === 'embedding-detail') {
     currentNav.value = 'settings'
     emit('leave-embedding-detail')
     return true // 表示已经处理了返回
+  }
+  if (currentNav.value === 'kg-detail') {
+    currentNav.value = 'settings'
+    emit('leave-embedding-detail')
+    return true
   }
   return false
 }
