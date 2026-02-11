@@ -16,6 +16,10 @@ import {
   registerVectorIndexerHandlers,
   unregisterVectorIndexerHandlers
 } from './vector-indexer-handler'
+import {
+  registerKnowledgeGraphHandlers,
+  unregisterKnowledgeGraphHandlers
+} from './knowledge-graph-handler'
 import { SurrealDBService } from '../services/surrealdb-service'
 import { KnowledgeLibraryService } from '../services/knowledgeBase-library'
 import { UserConfigService } from '../services/user-config-service'
@@ -88,12 +92,17 @@ export class IPCManager {
     // 注册向量索引器处理器
     registerVectorIndexerHandlers()
 
+    // 注册知识图谱处理器
+    registerKnowledgeGraphHandlers()
+
     console.log(`Registered ${this.handlers.length} IPC handlers`)
   }
 
   cleanup(): void {
     // 清理向量索引器 handlers
     unregisterVectorIndexerHandlers()
+    // 清理知识图谱 handlers
+    unregisterKnowledgeGraphHandlers()
     // 清理资源（如果需要）
     this.handlers.length = 0
   }

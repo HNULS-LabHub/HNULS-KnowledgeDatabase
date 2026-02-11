@@ -20,3 +20,6 @@ export * from './user-config.types'
 
 // API 服务器类型
 export * from './api-server.types'
+
+// 知识图谱 IPC 协议
+export * from './knowledge-graph-ipc.types'

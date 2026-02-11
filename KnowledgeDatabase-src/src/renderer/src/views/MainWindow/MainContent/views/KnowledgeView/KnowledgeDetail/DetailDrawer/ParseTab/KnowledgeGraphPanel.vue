@@ -67,9 +67,11 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, inject } from 'vue'
 import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
+import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
 import { useKgBuildStore } from '@renderer/stores/knowledge-graph'
 import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 import type { FileNode } from '../../../types'
+import type { EmbeddingTableInfo } from '@preload/types'
 
 const props = defineProps<{
   fileKey: string
@@ -78,6 +80,7 @@ const props = defineProps<{
 }>()
 
 const configStore = useKnowledgeConfigStore()
+const libraryStore = useKnowledgeLibraryStore()
 const kgBuildStore = useKgBuildStore()
 
 // 注入 message toast
@@ -85,6 +88,7 @@ const toast = inject<{ success: Function; error: Function; warning: Function; in
 
 const kgPanelRef = ref<HTMLElement | null>(null)
 const selectedKgConfigId = ref<string | null>(null)
+const embeddingTables = ref<EmbeddingTableInfo[]>([])
 
 // 知识图谱配置列表
 const kgConfigs = computed(() =>
@@ -141,6 +145,22 @@ const hasEmbeddingForConfig = computed(() => {
   )
 })
 
+// 获取关联嵌入配置对应的表名
+const linkedEmbeddingTableName = computed(() => {
+  if (!selectedConfig.value) return null
+  const targetId = selectedConfig.value.embeddingConfigId
+  // 表名中的 configId 可能带 cfg_ 前缀（emb_cfg_xxx_dim_chunks → configId = cfg_xxx）
+  // 需要做模糊匹配
+  const table = embeddingTables.value.find(
+    (t) =>
+      t.configId === targetId ||
+      t.configId === `cfg_${targetId}` ||
+      `cfg_${t.configId}` === targetId ||
+      t.configId.replace(/^cfg_/, '') === targetId.replace(/^cfg_/, '')
+  )
+  return table?.tableName ?? null
+})
+
 // 构建状态
 const buildState = computed(() => kgBuildStore.getState(props.fileKey))
 const isBuilding = computed(() => kgBuildStore.isRunning(props.fileKey))
@@ -177,6 +197,12 @@ const statusBadgeClass = computed(() => {
 onMounted(async () => {
   if (props.knowledgeBaseId) {
     await configStore.loadConfig(props.knowledgeBaseId)
+    // 加载嵌入表信息
+    try {
+      embeddingTables.value = await window.api.knowledgeLibrary.listEmbeddingTables(props.knowledgeBaseId)
+    } catch (e) {
+      console.error('Failed to load embedding tables:', e)
+    }
   }
 })
 
@@ -194,15 +220,49 @@ watch(
 )
 
 async function handleBuild(): Promise<void> {
-  if (!canBuild.value || !selectedKgConfigId.value) return
+  if (!canBuild.value || !selectedConfig.value) return
+
+  const knowledgeBase = props.knowledgeBaseId ? libraryStore.getById(props.knowledgeBaseId) : null
+  if (!knowledgeBase) {
+    toast?.error('知识图谱构建', '无法获取知识库信息')
+    return
+  }
+
+  // 获取嵌入表名，如果还没加载到就尝试重新获取
+  let tableName = linkedEmbeddingTableName.value
+  if (!tableName && props.knowledgeBaseId) {
+    try {
+      embeddingTables.value = await window.api.knowledgeLibrary.listEmbeddingTables(props.knowledgeBaseId)
+      tableName = embeddingTables.value.find((t) => {
+        const targetId = selectedConfig.value!.embeddingConfigId
+        return (
+          t.configId === targetId ||
+          t.configId === `cfg_${targetId}` ||
+          `cfg_${t.configId}` === targetId ||
+          t.configId.replace(/^cfg_/, '') === targetId.replace(/^cfg_/, '')
+        )
+      })?.tableName ?? null
+    } catch (e) {
+      // ignore
+    }
+  }
+  if (!tableName) {
+    toast?.error('知识图谱构建', '无法获取嵌入表信息，请确认嵌入已完成')
+    return
+  }
 
   const fileName = props.fileData?.name || props.fileKey
   toast?.info('知识图谱构建', `开始构建: ${fileName}`)
 
-  const result = await kgBuildStore.startBuild(props.fileKey, selectedKgConfigId.value)
+  const result = await kgBuildStore.startBuild({
+    fileKey: props.fileKey,
+    databaseName: knowledgeBase.databaseName,
+    kgConfig: selectedConfig.value,
+    embeddingTableName: tableName
+  })
 
   if (result.success) {
-    toast?.success('知识图谱构建', `${fileName} 构建完成（模拟）`)
+    toast?.success('知识图谱构建', `${fileName} 任务已提交`)
   } else {
     toast?.error('知识图谱构建', `${fileName} 构建失败: ${result.error}`)
   }

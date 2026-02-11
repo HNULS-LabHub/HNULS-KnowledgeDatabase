@@ -15,6 +15,7 @@ import { embeddingAPI } from '../api/embedding-api'
 import { vectorIndexerAPI } from '../api/vector-indexer-api'
 import { vectorRetrievalAPI } from '../api/vector-retrieval-api'
 import { agentAPI } from '../api/agent-api'
+import { knowledgeGraphAPI } from '../api/knowledge-graph-api'
 
 // 自定义 API 集合
 const customAPI = {
@@ -32,6 +33,7 @@ const customAPI = {
   vectorIndexer: vectorIndexerAPI,
   vectorRetrieval: vectorRetrievalAPI,
   agent: agentAPI,
+  knowledgeGraph: knowledgeGraphAPI,
   // Electron 文件路径工具
   utils: utilsAPI
 }

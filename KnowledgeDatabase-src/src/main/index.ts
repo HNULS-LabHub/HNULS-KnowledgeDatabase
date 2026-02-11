@@ -4,6 +4,7 @@ import { globalMonitorBridge } from './services/global-monitor-bridge'
 import { embeddingEngineBridge } from './services/embedding-engine-bridge'
 import { vectorIndexerBridge } from './services/vector-indexer-bridge'
 import { apiServerBridge } from './services/api-server-bridge'
+import { knowledgeGraphBridge } from './services/knowledge-graph-bridge'
 import { VectorRetrievalService } from './services/vector-retrieval'
 import { logServiceDiagnostics } from './services/logger'
 
@@ -51,6 +52,9 @@ class Application {
       // 启动 API 服务器（Utility Process）
       await this.startApiServer()
 
+      // 启动知识图谱子进程（Utility Process）
+      await this.startKnowledgeGraph()
+
       // 打印服务诊断报告（用于调试依赖注入问题）
       logServiceDiagnostics()
 
@@ -65,6 +69,7 @@ class Application {
     try {
       this.ipcManager.cleanup()
       apiServerBridge.kill()
+      knowledgeGraphBridge.stop()
       vectorIndexerBridge.kill()
       embeddingEngineBridge.stop()
       globalMonitorBridge.stop()
@@ -175,6 +180,49 @@ class Application {
       // 不阻止应用启动，API 服务器是可选功能
     }
   }
+
+  /**
+   * 启动知识图谱子进程
+   */
+  private async startKnowledgeGraph(): Promise<void> {
+    try {
+      const surrealDBService = this.appService.getSurrealDBService()
+      const serverUrl = surrealDBService.getServerUrl()
+      const credentials = surrealDBService.getCredentials()
+
+      // 启动 utility process
+      await knowledgeGraphBridge.start()
+
+      // 初始化数据库连接（子进程自己连 system 库）
+      await knowledgeGraphBridge.initialize({
+        serverUrl,
+        username: credentials.username,
+        password: credentials.password,
+        namespace: 'knowledge',
+        database: 'system'
+      })
+
+      // 读取用户配置的并行数
+      const userConfigService = new UserConfigService()
+      const userConfig = await userConfigService.getConfig()
+      knowledgeGraphBridge.updateConcurrency(userConfig.knowledgeGraph.chunkConcurrency)
+
+      // 监听事件
+      knowledgeGraphBridge.onTaskCompleted((taskId) => {
+        console.log(`[KnowledgeGraph] Task completed: ${taskId}`)
+      })
+
+      knowledgeGraphBridge.onTaskFailed((taskId, error) => {
+        console.error(`[KnowledgeGraph] Task failed: ${taskId}`, error)
+      })
+
+      console.log('Knowledge Graph process started successfully')
+    } catch (error) {
+      console.error('Failed to start Knowledge Graph process:', error)
+      // 不阻止应用启动，知识图谱是可选功能
+    }
+  }
+
 }
 
 // 创建应用实例

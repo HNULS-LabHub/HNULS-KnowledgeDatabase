@@ -20,6 +20,8 @@ export interface KnowledgeBase {
   color: string
   /** 图标（SVG 字符串） */
   icon: string
+  /** 数据库名称 */
+  databaseName: string
 }
 
 /**
