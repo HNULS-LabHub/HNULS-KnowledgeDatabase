@@ -1,6 +1,11 @@
-import type { MinerUConfig, UserEmbeddingConfig, UserConfig } from '@shared/user-config.types'
+import type {
+  MinerUConfig,
+  UserEmbeddingConfig,
+  KnowledgeGraphConfig,
+  UserConfig
+} from '@shared/user-config.types'
 
-export type { MinerUConfig, UserEmbeddingConfig, UserConfig }
+export type { MinerUConfig, UserEmbeddingConfig, KnowledgeGraphConfig, UserConfig }
 
 export const DEFAULT_USER_CONFIG: UserConfig = {
   version: 1,
@@ -11,5 +16,8 @@ export const DEFAULT_USER_CONFIG: UserConfig = {
   embedding: {
     concurrency: 5,
     hnswBatchSize: 10
+  },
+  knowledgeGraph: {
+    chunkConcurrency: 3
   }
 }

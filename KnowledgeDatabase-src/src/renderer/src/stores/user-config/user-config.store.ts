@@ -75,6 +75,15 @@ export const useUserConfigStore = defineStore('user-config', () => {
     })
   }
 
+  async function updateKgChunkConcurrency(chunkConcurrency: number): Promise<void> {
+    await update({
+      knowledgeGraph: {
+        ...config.value?.knowledgeGraph,
+        chunkConcurrency
+      }
+    })
+  }
+
   return {
     config,
     loading,
@@ -85,6 +94,7 @@ export const useUserConfigStore = defineStore('user-config', () => {
     update,
     updateMinerUApiKey,
     updateEmbeddingConcurrency,
-    updateHnswBatchSize
+    updateHnswBatchSize,
+    updateKgChunkConcurrency
   }
 })

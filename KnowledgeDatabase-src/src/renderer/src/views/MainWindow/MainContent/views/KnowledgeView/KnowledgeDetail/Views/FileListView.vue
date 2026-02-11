@@ -4,7 +4,7 @@
     <div
       class="bg-white border border-slate-200 rounded-xl overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
     >
-      <div class="min-w-full flex flex-col" :style="{ width: totalWidth + 'px' }">
+      <div class="flex flex-col" :style="{ minWidth: totalWidth + 'px' }">
         <!-- 表头 -->
         <div class="flex bg-slate-50 border-b border-slate-200 sticky top-0 z-10 select-none">
           <!-- 复选框列 -->
@@ -27,7 +27,8 @@
             v-for="(col, index) in displayColumns"
             :key="col.id"
             class="flex items-center px-4 py-3.5 relative transition-colors hover:bg-slate-100"
-            :style="{ width: col.width + 'px' }"
+            :class="{ 'flex-1': index === displayColumns.length - 1, 'justify-end': index === displayColumns.length - 1 }"
+            :style="index < displayColumns.length - 1 ? { width: col.width + 'px' } : { minWidth: col.width + 'px' }"
           >
             <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">
               {{ col.label }}
@@ -52,7 +53,7 @@
         <div v-if="loading" class="flex items-center justify-center py-12 border-b-0">
           <div
             class="flex flex-col items-center gap-3 text-slate-400"
-            :style="{ width: totalWidth + 'px' }"
+            :style="{ minWidth: totalWidth + 'px' }"
           >
             <svg
               class="w-8 h-8 animate-spin"
@@ -76,7 +77,7 @@
         >
           <div
             class="flex flex-col items-center gap-3 text-slate-400"
-            :style="{ width: totalWidth + 'px' }"
+            :style="{ minWidth: totalWidth + 'px' }"
           >
             <svg
               class="w-12 h-12"
@@ -198,8 +199,8 @@
 
             <!-- 操作列 -->
             <div
-              class="flex items-center justify-end px-4 py-3.5"
-              :style="{ width: displayColumns[5].width + 'px' }"
+              class="flex items-center justify-end px-4 py-3.5 flex-1"
+              :style="{ minWidth: displayColumns[5].width + 'px' }"
             >
               <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
@@ -222,6 +223,7 @@
                 <button
                   class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all"
                   title="删除"
+                  @click="handleDeleteFile(file)"
                 >
                   <svg
                     class="w-[18px] h-[18px]"
@@ -350,6 +352,7 @@
           <div class="h-px bg-slate-100 my-1" />
           <button
             class="flex items-center gap-3 w-full px-3.5 py-2.5 text-sm text-red-600 rounded-md transition-colors hover:bg-red-50"
+            @click="handleDeleteFromContextMenu"
           >
             <svg
               class="w-4 h-4"
@@ -375,6 +378,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
 import { useFileSelectionStore } from '@renderer/stores/knowledge-library/file-selection.store'
+import { useFileDataStore } from '@renderer/stores/knowledge-library/file-data.store'
 import type { FileNode } from '../../types'
 
 // ============ Props & Emits ============
@@ -392,6 +396,7 @@ const emit = defineEmits<{
 
 const fileListStore = useFileListStore()
 const selectionStore = useFileSelectionStore()
+const fileDataStore = useFileDataStore()
 
 // ============ 状态配置 ============
 
@@ -593,6 +598,38 @@ const closeContextMenu = () => {
 
 const handleShowDetail = () => {
   if (contextMenuFile.value) emit('show-detail', contextMenuFile.value)
+  closeContextMenu()
+}
+
+// ============ 删除文件 ============
+
+const deletingFileId = ref<string | number | null>(null)
+
+const handleDeleteFile = async (file: FileNode): Promise<void> => {
+  if (!props.knowledgeBaseId || deletingFileId.value !== null) return
+
+  const confirmed = window.confirm(`确定要删除 "${file.name}" 吗？\n\n此操作不可撤销。`)
+  if (!confirmed) return
+
+  deletingFileId.value = file.id
+  try {
+    const filePath = file.path || file.name
+    const result = await window.api.file.deleteFile(props.knowledgeBaseId, filePath)
+    if (result.success) {
+      await fileDataStore.refresh()
+    } else {
+      alert(`删除失败: ${result.error || '未知错误'}`)
+    }
+  } catch (error) {
+    console.error('[FileListView] Failed to delete file:', error)
+    alert(`删除失败: ${error instanceof Error ? error.message : '未知错误'}`)
+  } finally {
+    deletingFileId.value = null
+  }
+}
+
+const handleDeleteFromContextMenu = (): void => {
+  if (contextMenuFile.value) handleDeleteFile(contextMenuFile.value)
   closeContextMenu()
 }
 

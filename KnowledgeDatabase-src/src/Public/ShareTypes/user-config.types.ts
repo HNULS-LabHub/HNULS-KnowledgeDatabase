@@ -13,9 +13,15 @@ export interface UserEmbeddingConfig {
   hnswBatchSize: number
 }
 
+export interface KnowledgeGraphConfig {
+  /** 知识图谱构建时分块处理的最高并行数 */
+  chunkConcurrency: number
+}
+
 export interface UserConfig {
   version: number
   updatedAt: string
   minerU: MinerUConfig
   embedding: UserEmbeddingConfig
+  knowledgeGraph: KnowledgeGraphConfig
 }
