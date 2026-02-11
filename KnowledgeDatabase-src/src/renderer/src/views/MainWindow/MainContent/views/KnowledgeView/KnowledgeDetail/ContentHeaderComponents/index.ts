@@ -4,4 +4,5 @@
  */
 
 export { default as BatchEmbeddingDialog } from './BatchEmbeddingDialog.vue'
+export { default as BatchKgDialog } from './BatchKgDialog.vue'
 export { default as StatusFilterDialog } from './StatusFilterDialog.vue'

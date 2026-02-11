@@ -25,6 +25,12 @@ export interface FileNode {
   chunkCount?: number
   path?: string
   extension?: string
+  /** 嵌入信息 */
+  embeddingInfo?: Array<{
+    configName: string
+    dimensions: number
+    status: 'pending' | 'running' | 'completed' | 'failed'
+  }>
   // 解析相关元数据
   metadata?: {
     tokenCount?: number

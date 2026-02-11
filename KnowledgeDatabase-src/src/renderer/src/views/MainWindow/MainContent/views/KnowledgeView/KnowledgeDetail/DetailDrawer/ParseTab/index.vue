@@ -62,11 +62,12 @@
             :embedding-disabled-reason="embeddingDisabledReason"
           />
 
-          <!-- 知识图谱占位 -->
-          <PendingFeatureCard
+          <!-- 知识图谱面板 -->
+          <KnowledgeGraphPanel
             ref="knowledgeGraphRef"
-            title="Knowledge Graph / 知识图谱"
-            icon="knowledge-graph"
+            :file-key="fileKey"
+            :knowledge-base-id="knowledgeBaseId"
+            :file-data="fileData"
           />
         </div>
       </div>
@@ -96,7 +97,7 @@ import MinerUPanel from './MinerUPanel.vue'
 import VersionManager from './VersionManager.vue'
 import ChunkingPanel from './ChunkingPanel.vue'
 import EmbeddingPanel from './EmbeddingPanel.vue'
-import PendingFeatureCard from './PendingFeatureCard.vue'
+import KnowledgeGraphPanel from './KnowledgeGraphPanel.vue'
 import type { Section } from './types'
 
 const props = defineProps<{
@@ -208,13 +209,13 @@ const contentRef = ref<HTMLElement | null>(null)
 const documentParsingRef = ref<InstanceType<typeof MinerUPanel> | null>(null)
 const chunkingRef = ref<HTMLElement | null>(null)
 const embeddingRef = ref<InstanceType<typeof EmbeddingPanel> | null>(null)
-const knowledgeGraphRef = ref<InstanceType<typeof PendingFeatureCard> | null>(null)
+const knowledgeGraphRef = ref<InstanceType<typeof KnowledgeGraphPanel> | null>(null)
 
 const sectionRefs = computed(() => ({
   'document-parsing': documentParsingRef.value?.$el,
   chunking: chunkingRef.value,
   embedding: embeddingRef.value?.embeddingPanelRef,
-  'knowledge-graph': knowledgeGraphRef.value?.$el
+  'knowledge-graph': knowledgeGraphRef.value?.kgPanelRef
 }))
 
 let observer: IntersectionObserver | null = null

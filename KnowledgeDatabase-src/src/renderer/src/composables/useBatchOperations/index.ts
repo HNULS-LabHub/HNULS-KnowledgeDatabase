@@ -14,6 +14,7 @@ import type { FileNode } from '@renderer/stores/knowledge-library/file.types'
 import type { ChunkingConfig } from '@renderer/stores/chunking/chunking.types'
 import type { EmbeddingViewConfig } from '@renderer/stores/embedding/embedding.types'
 import type { TaskHandle } from '@preload/types'
+import { useKgBuildStore } from '@renderer/stores/knowledge-graph'
 
 // ========== 批量操作并发控制配置 ==========
 export const BATCH_CONFIG = {
@@ -52,6 +53,8 @@ export function useBatchOperations() {
   const isBatchParsing = ref(false)
   const isBatchChunking = ref(false)
   const isBatchEmbedding = ref(false)
+  const isBatchKgBuilding = ref(false)
+  const kgBuildStore = useKgBuildStore()
 
   /**
    * 并发控制队列处理器
@@ -461,15 +464,96 @@ export function useBatchOperations() {
     }
   }
 
+  /**
+   * 批量构建知识图谱
+   * @param files 要构建的文件列表
+   * @param knowledgeBaseId 知识库 ID
+   * @param kgConfigId 知识图谱配置 ID
+   * @returns 批量操作结果 + 详细信息
+   */
+  async function batchBuildKnowledgeGraph(
+    files: FileNode[],
+    knowledgeBaseId: number,
+    kgConfigId: string
+  ): Promise<BatchOperationResult & { skipped: number; details: { name: string; status: 'success' | 'failed' | 'skipped'; reason?: string }[] }> {
+    if (isBatchKgBuilding.value) {
+      return { success: 0, failed: 0, skipped: 0, details: [] }
+    }
+
+    isBatchKgBuilding.value = true
+    const details: { name: string; status: 'success' | 'failed' | 'skipped'; reason?: string }[] = []
+
+    try {
+      // 获取知识图谱配置
+      const kgConfigs = configStore.getKgConfigs(knowledgeBaseId)
+      const kgConfig = kgConfigs.find((c) => c.id === kgConfigId)
+      if (!kgConfig) {
+        return { success: 0, failed: 0, skipped: 0, details: [{ name: '配置', status: 'failed', reason: '知识图谱配置不存在' }] }
+      }
+
+      // 获取关联的嵌入配置
+      const embeddingConfigs = configStore.getEmbeddingConfigs(knowledgeBaseId)
+      const linkedEmbedding = embeddingConfigs.find((c) => c.id === kgConfig.embeddingConfigId)
+      const linkedEmbeddingName = linkedEmbedding?.name
+
+      // 过滤文件：只处理在关联嵌入配置下已完成嵌入的文件
+      const validFiles = files.filter((f) => f.type === 'file')
+      const buildableFiles: FileNode[] = []
+      let skipped = 0
+
+      for (const file of validFiles) {
+        const hasEmbedding = file.embeddingInfo?.some(
+          (info) => info.configName === linkedEmbeddingName && info.status === 'completed'
+        )
+        if (hasEmbedding) {
+          buildableFiles.push(file)
+        } else {
+          skipped++
+          details.push({
+            name: file.name,
+            status: 'skipped',
+            reason: `未在嵌入方案「${linkedEmbeddingName || '未知'}」中完成嵌入`
+          })
+        }
+      }
+
+      if (buildableFiles.length === 0) {
+        return { success: 0, failed: 0, skipped, details }
+      }
+
+      // 并发构建（使用 message 模拟）
+      const result = await processConcurrentQueue(
+        buildableFiles,
+        BATCH_CONFIG.EMBEDDING_CONCURRENCY,
+        async (file) => {
+          const fileKey = file.path || file.name
+          const buildResult = await kgBuildStore.startBuild(fileKey, kgConfigId)
+          if (buildResult.success) {
+            details.push({ name: file.name, status: 'success' })
+          } else {
+            details.push({ name: file.name, status: 'failed', reason: buildResult.error })
+            throw new Error(buildResult.error)
+          }
+        }
+      )
+
+      return { ...result, skipped, details }
+    } finally {
+      isBatchKgBuilding.value = false
+    }
+  }
+
   return {
     // 状态
     isBatchParsing,
     isBatchChunking,
     isBatchEmbedding,
+    isBatchKgBuilding,
 
     // 方法
     batchParseDocuments,
     batchChunkDocuments,
-    batchEmbedDocuments
+    batchEmbedDocuments,
+    batchBuildKnowledgeGraph
   }
 }

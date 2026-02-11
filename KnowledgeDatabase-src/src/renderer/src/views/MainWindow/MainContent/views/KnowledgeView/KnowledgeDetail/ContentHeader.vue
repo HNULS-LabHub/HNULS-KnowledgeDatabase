@@ -189,7 +189,7 @@
                 </svg>
                 嵌入
               </button>
-              <button class="kb-content-header-action-btn" disabled>
+              <button class="kb-content-header-action-btn" :disabled="!isSelectionModeEnabled" @click="showBatchKgDialog = true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="18" cy="18" r="3"></circle>
                   <circle cx="6" cy="6" r="3"></circle>
@@ -214,6 +214,14 @@
     @confirm="handleBatchEmbedding"
   />
 
+  <!-- 批量知识图谱对话框 -->
+  <BatchKgDialog
+    v-model="showBatchKgDialog"
+    :selected-count="selectedCount"
+    :knowledge-base-id="knowledgeBaseId"
+    @confirm="handleBatchKgBuild"
+  />
+
   <!-- 状态筛选对话框 -->
   <StatusFilterDialog
     v-model="showFilterDialog"
@@ -224,7 +232,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, inject } from 'vue'
 import { useFileDataStore } from '@renderer/stores/knowledge-library/file-data.store'
 import { useFileListStore } from '@renderer/stores/knowledge-library/file-list.store'
 import { useFileCardStore } from '@renderer/stores/knowledge-library/file-card.store'
@@ -234,7 +242,7 @@ import { useBatchOperations } from '@renderer/composables/useBatchOperations'
 import type { ViewType } from '../types'
 import type { FileNode } from '@renderer/stores/knowledge-library/file.types'
 import PageSizeSelector from './PageSizeSelector.vue'
-import { BatchEmbeddingDialog, StatusFilterDialog } from './ContentHeaderComponents'
+import { BatchEmbeddingDialog, BatchKgDialog, StatusFilterDialog } from './ContentHeaderComponents'
 
 const props = defineProps<{
   title: string
@@ -263,11 +271,23 @@ const fileTreeStore = useFileTreeStore()
 const selectionStore = useFileSelectionStore()
 
 // 使用批量操作 Composable
-const { isBatchParsing, isBatchChunking, batchParseDocuments, batchChunkDocuments } =
-  useBatchOperations()
+const {
+  isBatchParsing,
+  isBatchChunking,
+  isBatchKgBuilding,
+  batchParseDocuments,
+  batchChunkDocuments,
+  batchBuildKnowledgeGraph
+} = useBatchOperations()
 
 // 批量嵌入对话框状态
 const showBatchEmbeddingDialog = ref(false)
+
+// 批量知识图谱对话框状态
+const showBatchKgDialog = ref(false)
+
+// 注入 toast
+const toast = inject<{ success: Function; error: Function; warning: Function; info: Function }>('toast')
 
 // 状态筛选对话框
 const showFilterDialog = ref(false)
@@ -454,6 +474,46 @@ async function handleBatchEmbedding(configId: string): Promise<void> {
   const { batchEmbedDocuments } = useBatchOperations()
   const result = await batchEmbedDocuments(selectedFiles, props.knowledgeBaseId, configId)
   console.log(`[ContentHeader] 批量嵌入完成：成功 ${result.success} 个，失败 ${result.failed} 个`)
+}
+
+/**
+ * 批量构建知识图谱
+ */
+async function handleBatchKgBuild(kgConfigId: string): Promise<void> {
+  const selectedFiles = getSelectedFiles()
+  if (selectedFiles.length === 0) {
+    toast?.warning('批量知识图谱', '请先选择要构建的文件')
+    return
+  }
+
+  toast?.info('批量知识图谱', `开始为 ${selectedFiles.length} 个文件构建知识图谱...`)
+
+  const result = await batchBuildKnowledgeGraph(selectedFiles, props.knowledgeBaseId, kgConfigId)
+
+  // 汇总结果
+  const parts: string[] = []
+  if (result.success > 0) parts.push(`成功 ${result.success} 个`)
+  if (result.failed > 0) parts.push(`失败 ${result.failed} 个`)
+  if (result.skipped > 0) parts.push(`跳过 ${result.skipped} 个`)
+
+  // 失败详情
+  const failedDetails = result.details
+    .filter((d) => d.status === 'failed' || d.status === 'skipped')
+    .map((d) => `${d.name}: ${d.reason}`)
+    .slice(0, 5)
+
+  const summary = parts.join('，')
+  const detail = failedDetails.length > 0 ? `\n${failedDetails.join('\n')}` : ''
+
+  if (result.failed > 0) {
+    toast?.error('批量知识图谱', `${summary}${detail}`, 8000)
+  } else if (result.skipped > 0 && result.success > 0) {
+    toast?.warning('批量知识图谱', `${summary}${detail}`, 6000)
+  } else if (result.success > 0) {
+    toast?.success('批量知识图谱', summary)
+  } else {
+    toast?.warning('批量知识图谱', `所有文件均被跳过${detail}`, 6000)
+  }
 }
 </script>
 
