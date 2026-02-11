@@ -4,23 +4,8 @@
  */
 
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type {
-  TestAPI,
-  KnowledgeLibraryAPI,
-  FileAPI,
-  FileImportAPI,
-  UserConfigAPI,
-  MinerUAPI,
-  ChunkingAPI,
-  ModelConfigAPI,
-  KnowledgeConfigAPI,
-  TaskMonitorAPI,
-  EmbeddingAPI,
-  VectorIndexerAPI,
-  VectorRetrievalAPI,
-  AgentAPI, // Electron 文件路径工具
-  utilsAPI
-} from './types'
+import type { TestAPI, KnowledgeLibraryAPI, FileAPI, FileImportAPI, UserConfigAPI, MinerUAPI, ChunkingAPI, ModelConfigAPI, KnowledgeConfigAPI, TaskMonitorAPI, EmbeddingAPI, VectorIndexerAPI, VectorRetrievalAPI, AgentAPI, // Electron 文件路径工具
+  utilsAPI } from './types'
 
 declare global {
   interface Window {
@@ -41,7 +26,8 @@ declare global {
       vectorRetrieval: VectorRetrievalAPI
       agent: AgentAPI
       // Electron 文件路径工具
-      utils: utilsAPI // Electron 文件路径工具
+  utils: // Electron 文件路径工具
+  utilsAPI
     }
   }
 }
