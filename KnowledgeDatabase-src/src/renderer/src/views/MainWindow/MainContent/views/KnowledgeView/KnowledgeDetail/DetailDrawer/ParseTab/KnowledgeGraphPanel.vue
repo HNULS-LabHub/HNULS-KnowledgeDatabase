@@ -6,10 +6,21 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-md">
-          <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="6" cy="12" r="2" /><circle cx="18" cy="6" r="2" /><circle cx="18" cy="18" r="2" />
-            <path d="M7.7 11.2l8-4.4" /><path d="M7.7 12.8l8 4.4" />
+        <div
+          class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-md"
+        >
+          <svg
+            class="w-5 h-5 text-white"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="6" cy="12" r="2" />
+            <circle cx="18" cy="6" r="2" />
+            <circle cx="18" cy="18" r="2" />
+            <path d="M7.7 11.2l8-4.4" />
+            <path d="M7.7 12.8l8 4.4" />
           </svg>
         </div>
         <div>
@@ -17,7 +28,11 @@
           <p class="text-xs text-slate-500 mt-0.5">从文档中提取实体与关系</p>
         </div>
       </div>
-      <div v-if="buildState" class="px-3 py-1 rounded-full text-xs font-semibold" :class="statusBadgeClass">
+      <div
+        v-if="buildState"
+        class="px-3 py-1 rounded-full text-xs font-semibold"
+        :class="statusBadgeClass"
+      >
         {{ statusText }}
       </div>
     </div>
@@ -36,13 +51,27 @@
       </div>
 
       <!-- 嵌入状态提示 -->
-      <div v-if="selectedKgConfigId && !hasEmbeddingForConfig" class="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-        <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+      <div
+        v-if="selectedKgConfigId && !hasEmbeddingForConfig"
+        class="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl"
+      >
+        <svg
+          class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+          />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
         <p class="text-xs text-amber-700">
-          该配置关联的嵌入方案「{{ linkedEmbeddingName }}」尚未对此文档完成嵌入，请先完成嵌入后再构建知识图谱。
+          该配置关联的嵌入方案「{{
+            linkedEmbeddingName
+          }}」尚未对此文档完成嵌入，请先完成嵌入后再构建知识图谱。
         </p>
       </div>
 
@@ -52,10 +81,24 @@
         :disabled="!canBuild"
         @click="handleBuild"
       >
-        <svg v-if="!isBuilding" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          v-if="!isBuilding"
+          class="w-4 h-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <polygon points="5 3 19 12 5 21 5 3" />
         </svg>
-        <svg v-else class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          v-else
+          class="w-4 h-4 animate-spin"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <path d="M21 12a9 9 0 1 1-6.219-8.56" />
         </svg>
         {{ isBuilding ? '构建中...' : '构建知识图谱' }}
@@ -84,7 +127,9 @@ const libraryStore = useKnowledgeLibraryStore()
 const kgBuildStore = useKgBuildStore()
 
 // 注入 message toast
-const toast = inject<{ success: Function; error: Function; warning: Function; info: Function }>('toast')
+const toast = inject<{ success: Function; error: Function; warning: Function; info: Function }>(
+  'toast'
+)
 
 const kgPanelRef = ref<HTMLElement | null>(null)
 const selectedKgConfigId = ref<string | null>(null)
@@ -109,14 +154,17 @@ const kgConfigOptions = computed(() => {
   if (defaultKgConfigId.value) {
     const defaultCfg = kgConfigs.value.find((c) => c.id === defaultKgConfigId.value)
     const defaultLabel = defaultCfg ? `默认 (${defaultCfg.name})` : '默认'
-    return [{ label: defaultLabel, value: defaultKgConfigId.value }, ...options.filter((o) => o.value !== defaultKgConfigId.value)]
+    return [
+      { label: defaultLabel, value: defaultKgConfigId.value },
+      ...options.filter((o) => o.value !== defaultKgConfigId.value)
+    ]
   }
   return options
 })
 
 // 当前选中的配置对象
-const selectedConfig = computed(() =>
-  kgConfigs.value.find((c) => c.id === selectedKgConfigId.value) ?? null
+const selectedConfig = computed(
+  () => kgConfigs.value.find((c) => c.id === selectedKgConfigId.value) ?? null
 )
 
 // 关联的嵌入配置名称
@@ -176,20 +224,28 @@ const canBuild = computed(() => {
 const statusText = computed(() => {
   if (!buildState.value) return ''
   switch (buildState.value.status) {
-    case 'running': return '构建中'
-    case 'completed': return '已完成'
-    case 'failed': return '失败'
-    default: return ''
+    case 'running':
+      return '构建中'
+    case 'completed':
+      return '已完成'
+    case 'failed':
+      return '失败'
+    default:
+      return ''
   }
 })
 
 const statusBadgeClass = computed(() => {
   if (!buildState.value) return ''
   switch (buildState.value.status) {
-    case 'running': return 'bg-blue-100 text-blue-700'
-    case 'completed': return 'bg-green-100 text-green-700'
-    case 'failed': return 'bg-red-100 text-red-700'
-    default: return 'bg-slate-100 text-slate-600'
+    case 'running':
+      return 'bg-blue-100 text-blue-700'
+    case 'completed':
+      return 'bg-green-100 text-green-700'
+    case 'failed':
+      return 'bg-red-100 text-red-700'
+    default:
+      return 'bg-slate-100 text-slate-600'
   }
 })
 
@@ -199,7 +255,9 @@ onMounted(async () => {
     await configStore.loadConfig(props.knowledgeBaseId)
     // 加载嵌入表信息
     try {
-      embeddingTables.value = await window.api.knowledgeLibrary.listEmbeddingTables(props.knowledgeBaseId)
+      embeddingTables.value = await window.api.knowledgeLibrary.listEmbeddingTables(
+        props.knowledgeBaseId
+      )
     } catch (e) {
       console.error('Failed to load embedding tables:', e)
     }
@@ -232,16 +290,19 @@ async function handleBuild(): Promise<void> {
   let tableName = linkedEmbeddingTableName.value
   if (!tableName && props.knowledgeBaseId) {
     try {
-      embeddingTables.value = await window.api.knowledgeLibrary.listEmbeddingTables(props.knowledgeBaseId)
-      tableName = embeddingTables.value.find((t) => {
-        const targetId = selectedConfig.value!.embeddingConfigId
-        return (
-          t.configId === targetId ||
-          t.configId === `cfg_${targetId}` ||
-          `cfg_${t.configId}` === targetId ||
-          t.configId.replace(/^cfg_/, '') === targetId.replace(/^cfg_/, '')
-        )
-      })?.tableName ?? null
+      embeddingTables.value = await window.api.knowledgeLibrary.listEmbeddingTables(
+        props.knowledgeBaseId
+      )
+      tableName =
+        embeddingTables.value.find((t) => {
+          const targetId = selectedConfig.value!.embeddingConfigId
+          return (
+            t.configId === targetId ||
+            t.configId === `cfg_${targetId}` ||
+            `cfg_${t.configId}` === targetId ||
+            t.configId.replace(/^cfg_/, '') === targetId.replace(/^cfg_/, '')
+          )
+        })?.tableName ?? null
     } catch (e) {
       // ignore
     }

@@ -73,7 +73,6 @@ export class MessageHandler {
           await this.handleSubmitTask(msg.requestId, msg.data)
           break
 
-
         case 'kg:query-status':
           await this.handleQueryStatus(msg.requestId)
           break
@@ -135,9 +134,7 @@ export class MessageHandler {
   private async handleQueryStatus(requestId: string): Promise<void> {
     try {
       const result = this.client.extractRecords(
-        await this.client.query(
-          `SELECT * FROM kg_task ORDER BY created_at DESC LIMIT 50;`
-        )
+        await this.client.query(`SELECT * FROM kg_task ORDER BY created_at DESC LIMIT 50;`)
       )
 
       const tasks = result.map((t: any) => ({

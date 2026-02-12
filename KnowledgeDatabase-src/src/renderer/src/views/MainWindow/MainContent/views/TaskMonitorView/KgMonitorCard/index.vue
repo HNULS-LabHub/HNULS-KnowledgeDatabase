@@ -65,266 +65,331 @@
     </div>
 
     <!-- Table -->
-    <div class="flex-1 overflow-x-auto overflow-y-auto">
-      <table class="w-full text-left border-collapse">
-        <thead
-          class="bg-slate-50 text-xs uppercase text-slate-500 font-semibold border-b border-slate-200 sticky top-0 z-10"
-        >
-          <tr>
-            <th class="px-6 py-3 w-8"></th>
-            <th class="px-6 py-3 cursor-pointer" @click="handleSort('fileKey')">
-              file_key
-              <span class="ml-1 text-[10px]">{{ getSortIcon('fileKey') }}</span>
-            </th>
-            <th class="px-6 py-3 cursor-pointer" @click="handleSort('status')">
-              状态
-              <span class="ml-1 text-[10px]">{{ getSortIcon('status') }}</span>
-            </th>
-            <th class="px-6 py-3">分块进度</th>
-            <th class="px-6 py-3 cursor-pointer" @click="handleSort('updatedAt')">
-              更新时间
-              <span class="ml-1 text-[10px]">{{ getSortIcon('updatedAt') }}</span>
-            </th>
-            <th class="px-6 py-3 text-right">操作</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100 text-sm">
-          <template v-if="store.tasks.length > 0">
-            <template v-for="task in store.tasks" :key="task.taskId">
-              <tr class="hover:bg-slate-50 transition-colors">
-                <td class="px-4 py-3">
-                  <button
-                    class="text-slate-400 hover:text-blue-600"
-                    @click="store.toggleExpand(task.taskId)"
-                    :title="isExpanded(task.taskId) ? '收起' : '展开'"
-                  >
-                    <svg
-                      class="w-4 h-4 transition-transform"
-                      :class="{ 'rotate-90': isExpanded(task.taskId) }"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
+    <div class="flex-1 overflow-y-auto">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead
+            class="bg-slate-50 text-xs uppercase text-slate-500 font-semibold border-b border-slate-200 sticky top-0 z-10"
+          >
+            <tr>
+              <th class="px-6 py-3 w-8"></th>
+              <th class="px-6 py-3 cursor-pointer" @click="handleSort('fileKey')">
+                file_key
+                <span class="ml-1 text-[10px]">{{ getSortIcon('fileKey') }}</span>
+              </th>
+              <th class="px-6 py-3 cursor-pointer" @click="handleSort('status')">
+                状态
+                <span class="ml-1 text-[10px]">{{ getSortIcon('status') }}</span>
+              </th>
+              <th class="px-6 py-3">分块进度</th>
+              <th class="px-6 py-3 cursor-pointer" @click="handleSort('updatedAt')">
+                更新时间
+                <span class="ml-1 text-[10px]">{{ getSortIcon('updatedAt') }}</span>
+              </th>
+              <th class="px-6 py-3 text-right">操作</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-sm">
+            <template v-if="store.tasks.length > 0">
+              <template v-for="task in store.tasks" :key="task.taskId">
+                <tr class="hover:bg-slate-50 transition-colors">
+                  <td class="px-4 py-3">
+                    <button
+                      class="text-slate-400 hover:text-blue-600"
+                      @click="store.toggleExpand(task.taskId)"
+                      :title="isExpanded(task.taskId) ? '收起' : '展开'"
                     >
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </button>
-                </td>
-                <td class="px-6 py-3">
-                  <div class="font-mono text-xs text-slate-900">{{ task.fileKey }}</div>
-                  <div v-if="task.error" class="text-xs text-rose-600 truncate max-w-[360px]">
-                    {{ task.error }}
-                  </div>
-                </td>
-                <td class="px-6 py-3">
-                  <span
-                    class="px-2 py-1 rounded-md text-xs font-medium"
-                    :class="statusClass(task.status)"
-                  >
-                    {{ formatStatus(task.status) }}
-                  </span>
-                </td>
-                <td class="px-6 py-3">
-                  <div class="flex items-center gap-3">
-                    <div class="w-24 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                      <svg
+                        class="w-4 h-4 transition-transform"
+                        :class="{ 'rotate-90': isExpanded(task.taskId) }"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </button>
+                  </td>
+                  <td class="px-6 py-3">
+                    <div class="font-mono text-xs text-slate-900">{{ task.fileKey }}</div>
+                    <div v-if="task.error" class="text-xs text-rose-600 truncate max-w-[360px]">
+                      {{ task.error }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-3">
+                    <span
+                      class="px-2 py-1 rounded-md text-xs font-medium"
+                      :class="statusClass(task.status)"
+                    >
+                      {{ formatStatus(task.status) }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-3">
+                    <div class="flex items-center gap-3">
+                      <div class="w-24 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          class="h-full rounded-full transition-all duration-500"
+                          :class="progressColor(task.status)"
+                          :style="{ width: `${getProgress(task)}%` }"
+                        ></div>
+                      </div>
+                      <span class="text-xs font-mono text-slate-500 w-10 text-right">
+                        {{ getProgress(task) }}%
+                      </span>
+                      <span class="text-xs text-slate-400">
+                        {{ task.chunksCompleted }}/{{ task.chunksTotal }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-3 text-xs text-slate-500 font-mono">
+                    {{ formatTime(task.updatedAt) }}
+                  </td>
+                  <td class="px-6 py-3 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <button
+                        class="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                        :disabled="task.status !== 'pending'"
+                        @click="store.cancelTask(task.taskId)"
+                        title="取消"
+                      >
+                        <svg
+                          class="w-4 h-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                      <button
+                        class="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                        :disabled="task.status !== 'failed'"
+                        @click="store.retryTask(task.taskId)"
+                        title="重试"
+                      >
+                        <svg
+                          class="w-4 h-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path d="M21.5 2v6h-6" />
+                          <path d="M2.5 22v-6h6" />
+                          <path d="M2 11.5a10 10 0 0 1 18.8-4.3" />
+                          <path d="M22 12.5a10 10 0 0 1-18.8 4.2" />
+                        </svg>
+                      </button>
+                      <button
+                        class="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                        :disabled="task.status !== 'completed'"
+                        @click="store.removeTask(task.taskId)"
+                        title="删除"
+                      >
+                        <svg
+                          class="w-4 h-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M8 6V4h8v2" />
+                          <path d="M19 6l-1 14H6L5 6" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-if="isExpanded(task.taskId)">
+                  <td colspan="6" class="bg-slate-50/60 px-6 py-4">
+                    <div class="tm-kg-chunks-7c1a rounded-lg border border-slate-200 bg-white">
                       <div
-                        class="h-full rounded-full transition-all duration-500"
-                        :class="progressColor(task.status)"
-                        :style="{ width: `${getProgress(task)}%` }"
-                      ></div>
-                    </div>
-                    <span class="text-xs font-mono text-slate-500 w-10 text-right">
-                      {{ getProgress(task) }}%
-                    </span>
-                    <span class="text-xs text-slate-400">
-                      {{ task.chunksCompleted }}/{{ task.chunksTotal }}
-                    </span>
-                  </div>
-                </td>
-                <td class="px-6 py-3 text-xs text-slate-500 font-mono">
-                  {{ formatTime(task.updatedAt) }}
-                </td>
-                <td class="px-6 py-3 text-right">
-                  <div class="flex items-center justify-end gap-2">
-                    <button
-                      class="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                      :disabled="task.status !== 'pending'"
-                      @click="store.cancelTask(task.taskId)"
-                      title="取消"
-                    >
-                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                    <button
-                      class="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                      :disabled="task.status !== 'failed'"
-                      @click="store.retryTask(task.taskId)"
-                      title="重试"
-                    >
-                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21.5 2v6h-6" />
-                        <path d="M2.5 22v-6h6" />
-                        <path d="M2 11.5a10 10 0 0 1 18.8-4.3" />
-                        <path d="M22 12.5a10 10 0 0 1-18.8 4.2" />
-                      </svg>
-                    </button>
-                    <button
-                      class="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                      :disabled="task.status !== 'completed'"
-                      @click="store.removeTask(task.taskId)"
-                      title="删除"
-                    >
-                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M8 6V4h8v2" />
-                        <path d="M19 6l-1 14H6L5 6" />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr v-if="isExpanded(task.taskId)">
-                <td colspan="6" class="bg-slate-50/60 px-6 py-4">
-                  <div class="tm-kg-chunks-7c1a rounded-lg border border-slate-200 bg-white">
-                    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                      <div class="text-xs font-semibold text-slate-700">分块列表</div>
-                      <div class="w-24">
-                        <WhiteSelect
-                          :model-value="getChunkPageSize(task.taskId)"
-                          :options="pageSizeOptions"
-                          placeholder="每页条数"
-                          @update:model-value="(value) => handleChunkPageSize(task.taskId, value)"
-                        />
+                        class="flex items-center justify-between px-4 py-3 border-b border-slate-100"
+                      >
+                        <div class="text-xs font-semibold text-slate-700">分块列表</div>
+                        <div class="flex items-center gap-2">
+                          <div class="w-24">
+                            <WhiteSelect
+                              :model-value="getChunkStatusFilter(task.taskId)"
+                              :options="chunkStatusOptions"
+                              placeholder="所有状态"
+                              @update:model-value="
+                                (value) => handleChunkStatusChange(task.taskId, value)
+                              "
+                            />
+                          </div>
+                          <div class="w-24">
+                            <WhiteSelect
+                              :model-value="getChunkPageSize(task.taskId)"
+                              :options="pageSizeOptions"
+                              placeholder="每页条数"
+                              @update:model-value="
+                                (value) => handleChunkPageSize(task.taskId, value)
+                              "
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div class="max-h-80 overflow-x-auto overflow-y-auto">
-                      <table class="w-full text-left border-collapse text-xs">
-                        <thead class="bg-slate-50 text-slate-500 uppercase border-b border-slate-100">
-                          <tr>
-                            <th class="px-4 py-2">Index</th>
-                            <th class="px-4 py-2">状态</th>
-                            <th class="px-4 py-2">错误</th>
-                            <th class="px-4 py-2">更新时间</th>
-                            <th class="px-4 py-2 text-right">操作</th>
-                          </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                          <tr v-if="isChunkLoading(task.taskId)">
-                            <td colspan="4" class="px-4 py-4 text-center text-slate-400">
-                              加载中...
-                            </td>
-                          </tr>
-                          <tr v-else-if="getChunkItems(task.taskId).length === 0">
-                            <td colspan="4" class="px-4 py-4 text-center text-slate-400">
-                              暂无分块数据
-                            </td>
-                          </tr>
-                          <tr
-                            v-for="chunk in getChunkItems(task.taskId)"
-                            :key="`${task.taskId}-${chunk.chunkIndex}`"
-                          >
-                            <td class="px-4 py-2 font-mono text-slate-700">
-                              {{ chunk.chunkIndex }}
-                            </td>
-                            <td class="px-4 py-2">
-                              <span
-                                class="px-2 py-0.5 rounded-md text-[11px] font-medium"
-                                :class="statusClass(chunk.status)"
+                      <div class="max-h-80 overflow-y-auto">
+                        <div class="overflow-x-auto">
+                          <table class="w-full text-left border-collapse text-xs">
+                            <thead
+                              class="bg-slate-50 text-slate-500 uppercase border-b border-slate-100"
+                            >
+                              <tr>
+                                <th class="px-4 py-2">Index</th>
+                                <th class="px-4 py-2">状态</th>
+                                <th class="px-4 py-2">错误</th>
+                                <th class="px-4 py-2">更新时间</th>
+                                <th class="px-4 py-2 text-right">操作</th>
+                              </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                              <tr v-if="isChunkLoading(task.taskId)">
+                                <td colspan="4" class="px-4 py-4 text-center text-slate-400">
+                                  加载中...
+                                </td>
+                              </tr>
+                              <tr v-else-if="getChunkItems(task.taskId).length === 0">
+                                <td colspan="4" class="px-4 py-4 text-center text-slate-400">
+                                  暂无分块数据
+                                </td>
+                              </tr>
+                              <tr
+                                v-for="chunk in getChunkItems(task.taskId)"
+                                :key="`${task.taskId}-${chunk.chunkIndex}`"
                               >
-                                {{ formatStatus(chunk.status) }}
-                              </span>
-                            </td>
-                            <td class="px-4 py-2 text-rose-600 truncate max-w-[240px]">
-                              {{ chunk.error || '-' }}
-                            </td>
-                            <td class="px-4 py-2 text-slate-400 font-mono">
-                              {{ formatTime(chunk.updatedAt) }}
-                            </td>
-                            <td class="px-4 py-2">
-                              <div class="flex items-center justify-end gap-2">
-                                <button
-                                  class="p-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                                  :disabled="!(chunk.status === 'failed')"
-                                  @click="store.retryChunk(task.taskId, chunk.chunkIndex)"
-                                  title="重试"
-                                >
-                                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21.5 2v6h-6" />
-                                    <path d="M2.5 22v-6h6" />
-                                    <path d="M2 11.5a10 10 0 0 1 18.8-4.3" />
-                                    <path d="M22 12.5a10 10 0 0 1-18.8 4.2" />
-                                  </svg>
-                                </button>
-                                <button
-                                  class="p-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                                  :disabled="!(chunk.status === 'pending' || chunk.status === 'progressing')"
-                                  @click="store.cancelChunk(task.taskId, chunk.chunkIndex)"
-                                  title="取消"
-                                >
-                                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="18" y1="6" x2="6" y2="18" />
-                                    <line x1="6" y1="6" x2="18" y2="18" />
-                                  </svg>
-                                </button>
-                                <button
-                                  class="p-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                                  :disabled="!(chunk.status === 'completed' || chunk.status === 'failed')"
-                                  @click="store.removeChunk(task.taskId, chunk.chunkIndex)"
-                                  title="删除"
-                                >
-                                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="3 6 5 6 21 6" />
-                                    <path d="M8 6V4h8v2" />
-                                    <path d="M19 6l-1 14H6L5 6" />
-                                  </svg>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                    <div
-                      class="px-4 py-3 border-t border-slate-100 flex items-center justify-end gap-2"
-                    >
-                      <button
-                        class="px-2 py-1 text-xs rounded border border-slate-200 text-slate-500 disabled:opacity-50"
-                        :disabled="getChunkPage(task.taskId) <= 1"
-                        @click="handleChunkPage(task.taskId, getChunkPage(task.taskId) - 1)"
-                      >
-                        上一页
-                      </button>
-                      <div class="w-24">
-                        <WhiteSelect
-                          :model-value="getChunkPage(task.taskId)"
-                          :options="getChunkPageOptions(task.taskId)"
-                          placeholder="页码"
-                          @update:model-value="(value) => handleChunkPage(task.taskId, value)"
-                        />
+                                <td class="px-4 py-2 font-mono text-slate-700">
+                                  {{ chunk.chunkIndex }}
+                                </td>
+                                <td class="px-4 py-2">
+                                  <span
+                                    class="px-2 py-0.5 rounded-md text-[11px] font-medium"
+                                    :class="statusClass(chunk.status)"
+                                  >
+                                    {{ formatStatus(chunk.status) }}
+                                  </span>
+                                </td>
+                                <td class="px-4 py-2 text-rose-600 truncate max-w-[240px]">
+                                  {{ chunk.error || '-' }}
+                                </td>
+                                <td class="px-4 py-2 text-slate-400 font-mono">
+                                  {{ formatTime(chunk.updatedAt) }}
+                                </td>
+                                <td class="px-4 py-2">
+                                  <div class="flex items-center justify-end gap-2">
+                                    <button
+                                      class="p-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                                      :disabled="!(chunk.status === 'failed')"
+                                      @click="store.retryChunk(task.taskId, chunk.chunkIndex)"
+                                      title="重试"
+                                    >
+                                      <svg
+                                        class="w-3.5 h-3.5"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                      >
+                                        <path d="M21.5 2v6h-6" />
+                                        <path d="M2.5 22v-6h6" />
+                                        <path d="M2 11.5a10 10 0 0 1 18.8-4.3" />
+                                        <path d="M22 12.5a10 10 0 0 1-18.8 4.2" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      class="p-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                                      :disabled="
+                                        !(
+                                          chunk.status === 'pending' ||
+                                          chunk.status === 'progressing'
+                                        )
+                                      "
+                                      @click="store.cancelChunk(task.taskId, chunk.chunkIndex)"
+                                      title="取消"
+                                    >
+                                      <svg
+                                        class="w-3.5 h-3.5"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                      >
+                                        <line x1="18" y1="6" x2="6" y2="18" />
+                                        <line x1="6" y1="6" x2="18" y2="18" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      class="p-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                                      :disabled="
+                                        !(chunk.status === 'completed' || chunk.status === 'failed')
+                                      "
+                                      @click="store.removeChunk(task.taskId, chunk.chunkIndex)"
+                                      title="删除"
+                                    >
+                                      <svg
+                                        class="w-3.5 h-3.5"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                      >
+                                        <polyline points="3 6 5 6 21 6" />
+                                        <path d="M8 6V4h8v2" />
+                                        <path d="M19 6l-1 14H6L5 6" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                      <button
-                        class="px-2 py-1 text-xs rounded border border-slate-200 text-slate-500 disabled:opacity-50"
-                        :disabled="getChunkPage(task.taskId) >= getChunkPageCount(task.taskId)"
-                        @click="handleChunkPage(task.taskId, getChunkPage(task.taskId) + 1)"
+                      <div
+                        class="px-4 py-3 border-t border-slate-100 flex items-center justify-end gap-2"
                       >
-                        下一页
-                      </button>
+                        <button
+                          class="px-2 py-1 text-xs rounded border border-slate-200 text-slate-500 disabled:opacity-50"
+                          :disabled="getChunkPage(task.taskId) <= 1"
+                          @click="handleChunkPage(task.taskId, getChunkPage(task.taskId) - 1)"
+                        >
+                          上一页
+                        </button>
+                        <div class="w-24">
+                          <WhiteSelect
+                            :model-value="getChunkPage(task.taskId)"
+                            :options="getChunkPageOptions(task.taskId)"
+                            placeholder="页码"
+                            @update:model-value="(value) => handleChunkPage(task.taskId, value)"
+                          />
+                        </div>
+                        <button
+                          class="px-2 py-1 text-xs rounded border border-slate-200 text-slate-500 disabled:opacity-50"
+                          :disabled="getChunkPage(task.taskId) >= getChunkPageCount(task.taskId)"
+                          @click="handleChunkPage(task.taskId, getChunkPage(task.taskId) + 1)"
+                        >
+                          下一页
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </td>
-              </tr>
+                  </td>
+                </tr>
+              </template>
             </template>
-          </template>
 
-          <tr v-else>
-            <td colspan="6" class="px-6 py-10 text-center text-slate-500 text-sm">
-              暂无知识图谱任务
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            <tr v-else>
+              <td colspan="6" class="px-6 py-10 text-center text-slate-500 text-sm">
+                暂无知识图谱任务
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Footer -->
@@ -365,7 +430,11 @@ import { computed, onMounted, onBeforeUnmount } from 'vue'
 import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 import type { WhiteSelectOption } from '@renderer/components/select/WhiteSelect.vue'
 import { useKgMonitorStore } from '@renderer/stores/global-monitor-panel/kg-monitor.store'
-import type { KgTaskStatus, KgTaskSortBy } from '@renderer/stores/global-monitor-panel/kg-monitor.types'
+import type {
+  KgTaskStatus,
+  KgTaskSortBy,
+  KgChunkStatus
+} from '@renderer/stores/global-monitor-panel/kg-monitor.types'
 
 const store = useKgMonitorStore()
 
@@ -393,6 +462,8 @@ const statusOptions = computed<WhiteSelectOption[]>(() =>
     value: status
   }))
 )
+
+const chunkStatusOptions = statusOptions
 
 const pageSizeOptions = computed<WhiteSelectOption[]>(() =>
   [10, 20, 50, 100].map((size) => ({ label: `${size}/页`, value: size }))
@@ -482,13 +553,19 @@ const getSortIcon = (field: KgTaskSortBy) => {
 
 const getChunkState = (taskId: string) => store.getChunkState(taskId)
 
-const getChunkItems = (taskId: string) => getChunkState(taskId)?.items ?? []
+const getChunkItems = (taskId: string) => {
+  const state = getChunkState(taskId)
+  if (!state) return []
+  if (state.statusFilter === 'all') return state.items
+  return state.items.filter((item) => item.status === state.statusFilter)
+}
 
 const isChunkLoading = (taskId: string) => getChunkState(taskId)?.loading ?? false
 
 const getChunkPage = (taskId: string) => getChunkState(taskId)?.page ?? 1
 
 const getChunkPageSize = (taskId: string) => getChunkState(taskId)?.pageSize ?? 20
+const getChunkStatusFilter = (taskId: string) => store.getChunkStatusFilter(taskId)
 
 const getChunkPageCount = (taskId: string) => {
   const state = getChunkState(taskId)
@@ -511,5 +588,9 @@ const handleChunkPage = (taskId: string, value: string | number | null) => {
 
 const handleChunkPageSize = (taskId: string, value: string | number | null) => {
   store.setChunkPageSize(taskId, Number(value))
+}
+
+const handleChunkStatusChange = (taskId: string, value: string | number | null) => {
+  store.setChunkStatusFilter(taskId, value as KgChunkStatus | 'all')
 }
 </script>

@@ -36,24 +36,39 @@
         <div
           class="KnowledgeView_KnowledgeDetail_Sidebar_statsRow stats-row flex items-center pt-3 border-t border-slate-100"
         >
-          <div class="KnowledgeView_KnowledgeDetail_Sidebar_statItem stat-item flex-1 flex flex-col items-center gap-0.5">
-            <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue stat-value text-sm font-semibold text-slate-700">{{ currentKB?.docCount ?? kb.docCount }}</span>
-            <span class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel stat-label text-[0.7rem] text-slate-400">文件</span>
+          <div
+            class="KnowledgeView_KnowledgeDetail_Sidebar_statItem stat-item flex-1 flex flex-col items-center gap-0.5"
+          >
+            <span
+              class="KnowledgeView_KnowledgeDetail_Sidebar_statValue stat-value text-sm font-semibold text-slate-700"
+              >{{ currentKB?.docCount ?? kb.docCount }}</span
+            >
+            <span
+              class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel stat-label text-[0.7rem] text-slate-400"
+              >文件</span
+            >
           </div>
-          <div class="KnowledgeView_KnowledgeDetail_Sidebar_statDivider stat-divider w-px h-6 bg-slate-100"></div>
-          <div class="KnowledgeView_KnowledgeDetail_Sidebar_statItem stat-item flex-1 flex flex-col items-center gap-0.5">
-            <span class="KnowledgeView_KnowledgeDetail_Sidebar_statValue stat-value text-sm font-semibold text-slate-700">{{ currentKB?.chunkCount ?? kb.chunkCount }}</span>
-            <span class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel stat-label text-[0.7rem] text-slate-400">分片</span>
+          <div
+            class="KnowledgeView_KnowledgeDetail_Sidebar_statDivider stat-divider w-px h-6 bg-slate-100"
+          ></div>
+          <div
+            class="KnowledgeView_KnowledgeDetail_Sidebar_statItem stat-item flex-1 flex flex-col items-center gap-0.5"
+          >
+            <span
+              class="KnowledgeView_KnowledgeDetail_Sidebar_statValue stat-value text-sm font-semibold text-slate-700"
+              >{{ currentKB?.chunkCount ?? kb.chunkCount }}</span
+            >
+            <span
+              class="KnowledgeView_KnowledgeDetail_Sidebar_statLabel stat-label text-[0.7rem] text-slate-400"
+              >分片</span
+            >
           </div>
         </div>
       </template>
 
       <!-- 收缩态：只显示图标 -->
       <template v-else>
-        <div
-          class="flex items-center justify-center"
-          :title="kb.name"
-        >
+        <div class="flex items-center justify-center" :title="kb.name">
           <div
             class="KnowledgeView_KnowledgeDetail_Sidebar_iconWrapper icon-wrapper w-10 h-10 rounded-xl flex items-center justify-center"
             :style="{ background: getLightColor(kb.color), color: kb.color }"
@@ -85,10 +100,9 @@
           class="KnowledgeView_KnowledgeDetail_Sidebar_navIcon nav-icon flex items-center justify-center"
           v-html="item.icon"
         ></span>
-        <span
-          v-if="!collapsed"
-          class="KnowledgeView_KnowledgeDetail_Sidebar_navLabel nav-label"
-        >{{ item.label }}</span>
+        <span v-if="!collapsed" class="KnowledgeView_KnowledgeDetail_Sidebar_navLabel nav-label">{{
+          item.label
+        }}</span>
       </button>
     </nav>
 

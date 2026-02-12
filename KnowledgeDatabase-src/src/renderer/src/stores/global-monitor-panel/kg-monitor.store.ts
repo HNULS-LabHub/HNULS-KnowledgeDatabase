@@ -1,7 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { KgMonitorDataSource } from './kg-monitor.datasource'
-import type { KgTaskRecord, KgTaskStatus, KgTaskSortBy, KgSortDir, KgChunkState } from './kg-monitor.types'
+import type {
+  KgTaskRecord,
+  KgTaskStatus,
+  KgTaskSortBy,
+  KgSortDir,
+  KgChunkState,
+  KgChunkStatus
+} from './kg-monitor.types'
 
 const TASK_STATUSES: Array<KgTaskStatus | 'all'> = [
   'all',
@@ -74,6 +81,7 @@ export const useKgMonitorStore = defineStore('kg-monitor', () => {
         total: 0,
         page: 1,
         pageSize: DEFAULT_PAGE_SIZE,
+        statusFilter: 'all',
         loading: false
       } as KgChunkState)
 
@@ -155,6 +163,15 @@ export const useKgMonitorStore = defineStore('kg-monitor', () => {
     await fetchChunks(taskId)
   }
 
+  const getChunkStatusFilter = (taskId: string) => getChunkState(taskId)?.statusFilter ?? 'all'
+
+  async function setChunkStatusFilter(taskId: string, next: KgChunkStatus | 'all'): Promise<void> {
+    const current = getChunkState(taskId)
+    if (!current) return
+    updateChunkState(taskId, { ...current, statusFilter: next, page: 1 })
+    await fetchChunks(taskId)
+  }
+
   async function cancelTask(taskId: string): Promise<void> {
     await KgMonitorDataSource.cancelTask(taskId)
     await fetchTasks()
@@ -230,6 +247,8 @@ export const useKgMonitorStore = defineStore('kg-monitor', () => {
     setSort,
     setChunkPage,
     setChunkPageSize,
+    getChunkStatusFilter,
+    setChunkStatusFilter,
     cancelTask,
     retryTask,
     removeTask,

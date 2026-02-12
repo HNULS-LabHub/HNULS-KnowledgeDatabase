@@ -26,7 +26,9 @@
           @click.stop
         >
           <!-- Header -->
-          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div
+            class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50"
+          >
             <div>
               <h2 class="text-xl font-bold text-slate-900">创建知识图谱配置</h2>
               <p class="text-sm text-slate-500 mt-0.5">创建后可进入详情页配置具体参数</p>
@@ -35,7 +37,13 @@
               class="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100 transition-colors"
               @click="$emit('update:modelValue', false)"
             >
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                class="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -121,18 +129,24 @@ function getEmbeddingName(id: string): string {
   return props.embeddingConfigs.find((c) => c.id === id)?.name ?? ''
 }
 
-watch(() => props.modelValue, (val) => {
-  if (val) {
-    form.name = ''
-    form.embeddingConfigId = ''
+watch(
+  () => props.modelValue,
+  (val) => {
+    if (val) {
+      form.name = ''
+      form.embeddingConfigId = ''
+    }
   }
-})
+)
 
-watch(() => form.embeddingConfigId, (id) => {
-  if (id) {
-    form.name = `Graph-${getEmbeddingName(id)}`
+watch(
+  () => form.embeddingConfigId,
+  (id) => {
+    if (id) {
+      form.name = `Graph-${getEmbeddingName(id)}`
+    }
   }
-})
+)
 
 function handleSubmit(): void {
   if (!canSubmit.value) return

@@ -6,10 +6,17 @@
         <div class="flex flex-col gap-1">
           <div class="flex items-center gap-2">
             <h2 class="text-2xl font-bold text-slate-900">{{ configName }}</h2>
-            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase rounded tracking-wider">
+            <span
+              class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase rounded tracking-wider"
+            >
               知识图谱配置
             </span>
-            <Transition enter-active-class="transition-opacity duration-300" enter-from-class="opacity-0" leave-active-class="transition-opacity duration-300" leave-to-class="opacity-0">
+            <Transition
+              enter-active-class="transition-opacity duration-300"
+              enter-from-class="opacity-0"
+              leave-active-class="transition-opacity duration-300"
+              leave-to-class="opacity-0"
+            >
               <span v-if="saving" class="text-xs text-slate-400 ml-2">保存中...</span>
               <span v-else-if="saved" class="text-xs text-emerald-500 ml-2">已保存</span>
             </Transition>
@@ -41,7 +48,13 @@
           <span :class="localConfig.llmModelId ? 'text-slate-900 font-medium' : 'text-slate-400'">
             {{ localConfig.llmModelId || '点击选择 LLM 模型' }}
           </span>
-          <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="w-4 h-4 text-slate-400"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
@@ -50,7 +63,9 @@
       <!-- 并行数 -->
       <div class="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
         <h3 class="text-lg font-bold text-slate-900">并行数</h3>
-        <p class="text-sm text-slate-500">分块处理最高并行数，范围 1-20，较高值加快构建速度但消耗更多资源</p>
+        <p class="text-sm text-slate-500">
+          分块处理最高并行数，范围 1-20，较高值加快构建速度但消耗更多资源
+        </p>
         <input
           v-model.number="localConfig.chunkConcurrency"
           type="number"
@@ -66,11 +81,15 @@
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-lg font-bold text-slate-900">实体类型</h3>
-            <p class="text-sm text-slate-500">定义需要提取的实体类型，如：人物、组织、地点、概念等</p>
+            <p class="text-sm text-slate-500">
+              定义需要提取的实体类型，如：人物、组织、地点、概念等
+            </p>
           </div>
           <span class="text-xs text-slate-400">{{ localConfig.entityTypes.length }} 个类型</span>
         </div>
-        <div class="flex flex-wrap gap-2 min-h-[2.5rem] p-3 bg-slate-50 border border-slate-200 rounded-xl">
+        <div
+          class="flex flex-wrap gap-2 min-h-[2.5rem] p-3 bg-slate-50 border border-slate-200 rounded-xl"
+        >
           <span
             v-for="(tag, idx) in localConfig.entityTypes"
             :key="idx"
@@ -81,7 +100,13 @@
               class="text-blue-400 hover:text-blue-600 transition-colors"
               @click="removeEntityType(idx)"
             >
-              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                class="w-3 h-3"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -190,7 +215,9 @@ async function autoSave(): Promise<void> {
 
   saving.value = false
   saved.value = true
-  savedTimer = setTimeout(() => { saved.value = false }, 2000)
+  savedTimer = setTimeout(() => {
+    saved.value = false
+  }, 2000)
 }
 
 function handleModelSelect(selection: ModelSelection): void {

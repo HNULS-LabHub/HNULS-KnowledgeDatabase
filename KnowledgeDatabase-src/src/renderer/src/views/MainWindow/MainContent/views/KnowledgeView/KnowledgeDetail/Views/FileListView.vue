@@ -27,8 +27,15 @@
             v-for="(col, index) in displayColumns"
             :key="col.id"
             class="flex items-center px-4 py-3.5 relative transition-colors hover:bg-slate-100"
-            :class="{ 'flex-1': index === displayColumns.length - 1, 'justify-end': index === displayColumns.length - 1 }"
-            :style="index < displayColumns.length - 1 ? { width: col.width + 'px' } : { minWidth: col.width + 'px' }"
+            :class="{
+              'flex-1': index === displayColumns.length - 1,
+              'justify-end': index === displayColumns.length - 1
+            }"
+            :style="
+              index < displayColumns.length - 1
+                ? { width: col.width + 'px' }
+                : { minWidth: col.width + 'px' }
+            "
           >
             <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">
               {{ col.label }}

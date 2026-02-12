@@ -189,7 +189,11 @@
                 </svg>
                 嵌入
               </button>
-              <button class="kb-content-header-action-btn" :disabled="!isSelectionModeEnabled" @click="showBatchKgDialog = true">
+              <button
+                class="kb-content-header-action-btn"
+                :disabled="!isSelectionModeEnabled"
+                @click="showBatchKgDialog = true"
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="18" cy="18" r="3"></circle>
                   <circle cx="6" cy="6" r="3"></circle>
@@ -287,7 +291,9 @@ const showBatchEmbeddingDialog = ref(false)
 const showBatchKgDialog = ref(false)
 
 // 注入 toast
-const toast = inject<{ success: Function; error: Function; warning: Function; info: Function }>('toast')
+const toast = inject<{ success: Function; error: Function; warning: Function; info: Function }>(
+  'toast'
+)
 
 // 状态筛选对话框
 const showFilterDialog = ref(false)

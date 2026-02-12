@@ -1,9 +1,4 @@
-import type {
-  KgTaskStatus,
-  KgChunkStatus,
-  KgTaskRecord,
-  KgChunkRecord
-} from '@preload/types'
+import type { KgTaskStatus, KgChunkStatus, KgTaskRecord, KgChunkRecord } from '@preload/types'
 
 export type { KgTaskStatus, KgChunkStatus, KgTaskRecord, KgChunkRecord }
 
@@ -28,5 +23,6 @@ export interface KgChunkState {
   total: number
   page: number
   pageSize: number
+  statusFilter: KgChunkStatus | 'all'
   loading: boolean
 }

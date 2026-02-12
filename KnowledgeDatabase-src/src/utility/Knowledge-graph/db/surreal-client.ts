@@ -35,7 +35,11 @@ export class KGSurrealClient {
       this.currentNamespace = config.namespace
       this.currentDatabase = config.database
       this.connected = true
-      log('Connected', { serverUrl: config.serverUrl, namespace: config.namespace, database: config.database })
+      log('Connected', {
+        serverUrl: config.serverUrl,
+        namespace: config.namespace,
+        database: config.database
+      })
     } catch (error) {
       logError('Connection failed', error)
       throw error

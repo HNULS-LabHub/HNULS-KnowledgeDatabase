@@ -144,7 +144,7 @@ export class TaskScheduler {
         const originTotalRaw = row.chunks_total_origin
         const originTotal = Number(
           originTotalRaw === undefined || originTotalRaw === null
-            ? row.chunks_total ?? 0
+            ? (row.chunks_total ?? 0)
             : originTotalRaw
         )
         const completed = Number(row.chunks_completed ?? 0)
@@ -160,7 +160,9 @@ export class TaskScheduler {
       await this.client.query(`DELETE kg_chunk WHERE task_id = $tid;`, { tid: taskId })
       await this.client.query(`DELETE ${taskId};`)
     }
-    log(`Cleanup: deleted ${completedTaskIds.length} completed tasks by chunks_completed == chunks_total_origin`)
+    log(
+      `Cleanup: deleted ${completedTaskIds.length} completed tasks by chunks_completed == chunks_total_origin`
+    )
 
     log('Startup cleanup completed')
   }
@@ -297,18 +299,16 @@ export class TaskScheduler {
           { result: llmResult.result ?? {} }
         )
       } else {
-        await this.client.query(
-          `UPDATE ${chunkIdStr} SET status = 'failed', error = $err;`,
-          { err: llmResult.error ?? 'Unknown LLM error' }
-        )
+        await this.client.query(`UPDATE ${chunkIdStr} SET status = 'failed', error = $err;`, {
+          err: llmResult.error ?? 'Unknown LLM error'
+        })
       }
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
       logError(`Chunk ${chunkIdStr} processing error`, error)
-      await this.client.query(
-        `UPDATE ${chunkIdStr} SET status = 'failed', error = $err;`,
-        { err: errMsg }
-      )
+      await this.client.query(`UPDATE ${chunkIdStr} SET status = 'failed', error = $err;`, {
+        err: errMsg
+      })
     }
   }
 
@@ -331,7 +331,9 @@ export class TaskScheduler {
 
   private async reconcileTaskStatus(taskIdStr: string): Promise<void> {
     const taskInfo = this.client.extractRecords(
-      await this.client.query(`SELECT chunks_total_origin, chunks_total, chunks_completed, chunks_failed FROM ${taskIdStr};`)
+      await this.client.query(
+        `SELECT chunks_total_origin, chunks_total, chunks_completed, chunks_failed FROM ${taskIdStr};`
+      )
     )
     const taskRow = taskInfo[0] ?? {}
     const statsResult = this.client.extractRecords(
@@ -363,7 +365,7 @@ export class TaskScheduler {
     const originTotalRaw = taskRow.chunks_total_origin
     const originTotal = Number(
       originTotalRaw === undefined || originTotalRaw === null
-        ? taskRow.chunks_total ?? total
+        ? (taskRow.chunks_total ?? total)
         : originTotalRaw
     )
 
@@ -371,9 +373,7 @@ export class TaskScheduler {
     const effectiveCompleted = useSnapshot
       ? Number(taskRow.chunks_completed ?? completed)
       : completed
-    const effectiveFailed = useSnapshot
-      ? Number(taskRow.chunks_failed ?? failed)
-      : failed
+    const effectiveFailed = useSnapshot ? Number(taskRow.chunks_failed ?? failed) : failed
 
     const status = this.deriveStatus({
       originTotal,

@@ -1,5 +1,7 @@
 <template>
-  <div class="kb-knowledge-graph-section flex flex-col gap-6 p-6 bg-white border-b border-slate-100">
+  <div
+    class="kb-knowledge-graph-section flex flex-col gap-6 p-6 bg-white border-b border-slate-100"
+  >
     <!-- Header -->
     <div class="kb-kg-header flex items-center justify-between">
       <div>
@@ -38,9 +40,17 @@
         v-if="!configs || configs.length === 0"
         class="py-12 border-2 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center text-slate-400"
       >
-        <svg class="w-12 h-12 mb-3 opacity-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <svg
+          class="w-12 h-12 mb-3 opacity-20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+        >
           <circle cx="12" cy="12" r="3" />
-          <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
+          <path
+            d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"
+          />
         </svg>
         <p class="text-sm">尚未创建任何知识图谱配置，点击右上角开始</p>
       </div>
@@ -55,8 +65,16 @@
             <h4 class="text-base font-bold text-slate-900 truncate">{{ config.name }}</h4>
             <div class="flex items-center gap-3 text-xs text-slate-400 mt-1 flex-wrap">
               <span class="flex items-center gap-1">
-                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                <svg
+                  class="w-3 h-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                  />
                 </svg>
                 嵌入: {{ getEmbeddingName(config.embeddingConfigId) }}
               </span>
@@ -82,7 +100,13 @@
             @click="$emit('open-kg-detail', config)"
           >
             <span class="text-xs font-semibold">详细配置</span>
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              class="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
@@ -91,7 +115,13 @@
             class="p-2 text-slate-300 hover:text-red-500 rounded-xl transition-colors"
             @click="handleRemove(config.id)"
           >
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              class="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -128,7 +158,9 @@ const knowledgeConfigStore = useKnowledgeConfigStore()
 const showCreateDialog = ref(false)
 
 const configs = computed(() => knowledgeConfigStore.getKgConfigs(props.knowledgeBaseId))
-const embeddingConfigs = computed(() => knowledgeConfigStore.getEmbeddingConfigs(props.knowledgeBaseId))
+const embeddingConfigs = computed(() =>
+  knowledgeConfigStore.getEmbeddingConfigs(props.knowledgeBaseId)
+)
 
 const defaultConfigId = computed(() =>
   knowledgeConfigStore.getDefaultKgConfigId(props.knowledgeBaseId)
@@ -170,6 +202,9 @@ async function handleRemove(id: string) {
 }
 
 async function handleDefaultConfigChange(value: string | number | null) {
-  await knowledgeConfigStore.setDefaultKgConfigId(props.knowledgeBaseId, value ? String(value) : null)
+  await knowledgeConfigStore.setDefaultKgConfigId(
+    props.knowledgeBaseId,
+    value ? String(value) : null
+  )
 }
 </script>

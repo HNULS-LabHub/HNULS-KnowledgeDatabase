@@ -304,7 +304,7 @@ export class KgMonitorService {
     const originTotalRaw = taskRow.chunks_total_origin
     const originTotal = Number(
       originTotalRaw === undefined || originTotalRaw === null
-        ? taskRow.chunks_total ?? total
+        ? (taskRow.chunks_total ?? total)
         : originTotalRaw
     )
 
@@ -312,9 +312,7 @@ export class KgMonitorService {
     const effectiveCompleted = useSnapshot
       ? Number(taskRow.chunks_completed ?? completed)
       : completed
-    const effectiveFailed = useSnapshot
-      ? Number(taskRow.chunks_failed ?? failed)
-      : failed
+    const effectiveFailed = useSnapshot ? Number(taskRow.chunks_failed ?? failed) : failed
 
     const status =
       effectiveFailed > 0

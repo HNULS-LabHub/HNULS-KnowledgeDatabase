@@ -35,7 +35,13 @@
               class="text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full p-2 transition-colors"
               @click="handleClose"
             >
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                class="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -45,7 +51,13 @@
           <!-- Search & Filter -->
           <div class="px-6 py-4 border-b border-gray-100 space-y-3">
             <div class="relative">
-              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.35-4.35" />
               </svg>
@@ -61,9 +73,11 @@
                 v-for="tag in filterTags"
                 :key="tag.id"
                 class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-all"
-                :class="selectedTags.includes(tag.id)
-                  ? 'bg-blue-50 border-blue-200 text-blue-700'
-                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'"
+                :class="
+                  selectedTags.includes(tag.id)
+                    ? 'bg-blue-50 border-blue-200 text-blue-700'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                "
                 @click="toggleTag(tag.id)"
               >
                 {{ tag.label }}
@@ -85,8 +99,16 @@
                 class="bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden"
               >
                 <div class="px-4 py-3 bg-white border-b border-gray-100 flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 bg-gray-50">
-                    <svg class="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <div
+                    class="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 bg-gray-50"
+                  >
+                    <svg
+                      class="w-4 h-4 text-gray-600"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
                       <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
                       <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
                       <line x1="6" y1="6" x2="6.01" y2="6" />
@@ -104,16 +126,20 @@
                     v-for="model in provider.models"
                     :key="model.id"
                     class="group relative flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
-                    :class="isModelSelected(model.id)
-                      ? 'bg-blue-50 border-blue-300 shadow-sm'
-                      : 'bg-white border-gray-200 hover:border-blue-200 hover:shadow-sm'"
+                    :class="
+                      isModelSelected(model.id)
+                        ? 'bg-blue-50 border-blue-300 shadow-sm'
+                        : 'bg-white border-gray-200 hover:border-blue-200 hover:shadow-sm'
+                    "
                     @click="handleSelectModel(provider.id, model.id)"
                   >
                     <div
                       class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
-                      :class="isModelSelected(model.id)
-                        ? 'border-blue-500 bg-blue-500'
-                        : 'border-gray-300 group-hover:border-blue-300'"
+                      :class="
+                        isModelSelected(model.id)
+                          ? 'border-blue-500 bg-blue-500'
+                          : 'border-gray-300 group-hover:border-blue-300'
+                      "
                     >
                       <svg
                         v-if="isModelSelected(model.id)"
@@ -137,7 +163,9 @@
           </div>
 
           <!-- Footer -->
-          <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center rounded-b-2xl">
+          <div
+            class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center rounded-b-2xl"
+          >
             <button
               class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
               @click="handleClose"
@@ -230,9 +258,12 @@ watch(
   }
 )
 
-watch(() => props.currentModelId, (newVal) => {
-  selectedModelId.value = newVal
-})
+watch(
+  () => props.currentModelId,
+  (newVal) => {
+    selectedModelId.value = newVal
+  }
+)
 
 function toggleTag(tagId: string): void {
   if (tagId === 'all') {

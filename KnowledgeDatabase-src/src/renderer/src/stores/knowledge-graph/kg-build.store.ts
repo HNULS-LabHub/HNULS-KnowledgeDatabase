@@ -40,7 +40,9 @@ export const useKgBuildStore = defineStore('kg-build', () => {
   // ==========================================================================
 
   /** 提交知识图谱构建任务 */
-  async function startBuild(params: StartBuildParams): Promise<{ success: boolean; error?: string }> {
+  async function startBuild(
+    params: StartBuildParams
+  ): Promise<{ success: boolean; error?: string }> {
     const { fileKey, databaseName, kgConfig, embeddingTableName } = params
 
     // 先设为 pending
@@ -175,11 +177,16 @@ export const useKgBuildStore = defineStore('kg-build', () => {
 
   function mapStatus(backendStatus: string): KgBuildStatus {
     switch (backendStatus) {
-      case 'pending': return 'pending'
-      case 'progressing': return 'running'
-      case 'completed': return 'completed'
-      case 'failed': return 'failed'
-      default: return 'idle'
+      case 'pending':
+        return 'pending'
+      case 'progressing':
+        return 'running'
+      case 'completed':
+        return 'completed'
+      case 'failed':
+        return 'failed'
+      default:
+        return 'idle'
     }
   }
 

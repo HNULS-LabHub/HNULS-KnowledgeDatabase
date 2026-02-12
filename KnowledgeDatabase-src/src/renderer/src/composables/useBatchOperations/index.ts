@@ -475,20 +475,31 @@ export function useBatchOperations() {
     files: FileNode[],
     knowledgeBaseId: number,
     kgConfigId: string
-  ): Promise<BatchOperationResult & { skipped: number; details: { name: string; status: 'success' | 'failed' | 'skipped'; reason?: string }[] }> {
+  ): Promise<
+    BatchOperationResult & {
+      skipped: number
+      details: { name: string; status: 'success' | 'failed' | 'skipped'; reason?: string }[]
+    }
+  > {
     if (isBatchKgBuilding.value) {
       return { success: 0, failed: 0, skipped: 0, details: [] }
     }
 
     isBatchKgBuilding.value = true
-    const details: { name: string; status: 'success' | 'failed' | 'skipped'; reason?: string }[] = []
+    const details: { name: string; status: 'success' | 'failed' | 'skipped'; reason?: string }[] =
+      []
 
     try {
       // 获取知识图谱配置
       const kgConfigs = configStore.getKgConfigs(knowledgeBaseId)
       const kgConfig = kgConfigs.find((c) => c.id === kgConfigId)
       if (!kgConfig) {
-        return { success: 0, failed: 0, skipped: 0, details: [{ name: '配置', status: 'failed', reason: '知识图谱配置不存在' }] }
+        return {
+          success: 0,
+          failed: 0,
+          skipped: 0,
+          details: [{ name: '配置', status: 'failed', reason: '知识图谱配置不存在' }]
+        }
       }
 
       // 获取关联的嵌入配置

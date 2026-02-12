@@ -331,9 +331,7 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
     patch: Partial<Omit<KnowledgeGraphModelConfig, 'id'>>
   ): Promise<void> {
     const currentConfigs = getKgConfigs.value(kbId)
-    const updatedConfigs = currentConfigs.map((c) =>
-      c.id === configId ? { ...c, ...patch } : c
-    )
+    const updatedConfigs = currentConfigs.map((c) => (c.id === configId ? { ...c, ...patch } : c))
 
     const currentDefaultId = getDefaultKgConfigId.value(kbId)
     await updateGlobalConfig(kbId, {

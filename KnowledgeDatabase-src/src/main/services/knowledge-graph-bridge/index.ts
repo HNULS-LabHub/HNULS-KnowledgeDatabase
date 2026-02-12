@@ -260,11 +260,7 @@ export class KnowledgeGraphBridge {
     }
   }
 
-  private handleLog(
-    level: 'debug' | 'info' | 'warn' | 'error',
-    message: string,
-    meta?: any
-  ): void {
+  private handleLog(level: 'debug' | 'info' | 'warn' | 'error', message: string, meta?: any): void {
     const prefix = '[KG-Process]'
     switch (level) {
       case 'debug':

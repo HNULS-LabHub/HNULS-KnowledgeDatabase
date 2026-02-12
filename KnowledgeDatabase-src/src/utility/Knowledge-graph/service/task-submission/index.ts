@@ -105,9 +105,7 @@ export class TaskSubmissionService {
    *
    * @returns { taskId, chunksTotal }
    */
-  async submitTask(
-    params: KGSubmitTaskParams
-  ): Promise<{ taskId: string; chunksTotal: number }> {
+  async submitTask(params: KGSubmitTaskParams): Promise<{ taskId: string; chunksTotal: number }> {
     await this.ensureSchema()
 
     const { fileKey, sourceNamespace, sourceDatabase, sourceTable, config } = params
@@ -137,7 +135,9 @@ export class TaskSubmissionService {
     const chunks = this.client.extractRecords(rawResult)
 
     if (chunks.length === 0) {
-      throw new Error(`No chunks found for fileKey="${fileKey}" in ${sourceNamespace}.${sourceDatabase}.${sourceTable}`)
+      throw new Error(
+        `No chunks found for fileKey="${fileKey}" in ${sourceNamespace}.${sourceDatabase}.${sourceTable}`
+      )
     }
 
     log(`Fetched ${chunks.length} chunks for fileKey="${fileKey}"`)
