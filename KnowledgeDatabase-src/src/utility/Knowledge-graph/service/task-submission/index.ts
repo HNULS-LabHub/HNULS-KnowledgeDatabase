@@ -36,7 +36,7 @@ function rid(id: any): string {
 const KG_TASK_SCHEMA = `
 DEFINE TABLE IF NOT EXISTS kg_task SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS status ON kg_task TYPE string DEFAULT 'pending'
-  ASSERT $value IN ['pending', 'progressing', 'completed', 'failed'];
+  ASSERT $value IN ['pending', 'progressing', 'paused', 'completed', 'failed'];
 DEFINE FIELD IF NOT EXISTS file_key ON kg_task TYPE string;
 DEFINE FIELD IF NOT EXISTS source_namespace ON kg_task TYPE string;
 DEFINE FIELD IF NOT EXISTS source_database ON kg_task TYPE string;
@@ -57,7 +57,7 @@ DEFINE FIELD IF NOT EXISTS task_id ON kg_chunk TYPE string;
 DEFINE FIELD IF NOT EXISTS chunk_index ON kg_chunk TYPE int;
 DEFINE FIELD IF NOT EXISTS content ON kg_chunk TYPE string;
 DEFINE FIELD IF NOT EXISTS status ON kg_chunk TYPE string DEFAULT 'pending'
-  ASSERT $value IN ['pending', 'progressing', 'completed', 'failed'];
+  ASSERT $value IN ['pending', 'progressing', 'paused', 'completed', 'failed'];
 DEFINE FIELD IF NOT EXISTS result ON kg_chunk FLEXIBLE TYPE object DEFAULT {};
 DEFINE FIELD IF NOT EXISTS error ON kg_chunk TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS created_at ON kg_chunk TYPE datetime DEFAULT time::now();

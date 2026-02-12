@@ -26,6 +26,14 @@ export const KgMonitorMock = {
     return true
   },
 
+  async pauseTask(_taskId: string): Promise<boolean> {
+    return true
+  },
+
+  async resumeTask(_taskId: string): Promise<boolean> {
+    return true
+  },
+
   async retryChunk(_taskId: string, _chunkIndex: number): Promise<boolean> {
     return true
   },

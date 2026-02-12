@@ -49,8 +49,8 @@ export interface KGSubmitTaskParams {
 // 任务状态
 // ============================================================================
 
-export type KGTaskStatusEnum = 'pending' | 'progressing' | 'completed' | 'failed'
-export type KGChunkStatusEnum = 'pending' | 'progressing' | 'completed' | 'failed'
+export type KGTaskStatusEnum = 'pending' | 'progressing' | 'paused' | 'completed' | 'failed'
+export type KGChunkStatusEnum = 'pending' | 'progressing' | 'paused' | 'completed' | 'failed'
 
 export interface KGTaskStatus {
   taskId: string

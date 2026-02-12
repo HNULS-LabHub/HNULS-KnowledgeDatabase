@@ -185,6 +185,7 @@ export class KgMonitorService {
     const page = Math.max(1, params.page ?? 1)
     const pageSize = Math.max(1, params.pageSize ?? 20)
     const offset = (page - 1) * pageSize
+    const status = params.status ?? 'all'
 
     const listSql = `
       SELECT
@@ -196,6 +197,7 @@ export class KgMonitorService {
         updated_at
       FROM kg_chunk
       WHERE task_id = $taskId
+        AND ($status = 'all' OR status = $status)
       ORDER BY chunk_index ASC
       LIMIT $limit START $offset;
     `
@@ -204,12 +206,14 @@ export class KgMonitorService {
       SELECT COUNT() AS total
       FROM kg_chunk
       WHERE task_id = $taskId
+        AND ($status = 'all' OR status = $status)
+        AND ($status = 'all' OR status = $status)
       GROUP ALL;
     `
 
     const [listResult, countResult] = await Promise.all([
-      this.query(listSql, { taskId: params.taskId, limit: pageSize, offset }),
-      this.query(countSql, { taskId: params.taskId })
+      this.query(listSql, { taskId: params.taskId, status, limit: pageSize, offset }),
+      this.query(countSql, { taskId: params.taskId, status })
     ])
 
     const list = this.extractRecords(listResult)
@@ -276,6 +280,40 @@ export class KgMonitorService {
     return true
   }
 
+  async pauseTask(taskId: string): Promise<boolean> {
+    const pauseChunksSql = `
+      UPDATE kg_chunk
+      SET status = 'paused', updated_at = time::now()
+      WHERE task_id = $taskId AND (status = 'pending' OR status = 'progressing');
+    `
+    const pauseTaskSql = `
+      UPDATE kg_task
+      SET status = 'paused', updated_at = time::now()
+      WHERE id = type::thing('kg_task', $taskId);
+    `
+    await this.query(pauseChunksSql, { taskId })
+    await this.query(pauseTaskSql, { taskId: this.normalizeTaskId(taskId) })
+    await this.reconcileTask(taskId)
+    return true
+  }
+
+  async resumeTask(taskId: string): Promise<boolean> {
+    const resumeChunksSql = `
+      UPDATE kg_chunk
+      SET status = 'pending', updated_at = time::now()
+      WHERE task_id = $taskId AND status = 'paused';
+    `
+    const resumeTaskSql = `
+      UPDATE kg_task
+      SET status = 'pending', updated_at = time::now()
+      WHERE id = type::thing('kg_task', $taskId);
+    `
+    await this.query(resumeChunksSql, { taskId })
+    await this.query(resumeTaskSql, { taskId: this.normalizeTaskId(taskId) })
+    await this.reconcileTask(taskId)
+    return true
+  }
+
   // ---------------- chunk-level ops ----------------
   private async reconcileTask(taskId: string): Promise<void> {
     const taskIdValue = this.normalizeTaskId(taskId)
@@ -284,15 +322,17 @@ export class KgMonitorService {
         count() AS total,
         count(status = 'completed') AS completed,
         count(status = 'failed') AS failed,
-        count(status = 'progressing') AS progressing
+        count(status = 'progressing') AS progressing,
+        count(status = 'paused') AS paused
       FROM kg_chunk WHERE task_id = $taskId GROUP ALL;
     `
     const rows = this.extractRecords(await this.query(statSql, { taskId }))
-    const row = rows[0] ?? { total: 0, completed: 0, failed: 0, progressing: 0 }
+    const row = rows[0] ?? { total: 0, completed: 0, failed: 0, progressing: 0, paused: 0 }
     const total = Number(row.total ?? 0)
     const completed = Number(row.completed ?? 0)
     const failed = Number(row.failed ?? 0)
     const progressing = Number(row.progressing ?? 0)
+    const paused = Number(row.paused ?? 0)
 
     const taskInfo = this.extractRecords(
       await this.query(
@@ -319,9 +359,11 @@ export class KgMonitorService {
         ? 'failed'
         : effectiveCompleted === originTotal
           ? 'completed'
-          : effectiveCompleted > 0 || progressing > 0
+          : progressing > 0 || effectiveCompleted > 0
             ? 'progressing'
-            : 'pending'
+            : paused > 0
+              ? 'paused'
+              : 'pending'
     const updSql = `
       UPDATE kg_task SET
         chunks_total = $originTotal,

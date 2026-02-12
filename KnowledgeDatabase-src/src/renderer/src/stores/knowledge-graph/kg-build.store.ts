@@ -179,6 +179,7 @@ export const useKgBuildStore = defineStore('kg-build', () => {
     switch (backendStatus) {
       case 'pending':
         return 'pending'
+      case 'paused': return 'pending'
       case 'progressing':
         return 'running'
       case 'completed':

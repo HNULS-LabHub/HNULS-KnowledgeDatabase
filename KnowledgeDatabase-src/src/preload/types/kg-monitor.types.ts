@@ -7,8 +7,8 @@
 // 状态枚举
 // ============================================================================
 
-export type KgTaskStatus = 'pending' | 'progressing' | 'completed' | 'failed'
-export type KgChunkStatus = 'pending' | 'progressing' | 'completed' | 'failed'
+export type KgTaskStatus = 'pending' | 'progressing' | 'paused' | 'completed' | 'failed'
+export type KgChunkStatus = 'pending' | 'progressing' | 'paused' | 'completed' | 'failed'
 
 // ============================================================================
 // 记录结构（跨进程传输，扁平数据）
@@ -55,6 +55,7 @@ export interface KgChunkQueryParams {
   taskId: string
   page?: number
   pageSize?: number
+  status?: KgChunkStatus | 'all'
 }
 
 export interface KgTaskQueryResult {
@@ -77,6 +78,8 @@ export interface KgMonitorAPI {
   cancelTask(taskId: string): Promise<boolean>
   retryTask(taskId: string): Promise<boolean>
   removeTask(taskId: string): Promise<boolean>
+  pauseTask(taskId: string): Promise<boolean>
+  resumeTask(taskId: string): Promise<boolean>
   // chunk-level operations
   retryChunk(taskId: string, chunkIndex: number): Promise<boolean>
   cancelChunk(taskId: string, chunkIndex: number): Promise<boolean>

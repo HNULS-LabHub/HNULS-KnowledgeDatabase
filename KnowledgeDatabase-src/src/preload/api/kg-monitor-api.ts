@@ -22,6 +22,8 @@ const IPC_CHANNELS = {
   CANCEL_TASK: 'kg-monitor:cancel',
   RETRY_TASK: 'kg-monitor:retry',
   REMOVE_TASK: 'kg-monitor:remove',
+  PAUSE_TASK: 'kg-monitor:pause',
+  RESUME_TASK: 'kg-monitor:resume',
   // chunk-level ops
   RETRY_CHUNK: 'kg-monitor:retrychunk',
   CANCEL_CHUNK: 'kg-monitor:cancelchunk',
@@ -51,6 +53,13 @@ export const kgMonitorAPI: KgMonitorAPI = {
 
   async removeTask(taskId: string): Promise<boolean> {
     return ipcRenderer.invoke(IPC_CHANNELS.REMOVE_TASK, taskId)
+  },
+  async pauseTask(taskId: string): Promise<boolean> {
+    return ipcRenderer.invoke(IPC_CHANNELS.PAUSE_TASK, taskId)
+  },
+
+  async resumeTask(taskId: string): Promise<boolean> {
+    return ipcRenderer.invoke(IPC_CHANNELS.RESUME_TASK, taskId)
   },
 
   async retryChunk(taskId: string, chunkIndex: number): Promise<boolean> {

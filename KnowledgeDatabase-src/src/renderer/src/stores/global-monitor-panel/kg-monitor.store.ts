@@ -14,6 +14,7 @@ const TASK_STATUSES: Array<KgTaskStatus | 'all'> = [
   'all',
   'pending',
   'progressing',
+  'paused',
   'completed',
   'failed'
 ]
@@ -90,7 +91,8 @@ export const useKgMonitorStore = defineStore('kg-monitor', () => {
       const result = await KgMonitorDataSource.getTaskChunks({
         taskId,
         page: current.page,
-        pageSize: current.pageSize
+        pageSize: current.pageSize,
+        status: current.statusFilter
       })
       updateChunkState(taskId, {
         ...current,
@@ -196,6 +198,22 @@ export const useKgMonitorStore = defineStore('kg-monitor', () => {
     await fetchTasks()
   }
 
+  async function pauseTask(taskId: string): Promise<void> {
+    await KgMonitorDataSource.pauseTask(taskId)
+    await fetchTasks()
+    if (expandedTaskId.value === taskId) {
+      await fetchChunks(taskId)
+    }
+  }
+
+  async function resumeTask(taskId: string): Promise<void> {
+    await KgMonitorDataSource.resumeTask(taskId)
+    await fetchTasks()
+    if (expandedTaskId.value === taskId) {
+      await fetchChunks(taskId)
+    }
+  }
+
   // Manual refresh: tasks + expanded task's chunks (if any)
   async function refresh(): Promise<void> {
     await fetchTasks()
@@ -252,6 +270,8 @@ export const useKgMonitorStore = defineStore('kg-monitor', () => {
     cancelTask,
     retryTask,
     removeTask,
+    pauseTask,
+    resumeTask,
     retryChunk,
     cancelChunk,
     removeChunk,

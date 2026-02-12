@@ -67,7 +67,7 @@
     <!-- Table -->
     <div class="flex-1 overflow-y-auto">
       <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
+        <table class="min-w-[960px] w-full text-left border-collapse">
           <thead
             class="bg-slate-50 text-xs uppercase text-slate-500 font-semibold border-b border-slate-200 sticky top-0 z-10"
           >
@@ -90,7 +90,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 text-sm">
-            <template v-if="store.tasks.length > 0">
+            <template v-if="store.tasks && store.tasks.length > 0">
               <template v-for="task in store.tasks" :key="task.taskId">
                 <tr class="hover:bg-slate-50 transition-colors">
                   <td class="px-4 py-3">
@@ -153,15 +153,30 @@
                         @click="store.cancelTask(task.taskId)"
                         title="取消"
                       >
-                        <svg
-                          class="w-4 h-4"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <line x1="18" y1="6" x2="6" y2="18" />
                           <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                      <button
+                        class="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                        :disabled="!(task.status === 'pending' || task.status === 'progressing' || task.status === 'failed')"
+                        @click="store.pauseTask(task.taskId)"
+                        title="暂停"
+                      >
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                          <rect x="6" y="5" width="4" height="14" />
+                          <rect x="14" y="5" width="4" height="14" />
+                        </svg>
+                      </button>
+                      <button
+                        class="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                        :disabled="task.status !== 'paused'"
+                        @click="store.resumeTask(task.taskId)"
+                        title="继续"
+                      >
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                          <polygon points="7,5 19,12 7,19" />
                         </svg>
                       </button>
                       <button
@@ -170,32 +185,18 @@
                         @click="store.retryTask(task.taskId)"
                         title="重试"
                       >
-                        <svg
-                          class="w-4 h-4"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
-                          <path d="M21.5 2v6h-6" />
-                          <path d="M2.5 22v-6h6" />
-                          <path d="M2 11.5a10 10 0 0 1 18.8-4.3" />
-                          <path d="M22 12.5a10 10 0 0 1-18.8 4.2" />
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="1 4 1 10 7 10" />
+                          <path d="M3.5 15a8 8 0 1 0 2.2-9.4L1 10" />
                         </svg>
                       </button>
                       <button
                         class="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                        :disabled="task.status !== 'completed'"
+                        :disabled="!(task.status === 'completed' || task.status === 'failed')"
                         @click="store.removeTask(task.taskId)"
                         title="删除"
                       >
-                        <svg
-                          class="w-4 h-4"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <polyline points="3 6 5 6 21 6" />
                           <path d="M8 6V4h8v2" />
                           <path d="M19 6l-1 14H6L5 6" />
@@ -236,7 +237,7 @@
                       </div>
                       <div class="max-h-80 overflow-y-auto">
                         <div class="overflow-x-auto">
-                          <table class="w-full text-left border-collapse text-xs">
+                        <table class="min-w-[720px] w-full text-left border-collapse text-xs">
                             <thead
                               class="bg-slate-50 text-slate-500 uppercase border-b border-slate-100"
                             >
@@ -288,56 +289,29 @@
                                       @click="store.retryChunk(task.taskId, chunk.chunkIndex)"
                                       title="重试"
                                     >
-                                      <svg
-                                        class="w-3.5 h-3.5"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                      >
-                                        <path d="M21.5 2v6h-6" />
-                                        <path d="M2.5 22v-6h6" />
-                                        <path d="M2 11.5a10 10 0 0 1 18.8-4.3" />
-                                        <path d="M22 12.5a10 10 0 0 1-18.8 4.2" />
+                                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="1 4 1 10 7 10" />
+                                        <path d="M3.5 15a8 8 0 1 0 2.2-9.4L1 10" />
                                       </svg>
                                     </button>
                                     <button
                                       class="p-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                                      :disabled="
-                                        !(
-                                          chunk.status === 'pending' ||
-                                          chunk.status === 'progressing'
-                                        )
-                                      "
+                                      :disabled="!(chunk.status === 'pending' || chunk.status === 'progressing')"
                                       @click="store.cancelChunk(task.taskId, chunk.chunkIndex)"
                                       title="取消"
                                     >
-                                      <svg
-                                        class="w-3.5 h-3.5"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                      >
+                                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <line x1="18" y1="6" x2="6" y2="18" />
                                         <line x1="6" y1="6" x2="18" y2="18" />
                                       </svg>
                                     </button>
                                     <button
                                       class="p-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                                      :disabled="
-                                        !(chunk.status === 'completed' || chunk.status === 'failed')
-                                      "
+                                      :disabled="!(chunk.status === 'pending' || chunk.status === 'paused' || chunk.status === 'completed' || chunk.status === 'failed')"
                                       @click="store.removeChunk(task.taskId, chunk.chunkIndex)"
                                       title="删除"
                                     >
-                                      <svg
-                                        class="w-3.5 h-3.5"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                      >
+                                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="3 6 5 6 21 6" />
                                         <path d="M8 6V4h8v2" />
                                         <path d="M19 6l-1 14H6L5 6" />
@@ -509,6 +483,7 @@ const progressColor = (status: KgTaskStatus) => {
   const map: Record<KgTaskStatus, string> = {
     pending: 'bg-amber-500',
     progressing: 'bg-blue-600',
+    paused: 'bg-slate-400',
     completed: 'bg-emerald-500',
     failed: 'bg-rose-500'
   }
@@ -519,6 +494,7 @@ const statusClass = (status: KgTaskStatus) => {
   const map: Record<KgTaskStatus, string> = {
     pending: 'bg-amber-50 text-amber-700',
     progressing: 'bg-blue-50 text-blue-700',
+    paused: 'bg-slate-50 text-slate-600',
     completed: 'bg-emerald-50 text-emerald-700',
     failed: 'bg-rose-50 text-rose-700'
   }
@@ -529,6 +505,7 @@ const formatStatus = (status: KgTaskStatus) => {
   const map: Record<KgTaskStatus, string> = {
     pending: '等待中',
     progressing: '处理中',
+    paused: '已暂停',
     completed: '已完成',
     failed: '失败'
   }

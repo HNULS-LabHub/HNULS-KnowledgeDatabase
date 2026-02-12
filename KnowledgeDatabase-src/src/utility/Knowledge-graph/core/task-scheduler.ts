@@ -322,10 +322,15 @@ export class TaskScheduler {
     failed: number
     pending: number
     progressing: number
-  }): 'pending' | 'progressing' | 'completed' | 'failed' {
-    if (stats.failed > 0) return 'failed'
+    paused: number
+  }): 'pending' | 'progressing' | 'paused' | 'completed' | 'failed' {
+    // 完成优先
     if (stats.completed === stats.originTotal) return 'completed'
-    if (stats.completed > 0 || stats.progressing > 0) return 'progressing'
+    // 只要存在 paused（无论是否已有 failed），将任务视为可继续的暂停态
+    if (stats.paused > 0) return 'paused'
+    // 失败在没有暂停时才决定任务失败
+    if (stats.failed > 0) return 'failed'
+    if (stats.progressing > 0 || stats.completed > 0) return 'progressing'
     return 'pending'
   }
 
@@ -343,6 +348,7 @@ export class TaskScheduler {
            count(status = 'failed') AS failed,
            count(status = 'pending') AS pending,
            count(status = 'progressing') AS progressing,
+           count(status = 'paused') AS paused,
            count() AS total
          FROM kg_chunk WHERE task_id = $tid GROUP ALL;`,
         { tid: taskIdStr }
@@ -361,6 +367,7 @@ export class TaskScheduler {
     const pending = Number(stats.pending ?? 0)
     const progressing = Number(stats.progressing ?? 0)
     const total = Number(stats.total ?? 0)
+    const paused = Number(stats.paused ?? 0)
 
     const originTotalRaw = taskRow.chunks_total_origin
     const originTotal = Number(
@@ -380,7 +387,8 @@ export class TaskScheduler {
       completed: effectiveCompleted,
       failed: effectiveFailed,
       pending,
-      progressing
+      progressing,
+      paused
     })
 
     // 更新 task 状态

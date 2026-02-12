@@ -78,6 +78,24 @@ export class KgMonitorIPCHandler extends BaseIPCHandler {
     }
   }
 
+  async handlePause(_event: IpcMainInvokeEvent, taskId: string): Promise<boolean> {
+    try {
+      return await this.service.pauseTask(taskId)
+    } catch (error) {
+      logger.error('[KgMonitorIPC] pause failed', error)
+      throw error
+    }
+  }
+
+  async handleResume(_event: IpcMainInvokeEvent, taskId: string): Promise<boolean> {
+    try {
+      return await this.service.resumeTask(taskId)
+    } catch (error) {
+      logger.error('[KgMonitorIPC] resume failed', error)
+      throw error
+    }
+  }
+
   // ---------------- chunk-level ops ----------------
   async handleRetrychunk(
     _event: IpcMainInvokeEvent,

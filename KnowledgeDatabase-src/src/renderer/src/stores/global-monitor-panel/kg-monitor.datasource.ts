@@ -34,6 +34,16 @@ export const KgMonitorDataSource = {
     return window.api.kgMonitor.removeTask(taskId)
   },
 
+  async pauseTask(taskId: string): Promise<boolean> {
+    if (!isElectron) return KgMonitorMock.pauseTask(taskId)
+    return window.api.kgMonitor.pauseTask(taskId)
+  },
+
+  async resumeTask(taskId: string): Promise<boolean> {
+    if (!isElectron) return KgMonitorMock.resumeTask(taskId)
+    return window.api.kgMonitor.resumeTask(taskId)
+  },
+
   async retryChunk(taskId: string, chunkIndex: number): Promise<boolean> {
     if (!isElectron) return KgMonitorMock.retryChunk(taskId, chunkIndex)
     const fn = (window as any).api?.kgMonitor?.retryChunk
