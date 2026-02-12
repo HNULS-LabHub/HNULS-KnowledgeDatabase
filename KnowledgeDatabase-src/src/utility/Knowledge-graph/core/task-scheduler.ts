@@ -79,6 +79,14 @@ async function loadPrompts(): Promise<PromptBundle> {
 function sanitizeText(input: string): string {
   return Buffer.from(String(input ?? ''), 'utf8').toString()
 }
+function toDate(value: unknown): Date | null {
+  if (value instanceof Date) return value
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value)
+    return Number.isFinite(d.getTime()) ? d : null
+  }
+  return null
+}
 
 function md5(input: string): string {
   return createHash('md5').update(input, 'utf8').digest('hex')
@@ -630,19 +638,36 @@ export class TaskScheduler {
         modelId,
         embeddingUpdatedAt: taskConfig.embeddingUpdatedAt
       })
+      log('LLM request prepared', {
+        chunkId: chunkIdStr,
+        providerId,
+        modelId,
+        cacheKey,
+        inputChars: String(chunk.content ?? '').length
+      })
 
       const cached = await this.readCache(cacheKey)
       if (cached?.value) {
+        const cachedAt = toDate(cached.createTime) ?? new Date()
+        log('LLM cache hit', {
+          chunkId: chunkIdStr,
+          providerId,
+          modelId,
+          cacheKey,
+          extractedAt: cachedAt.toISOString()
+        })
         await this.client.query(
           `UPDATE ${chunkIdStr} SET status = 'completed', result = $result, error = NONE, cache_key = $cacheKey, cache_hit = true, extracted_at = $extractedAt;`,
           {
             result: { raw_response: cached.value },
             cacheKey,
-            extractedAt: cached.createTime ?? new Date().toISOString()
+            extractedAt: cachedAt
           }
         )
         return
       }
+      log('LLM cache miss', { chunkId: chunkIdStr, providerId, modelId, cacheKey })
+      const llmStart = Date.now()
 
       const rawResponse = await runExtraction({
         baseUrl: provider.baseUrl,
@@ -652,8 +677,16 @@ export class TaskScheduler {
         userPrompt,
         continuePrompt
       })
-
-      const extractedAt = new Date().toISOString()
+      const durationMs = Date.now() - llmStart
+      const extractedAt = new Date()
+      log('LLM request completed', {
+        chunkId: chunkIdStr,
+        providerId,
+        modelId,
+        durationMs,
+        outputChars: rawResponse.length,
+        hasCompletionDelimiter: rawResponse.includes(DEFAULT_COMPLETION_DELIMITER)
+      })
       await this.client.query(
         `UPDATE ${chunkIdStr} SET status = 'completed', result = $result, error = NONE, cache_key = $cacheKey, cache_hit = false, extracted_at = $extractedAt;`,
         { result: { raw_response: rawResponse }, cacheKey, extractedAt }
