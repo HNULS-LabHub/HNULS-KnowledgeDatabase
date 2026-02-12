@@ -186,7 +186,7 @@ export class TaskScheduler {
         // 查找最早 pending chunk 对应 task
         const taskResult = this.client.extractRecords(
           await this.client.query(
-            `SELECT task_id FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1;`
+            `SELECT task_id, created_at FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1;`
           )
         )
 
