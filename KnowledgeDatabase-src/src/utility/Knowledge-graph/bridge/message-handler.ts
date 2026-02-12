@@ -144,7 +144,7 @@ export class MessageHandler {
         taskId: rid(t.id),
         fileKey: t.file_key,
         status: t.status,
-        chunksTotal: t.chunks_total,
+        chunksTotal: t.chunks_total_origin ?? t.chunks_total,
         chunksCompleted: t.chunks_completed,
         chunksFailed: t.chunks_failed
       }))

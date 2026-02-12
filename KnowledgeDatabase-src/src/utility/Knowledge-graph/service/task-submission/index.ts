@@ -42,6 +42,7 @@ DEFINE FIELD IF NOT EXISTS source_namespace ON kg_task TYPE string;
 DEFINE FIELD IF NOT EXISTS source_database ON kg_task TYPE string;
 DEFINE FIELD IF NOT EXISTS source_table ON kg_task TYPE string;
 DEFINE FIELD IF NOT EXISTS chunks_total ON kg_task TYPE int DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS chunks_total_origin ON kg_task TYPE int DEFAULT 0;
 DEFINE FIELD IF NOT EXISTS chunks_completed ON kg_task TYPE int DEFAULT 0;
 DEFINE FIELD IF NOT EXISTS chunks_failed ON kg_task TYPE int DEFAULT 0;
 DEFINE FIELD IF NOT EXISTS config ON kg_task FLEXIBLE TYPE object DEFAULT {};
@@ -150,6 +151,7 @@ export class TaskSubmissionService {
         source_database: $sourceDatabase,
         source_table: $sourceTable,
         chunks_total: $chunksTotal,
+        chunks_total_origin: $chunksTotal,
         chunks_completed: 0,
         chunks_failed: 0,
         config: $config

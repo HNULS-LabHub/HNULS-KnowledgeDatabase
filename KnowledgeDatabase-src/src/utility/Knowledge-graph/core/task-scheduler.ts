@@ -112,19 +112,7 @@ export class TaskScheduler {
   private async cleanup(): Promise<void> {
     log('Startup cleanup started')
 
-    // 1. 统计并删除 completed chunks
-    const completedCountResult = this.client.extractRecords(
-      await this.client.query(
-        `SELECT count() AS total FROM kg_chunk WHERE status = 'completed' GROUP ALL;`
-      )
-    )
-    const completedCount = Number(completedCountResult[0]?.total ?? 0)
-    if (completedCount > 0) {
-      await this.client.query(`DELETE kg_chunk WHERE status = 'completed';`)
-    }
-    log(`Cleanup: deleted ${completedCount} completed chunks`)
-
-    // 2. 统计 progressing 影响的 task 数
+    // 1. 统计 progressing 影响的 task 数
     const affectedTasks = this.client.extractRecords(
       await this.client.query(
         `SELECT task_id FROM kg_chunk WHERE status = 'progressing' GROUP BY task_id;`
@@ -133,17 +121,46 @@ export class TaskScheduler {
     const affectedTaskIds = affectedTasks.map((r: any) => rid(r.task_id))
     log(`Cleanup: ${affectedTaskIds.length} tasks have progressing chunks to mark failed`)
 
-    // 3. progressing → failed
+    // 2. progressing → failed
     if (affectedTaskIds.length > 0) {
       await this.client.query(
         `UPDATE kg_chunk SET status = 'failed', error = 'interrupted: process restarted' WHERE status = 'progressing';`
       )
     }
 
-    // 4. 对受影响 task 派生更新
+    // 3. 对受影响 task 派生更新
     for (const taskId of affectedTaskIds) {
       await this.reconcileTaskStatus(taskId)
     }
+
+    // 4. 清理已完成任务（completed == 原始总分块）
+    const taskRows = this.client.extractRecords(
+      await this.client.query(
+        `SELECT id, chunks_completed, chunks_failed, chunks_total_origin, chunks_total FROM kg_task;`
+      )
+    )
+    const completedTaskIds = taskRows
+      .map((row: any) => {
+        const originTotalRaw = row.chunks_total_origin
+        const originTotal = Number(
+          originTotalRaw === undefined || originTotalRaw === null
+            ? row.chunks_total ?? 0
+            : originTotalRaw
+        )
+        const completed = Number(row.chunks_completed ?? 0)
+        const failed = Number(row.chunks_failed ?? 0)
+        if (completed === originTotal && failed === 0) {
+          return rid(row.id)
+        }
+        return null
+      })
+      .filter((id: string | null) => Boolean(id)) as string[]
+
+    for (const taskId of completedTaskIds) {
+      await this.client.query(`DELETE kg_chunk WHERE task_id = $tid;`, { tid: taskId })
+      await this.client.query(`DELETE ${taskId};`)
+    }
+    log(`Cleanup: deleted ${completedTaskIds.length} completed tasks by chunks_completed == chunks_total_origin`)
 
     log('Startup cleanup completed')
   }
@@ -300,20 +317,23 @@ export class TaskScheduler {
   // ==========================================================================
 
   private deriveStatus(stats: {
-    total: number
+    originTotal: number
     completed: number
     failed: number
     pending: number
     progressing: number
   }): 'pending' | 'progressing' | 'completed' | 'failed' {
-    if (stats.total === 0) return 'pending'
     if (stats.failed > 0) return 'failed'
-    if (stats.completed === stats.total) return 'completed'
+    if (stats.completed === stats.originTotal) return 'completed'
     if (stats.completed > 0 || stats.progressing > 0) return 'progressing'
     return 'pending'
   }
 
   private async reconcileTaskStatus(taskIdStr: string): Promise<void> {
+    const taskInfo = this.client.extractRecords(
+      await this.client.query(`SELECT chunks_total_origin, chunks_total, chunks_completed, chunks_failed FROM ${taskIdStr};`)
+    )
+    const taskRow = taskInfo[0] ?? {}
     const statsResult = this.client.extractRecords(
       await this.client.query(
         `SELECT
@@ -340,31 +360,48 @@ export class TaskScheduler {
     const progressing = Number(stats.progressing ?? 0)
     const total = Number(stats.total ?? 0)
 
-    const status = this.deriveStatus({ total, completed, failed, pending, progressing })
+    const originTotalRaw = taskRow.chunks_total_origin
+    const originTotal = Number(
+      originTotalRaw === undefined || originTotalRaw === null
+        ? taskRow.chunks_total ?? total
+        : originTotalRaw
+    )
+
+    const useSnapshot = total === 0 && originTotal > 0
+    const effectiveCompleted = useSnapshot
+      ? Number(taskRow.chunks_completed ?? completed)
+      : completed
+    const effectiveFailed = useSnapshot
+      ? Number(taskRow.chunks_failed ?? failed)
+      : failed
+
+    const status = this.deriveStatus({
+      originTotal,
+      completed: effectiveCompleted,
+      failed: effectiveFailed,
+      pending,
+      progressing
+    })
 
     // 更新 task 状态
     await this.client.query(
-      `UPDATE ${taskIdStr} SET status = $status, chunks_completed = $completed, chunks_failed = $failed, chunks_total = $total, updated_at = time::now();`,
-      { status, completed, failed, total }
+      `UPDATE ${taskIdStr} SET status = $status, chunks_completed = $completed, chunks_failed = $failed, chunks_total = $originTotal, chunks_total_origin = $originTotal, updated_at = time::now();`,
+      { status, completed: effectiveCompleted, failed: effectiveFailed, originTotal }
     )
 
     // 发送进度消息
     this.sendMessage({
       type: 'kg:task-progress',
       taskId: taskIdStr,
-      completed,
-      failed,
-      total
+      completed: effectiveCompleted,
+      failed: effectiveFailed,
+      total: originTotal
     })
 
-    // 任务完成：删除 completed chunks，发送完成消息
+    // 任务完成：发送完成消息（清理由启动清扫/手动触发负责）
     if (status === 'completed') {
-      await this.client.query(
-        `DELETE kg_chunk WHERE task_id = $tid AND status = 'completed';`,
-        { tid: taskIdStr }
-      )
       this.sendMessage({ type: 'kg:task-completed', taskId: taskIdStr })
-      log(`Task ${taskIdStr} completed: ${completed}/${total} chunks`)
+      log(`Task ${taskIdStr} completed: ${effectiveCompleted}/${originTotal} chunks`)
     }
 
     // 任务失败：发送失败消息
@@ -372,9 +409,9 @@ export class TaskScheduler {
       this.sendMessage({
         type: 'kg:task-failed',
         taskId: taskIdStr,
-        error: `${failed}/${total} chunks failed`
+        error: `${effectiveFailed}/${originTotal} chunks failed`
       })
-      log(`Task ${taskIdStr} failed: ${failed}/${total} chunks failed`)
+      log(`Task ${taskIdStr} failed: ${effectiveFailed}/${originTotal} chunks failed`)
     }
   }
 }

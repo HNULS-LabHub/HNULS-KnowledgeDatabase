@@ -1,6 +1,6 @@
 <template>
   <div
-    class="tm-kg-monitor-9f3e h-[520px] bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col"
+    class="tm-kg-monitor-9f3e h-[840px] bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col"
   >
     <!-- Header -->
     <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
@@ -147,25 +147,40 @@
                 <td class="px-6 py-3 text-right">
                   <div class="flex items-center justify-end gap-2">
                     <button
-                      class="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                      class="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
                       :disabled="task.status !== 'pending'"
                       @click="store.cancelTask(task.taskId)"
+                      title="取消"
                     >
-                      取消
+                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
                     </button>
                     <button
-                      class="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                      class="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
                       :disabled="task.status !== 'failed'"
                       @click="store.retryTask(task.taskId)"
+                      title="重试"
                     >
-                      重试
+                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.5 2v6h-6" />
+                        <path d="M2.5 22v-6h6" />
+                        <path d="M2 11.5a10 10 0 0 1 18.8-4.3" />
+                        <path d="M22 12.5a10 10 0 0 1-18.8 4.2" />
+                      </svg>
                     </button>
                     <button
-                      class="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                      class="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
                       :disabled="task.status !== 'completed'"
                       @click="store.removeTask(task.taskId)"
+                      title="删除"
                     >
-                      删除
+                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M8 6V4h8v2" />
+                        <path d="M19 6l-1 14H6L5 6" />
+                      </svg>
                     </button>
                   </div>
                 </td>
@@ -184,7 +199,7 @@
                         />
                       </div>
                     </div>
-                    <div class="max-h-60 overflow-x-auto overflow-y-auto">
+                    <div class="max-h-80 overflow-x-auto overflow-y-auto">
                       <table class="w-full text-left border-collapse text-xs">
                         <thead class="bg-slate-50 text-slate-500 uppercase border-b border-slate-100">
                           <tr>
@@ -230,20 +245,41 @@
                             <td class="px-4 py-2">
                               <div class="flex items-center justify-end gap-2">
                                 <button
-                                  class="px-2 py-0.5 text-[11px] rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                                  class="p-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
                                   :disabled="!(chunk.status === 'failed')"
                                   @click="store.retryChunk(task.taskId, chunk.chunkIndex)"
-                                >重试</button>
+                                  title="重试"
+                                >
+                                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21.5 2v6h-6" />
+                                    <path d="M2.5 22v-6h6" />
+                                    <path d="M2 11.5a10 10 0 0 1 18.8-4.3" />
+                                    <path d="M22 12.5a10 10 0 0 1-18.8 4.2" />
+                                  </svg>
+                                </button>
                                 <button
-                                  class="px-2 py-0.5 text-[11px] rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                                  class="p-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
                                   :disabled="!(chunk.status === 'pending' || chunk.status === 'progressing')"
                                   @click="store.cancelChunk(task.taskId, chunk.chunkIndex)"
-                                >取消</button>
+                                  title="取消"
+                                >
+                                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                  </svg>
+                                </button>
                                 <button
-                                  class="px-2 py-0.5 text-[11px] rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                                  class="p-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
                                   :disabled="!(chunk.status === 'completed' || chunk.status === 'failed')"
                                   @click="store.removeChunk(task.taskId, chunk.chunkIndex)"
-                                >删除</button>
+                                  title="删除"
+                                >
+                                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6" />
+                                    <path d="M8 6V4h8v2" />
+                                    <path d="M19 6l-1 14H6L5 6" />
+                                  </svg>
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -325,7 +361,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onBeforeUnmount } from 'vue'
 import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 import type { WhiteSelectOption } from '@renderer/components/select/WhiteSelect.vue'
 import { useKgMonitorStore } from '@renderer/stores/global-monitor-panel/kg-monitor.store'
@@ -335,6 +371,20 @@ const store = useKgMonitorStore()
 
 onMounted(() => {
   store.fetchTasks()
+  autoRefreshTimer = window.setInterval(() => {
+    if (!store.loading) {
+      store.refresh()
+    }
+  }, 500)
+})
+
+let autoRefreshTimer: number | null = null
+
+onBeforeUnmount(() => {
+  if (autoRefreshTimer) {
+    window.clearInterval(autoRefreshTimer)
+    autoRefreshTimer = null
+  }
 })
 
 const statusOptions = computed<WhiteSelectOption[]>(() =>

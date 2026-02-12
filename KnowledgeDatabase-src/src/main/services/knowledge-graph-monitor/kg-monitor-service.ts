@@ -28,6 +28,10 @@ export class KgMonitorService {
     this.db = new Surreal()
   }
 
+  private normalizeTaskId(taskId: string): string {
+    return taskId.startsWith('kg_task:') ? taskId.slice('kg_task:'.length) : taskId
+  }
+
   setConfig(config: DbConfig): void {
     this.config = config
   }
@@ -126,6 +130,7 @@ export class KgMonitorService {
         file_key,
         status,
         chunks_total,
+        chunks_total_origin,
         chunks_completed,
         chunks_failed,
         created_at,
@@ -162,7 +167,7 @@ export class KgMonitorService {
       taskId: String(row.id),
       fileKey: row.file_key ?? '',
       status: row.status,
-      chunksTotal: Number(row.chunks_total ?? 0),
+      chunksTotal: Number(row.chunks_total_origin ?? row.chunks_total ?? 0),
       chunksCompleted: Number(row.chunks_completed ?? 0),
       chunksFailed: Number(row.chunks_failed ?? 0),
       createdAt: this.toTimestamp(row.created_at),
@@ -258,42 +263,84 @@ export class KgMonitorService {
   }
 
   async removeTask(taskId: string): Promise<boolean> {
+    const taskIdValue = this.normalizeTaskId(taskId)
     const deleteChunksSql = `
       DELETE kg_chunk WHERE task_id = $taskId;
     `
     const deleteTaskSql = `
-      DELETE $taskId;
+      DELETE kg_task WHERE id = type::thing('kg_task', $taskId);
     `
 
     await this.query(deleteChunksSql, { taskId })
-    await this.query(deleteTaskSql, { taskId })
+    await this.query(deleteTaskSql, { taskId: taskIdValue })
     return true
   }
 
   // ---------------- chunk-level ops ----------------
   private async reconcileTask(taskId: string): Promise<void> {
+    const taskIdValue = this.normalizeTaskId(taskId)
     const statSql = `
       SELECT
         count() AS total,
         count(status = 'completed') AS completed,
-        count(status = 'failed') AS failed
+        count(status = 'failed') AS failed,
+        count(status = 'progressing') AS progressing
       FROM kg_chunk WHERE task_id = $taskId GROUP ALL;
     `
     const rows = this.extractRecords(await this.query(statSql, { taskId }))
-    const row = rows[0] ?? { total: 0, completed: 0, failed: 0 }
+    const row = rows[0] ?? { total: 0, completed: 0, failed: 0, progressing: 0 }
     const total = Number(row.total ?? 0)
     const completed = Number(row.completed ?? 0)
     const failed = Number(row.failed ?? 0)
-    const status = failed > 0 ? 'failed' : completed === total && total > 0 ? 'completed' : 'pending'
+    const progressing = Number(row.progressing ?? 0)
+
+    const taskInfo = this.extractRecords(
+      await this.query(
+        `SELECT chunks_total_origin, chunks_total, chunks_completed, chunks_failed FROM kg_task WHERE id = type::thing('kg_task', $taskId);`,
+        { taskId: taskIdValue }
+      )
+    )
+    const taskRow = taskInfo[0] ?? {}
+    const originTotalRaw = taskRow.chunks_total_origin
+    const originTotal = Number(
+      originTotalRaw === undefined || originTotalRaw === null
+        ? taskRow.chunks_total ?? total
+        : originTotalRaw
+    )
+
+    const useSnapshot = total === 0 && originTotal > 0
+    const effectiveCompleted = useSnapshot
+      ? Number(taskRow.chunks_completed ?? completed)
+      : completed
+    const effectiveFailed = useSnapshot
+      ? Number(taskRow.chunks_failed ?? failed)
+      : failed
+
+    const status =
+      effectiveFailed > 0
+        ? 'failed'
+        : effectiveCompleted === originTotal
+          ? 'completed'
+          : effectiveCompleted > 0 || progressing > 0
+            ? 'progressing'
+            : 'pending'
     const updSql = `
-      UPDATE $taskId SET
-        chunks_total = $total,
+      UPDATE kg_task SET
+        chunks_total = $originTotal,
+        chunks_total_origin = $originTotal,
         chunks_completed = $completed,
         chunks_failed = $failed,
         status = $status,
-        updated_at = time::now();
+        updated_at = time::now()
+      WHERE id = type::thing('kg_task', $taskId);
     `
-    await this.query(updSql, { taskId, total, completed, failed, status })
+    await this.query(updSql, {
+      taskId: taskIdValue,
+      originTotal,
+      completed: effectiveCompleted,
+      failed: effectiveFailed,
+      status
+    })
   }
 
   async retryChunk(taskId: string, chunkIndex: number): Promise<boolean> {
