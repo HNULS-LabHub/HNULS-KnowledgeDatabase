@@ -15,7 +15,7 @@
         <button
           class="p-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm disabled:opacity-50"
           :disabled="store.loading"
-          @click="store.fetchTasks"
+          @click="store.refresh"
           title="刷新"
         >
           <svg
@@ -192,6 +192,7 @@
                             <th class="px-4 py-2">状态</th>
                             <th class="px-4 py-2">错误</th>
                             <th class="px-4 py-2">更新时间</th>
+                            <th class="px-4 py-2 text-right">操作</th>
                           </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -225,6 +226,25 @@
                             </td>
                             <td class="px-4 py-2 text-slate-400 font-mono">
                               {{ formatTime(chunk.updatedAt) }}
+                            </td>
+                            <td class="px-4 py-2">
+                              <div class="flex items-center justify-end gap-2">
+                                <button
+                                  class="px-2 py-0.5 text-[11px] rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                                  :disabled="!(chunk.status === 'failed')"
+                                  @click="store.retryChunk(task.taskId, chunk.chunkIndex)"
+                                >重试</button>
+                                <button
+                                  class="px-2 py-0.5 text-[11px] rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                                  :disabled="!(chunk.status === 'pending' || chunk.status === 'progressing')"
+                                  @click="store.cancelChunk(task.taskId, chunk.chunkIndex)"
+                                >取消</button>
+                                <button
+                                  class="px-2 py-0.5 text-[11px] rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                                  :disabled="!(chunk.status === 'completed' || chunk.status === 'failed')"
+                                  @click="store.removeChunk(task.taskId, chunk.chunkIndex)"
+                                >删除</button>
+                              </div>
                             </td>
                           </tr>
                         </tbody>

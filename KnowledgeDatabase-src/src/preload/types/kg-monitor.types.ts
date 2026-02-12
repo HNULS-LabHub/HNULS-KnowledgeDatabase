@@ -77,4 +77,8 @@ export interface KgMonitorAPI {
   cancelTask(taskId: string): Promise<boolean>
   retryTask(taskId: string): Promise<boolean>
   removeTask(taskId: string): Promise<boolean>
+  // chunk-level operations
+  retryChunk(taskId: string, chunkIndex: number): Promise<boolean>
+  cancelChunk(taskId: string, chunkIndex: number): Promise<boolean>
+  removeChunk(taskId: string, chunkIndex: number): Promise<boolean>
 }

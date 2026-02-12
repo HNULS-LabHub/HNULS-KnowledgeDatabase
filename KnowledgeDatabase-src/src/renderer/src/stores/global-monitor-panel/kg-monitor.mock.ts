@@ -24,5 +24,17 @@ export const KgMonitorMock = {
 
   async removeTask(_taskId: string): Promise<boolean> {
     return true
+  },
+
+  async retryChunk(_taskId: string, _chunkIndex: number): Promise<boolean> {
+    return true
+  },
+
+  async cancelChunk(_taskId: string, _chunkIndex: number): Promise<boolean> {
+    return true
+  },
+
+  async removeChunk(_taskId: string, _chunkIndex: number): Promise<boolean> {
+    return true
   }
 }

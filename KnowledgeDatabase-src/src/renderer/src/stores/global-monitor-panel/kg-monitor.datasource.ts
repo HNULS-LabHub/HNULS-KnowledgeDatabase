@@ -32,5 +32,26 @@ export const KgMonitorDataSource = {
   async removeTask(taskId: string): Promise<boolean> {
     if (!isElectron) return KgMonitorMock.removeTask(taskId)
     return window.api.kgMonitor.removeTask(taskId)
+  },
+
+  async retryChunk(taskId: string, chunkIndex: number): Promise<boolean> {
+    if (!isElectron) return KgMonitorMock.retryChunk(taskId, chunkIndex)
+    const fn = (window as any).api?.kgMonitor?.retryChunk
+    if (typeof fn === 'function') return fn(taskId, chunkIndex)
+    throw new Error('retryChunk API not available')
+  },
+
+  async cancelChunk(taskId: string, chunkIndex: number): Promise<boolean> {
+    if (!isElectron) return KgMonitorMock.cancelChunk(taskId, chunkIndex)
+    const fn = (window as any).api?.kgMonitor?.cancelChunk
+    if (typeof fn === 'function') return fn(taskId, chunkIndex)
+    throw new Error('cancelChunk API not available')
+  },
+
+  async removeChunk(taskId: string, chunkIndex: number): Promise<boolean> {
+    if (!isElectron) return KgMonitorMock.removeChunk(taskId, chunkIndex)
+    const fn = (window as any).api?.kgMonitor?.removeChunk
+    if (typeof fn === 'function') return fn(taskId, chunkIndex)
+    throw new Error('removeChunk API not available')
   }
 }

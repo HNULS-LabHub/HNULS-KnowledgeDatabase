@@ -77,4 +77,41 @@ export class KgMonitorIPCHandler extends BaseIPCHandler {
       throw error
     }
   }
+
+  // ---------------- chunk-level ops ----------------
+  async handleRetrychunk(
+    _event: IpcMainInvokeEvent,
+    payload: { taskId: string; chunkIndex: number }
+  ): Promise<boolean> {
+    try {
+      return await this.service.retryChunk(payload.taskId, payload.chunkIndex)
+    } catch (error) {
+      logger.error('[KgMonitorIPC] retrychunk failed', error)
+      throw error
+    }
+  }
+
+  async handleCancelchunk(
+    _event: IpcMainInvokeEvent,
+    payload: { taskId: string; chunkIndex: number }
+  ): Promise<boolean> {
+    try {
+      return await this.service.cancelChunk(payload.taskId, payload.chunkIndex)
+    } catch (error) {
+      logger.error('[KgMonitorIPC] cancelchunk failed', error)
+      throw error
+    }
+  }
+
+  async handleRemovechunk(
+    _event: IpcMainInvokeEvent,
+    payload: { taskId: string; chunkIndex: number }
+  ): Promise<boolean> {
+    try {
+      return await this.service.removeChunk(payload.taskId, payload.chunkIndex)
+    } catch (error) {
+      logger.error('[KgMonitorIPC] removechunk failed', error)
+      throw error
+    }
+  }
 }

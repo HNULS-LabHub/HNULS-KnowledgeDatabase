@@ -179,6 +179,33 @@ export const useKgMonitorStore = defineStore('kg-monitor', () => {
     await fetchTasks()
   }
 
+  // Manual refresh: tasks + expanded task's chunks (if any)
+  async function refresh(): Promise<void> {
+    await fetchTasks()
+    if (expandedTaskId.value) {
+      await fetchChunks(expandedTaskId.value)
+    }
+  }
+
+  // ---------------------- chunk operations ----------------------
+  async function retryChunk(taskId: string, chunkIndex: number): Promise<void> {
+    await KgMonitorDataSource.retryChunk(taskId, chunkIndex)
+    if (expandedTaskId.value === taskId) await fetchChunks(taskId)
+    await fetchTasks()
+  }
+
+  async function cancelChunk(taskId: string, chunkIndex: number): Promise<void> {
+    await KgMonitorDataSource.cancelChunk(taskId, chunkIndex)
+    if (expandedTaskId.value === taskId) await fetchChunks(taskId)
+    await fetchTasks()
+  }
+
+  async function removeChunk(taskId: string, chunkIndex: number): Promise<void> {
+    await KgMonitorDataSource.removeChunk(taskId, chunkIndex)
+    if (expandedTaskId.value === taskId) await fetchChunks(taskId)
+    await fetchTasks()
+  }
+
   return {
     tasks,
     total,
@@ -205,6 +232,10 @@ export const useKgMonitorStore = defineStore('kg-monitor', () => {
     setChunkPageSize,
     cancelTask,
     retryTask,
-    removeTask
+    removeTask,
+    retryChunk,
+    cancelChunk,
+    removeChunk,
+    refresh
   }
 })

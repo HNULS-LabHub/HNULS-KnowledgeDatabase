@@ -269,4 +269,59 @@ export class KgMonitorService {
     await this.query(deleteTaskSql, { taskId })
     return true
   }
+
+  // ---------------- chunk-level ops ----------------
+  private async reconcileTask(taskId: string): Promise<void> {
+    const statSql = `
+      SELECT
+        count() AS total,
+        count(status = 'completed') AS completed,
+        count(status = 'failed') AS failed
+      FROM kg_chunk WHERE task_id = $taskId GROUP ALL;
+    `
+    const rows = this.extractRecords(await this.query(statSql, { taskId }))
+    const row = rows[0] ?? { total: 0, completed: 0, failed: 0 }
+    const total = Number(row.total ?? 0)
+    const completed = Number(row.completed ?? 0)
+    const failed = Number(row.failed ?? 0)
+    const status = failed > 0 ? 'failed' : completed === total && total > 0 ? 'completed' : 'pending'
+    const updSql = `
+      UPDATE $taskId SET
+        chunks_total = $total,
+        chunks_completed = $completed,
+        chunks_failed = $failed,
+        status = $status,
+        updated_at = time::now();
+    `
+    await this.query(updSql, { taskId, total, completed, failed, status })
+  }
+
+  async retryChunk(taskId: string, chunkIndex: number): Promise<boolean> {
+    const sql = `
+      UPDATE kg_chunk SET status = 'pending', error = NONE, updated_at = time::now()
+      WHERE task_id = $taskId AND chunk_index = $idx AND status = 'failed';
+    `
+    await this.query(sql, { taskId, idx: chunkIndex })
+    await this.reconcileTask(taskId)
+    return true
+  }
+
+  async cancelChunk(taskId: string, chunkIndex: number): Promise<boolean> {
+    const sql = `
+      UPDATE kg_chunk SET status = 'failed', error = 'cancelled by user', updated_at = time::now()
+      WHERE task_id = $taskId AND chunk_index = $idx AND (status = 'pending' OR status = 'progressing');
+    `
+    await this.query(sql, { taskId, idx: chunkIndex })
+    await this.reconcileTask(taskId)
+    return true
+  }
+
+  async removeChunk(taskId: string, chunkIndex: number): Promise<boolean> {
+    const sql = `
+      DELETE kg_chunk WHERE task_id = $taskId AND chunk_index = $idx;
+    `
+    await this.query(sql, { taskId, idx: chunkIndex })
+    await this.reconcileTask(taskId)
+    return true
+  }
 }

@@ -21,7 +21,11 @@ const IPC_CHANNELS = {
   GET_CHUNKS: 'kg-monitor:getchunks',
   CANCEL_TASK: 'kg-monitor:cancel',
   RETRY_TASK: 'kg-monitor:retry',
-  REMOVE_TASK: 'kg-monitor:remove'
+  REMOVE_TASK: 'kg-monitor:remove',
+  // chunk-level ops
+  RETRY_CHUNK: 'kg-monitor:retrychunk',
+  CANCEL_CHUNK: 'kg-monitor:cancelchunk',
+  REMOVE_CHUNK: 'kg-monitor:removechunk'
 } as const
 
 // ============================================================================
@@ -47,5 +51,17 @@ export const kgMonitorAPI: KgMonitorAPI = {
 
   async removeTask(taskId: string): Promise<boolean> {
     return ipcRenderer.invoke(IPC_CHANNELS.REMOVE_TASK, taskId)
+  },
+
+  async retryChunk(taskId: string, chunkIndex: number): Promise<boolean> {
+    return ipcRenderer.invoke(IPC_CHANNELS.RETRY_CHUNK, { taskId, chunkIndex })
+  },
+
+  async cancelChunk(taskId: string, chunkIndex: number): Promise<boolean> {
+    return ipcRenderer.invoke(IPC_CHANNELS.CANCEL_CHUNK, { taskId, chunkIndex })
+  },
+
+  async removeChunk(taskId: string, chunkIndex: number): Promise<boolean> {
+    return ipcRenderer.invoke(IPC_CHANNELS.REMOVE_CHUNK, { taskId, chunkIndex })
   }
 }
