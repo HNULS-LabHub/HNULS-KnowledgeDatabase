@@ -14,6 +14,17 @@ export interface KGDBConfig {
   namespace: string
   database: string // 固定 'system'
 }
+// ============================================================================
+// LLM Provider Config（给 Utility 进程使用）
+// ============================================================================
+
+export interface KGModelProviderConfig {
+  id: string
+  protocol: 'openai'
+  baseUrl: string
+  apiKey: string
+  enabled: boolean
+}
 
 // ============================================================================
 // 任务配置（FLEXIBLE，未来可扩展）
@@ -22,8 +33,20 @@ export interface KGDBConfig {
 export interface KGTaskConfig {
   /** LLM 模型标识 */
   model: string
+  /** LLM Provider ID */
+  providerId?: string
+  /** LLM Model ID */
+  modelId?: string
   /** 需要提取的实体类型列表 */
   entityTypes?: string[]
+  /** 输出语言 */
+  outputLanguage?: string
+  /** LLM 并发（批次内并行） */
+  llmConcurrency?: number
+  /** 关联的嵌入配置 ID */
+  embeddingConfigId?: string
+  /** 嵌入版本时间（用于重新嵌入判定） */
+  embeddingUpdatedAt?: string
   /** 未来扩展字段 */
   [key: string]: unknown
 }
@@ -71,6 +94,7 @@ export type MainToKGMessage =
   | { type: 'kg:update-concurrency'; maxConcurrency: number }
   | { type: 'kg:query-status'; requestId: string }
   | { type: 'kg:concurrency-response'; value: number }
+  | { type: 'kg:update-model-providers'; providers: KGModelProviderConfig[] }
 
 // ============================================================================
 // KG → Main 消息

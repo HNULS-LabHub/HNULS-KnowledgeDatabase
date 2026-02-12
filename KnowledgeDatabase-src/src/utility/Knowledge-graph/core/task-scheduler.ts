@@ -16,7 +16,14 @@
  */
 
 import type { KGSurrealClient } from '../db/surreal-client'
-import type { KGToMainMessage } from '@shared/knowledge-graph-ipc.types'
+import type { KGToMainMessage, KGModelProviderConfig } from '@shared/knowledge-graph-ipc.types'
+import { createHash } from 'crypto'
+import {
+  entityExtractionSystem,
+  entityExtractionUser,
+  entityExtractionContinue,
+  entityExtractionExamples
+} from '../../../Public/SharedPrompt/knowledge-graph'
 
 // ============================================================================
 // 日志
@@ -43,21 +50,257 @@ function rid(id: any): string {
 }
 
 // ============================================================================
-// LLM 桩函数
+// Prompt / Cache Utils
 // ============================================================================
 
-async function callLLMStub(
-  _content: string,
-  _config: Record<string, any>
-): Promise<{ success: boolean; result?: any; error?: string }> {
-  await new Promise((r) => setTimeout(r, 200 + Math.random() * 600))
-  if (Math.random() < 0.8) {
-    return {
-      success: true,
-      result: { entities: [{ name: 'stub_entity', type: 'concept' }], relations: [] }
-    }
+const DEFAULT_TUPLE_DELIMITER = '<|#|>'
+const DEFAULT_COMPLETION_DELIMITER = '<|COMPLETE|>'
+
+type PromptBundle = {
+  system: string
+  user: string
+  continue: string
+  examples: string
+}
+
+let promptCache: PromptBundle | null = null
+
+async function loadPrompts(): Promise<PromptBundle> {
+  if (promptCache) return promptCache
+  promptCache = {
+    system: entityExtractionSystem,
+    user: entityExtractionUser,
+    continue: entityExtractionContinue,
+    examples: entityExtractionExamples
   }
-  return { success: false, error: 'LLM stub: random failure for testing' }
+  return promptCache
+}
+
+function sanitizeText(input: string): string {
+  return Buffer.from(String(input ?? ''), 'utf8').toString()
+}
+
+function md5(input: string): string {
+  return createHash('md5').update(input, 'utf8').digest('hex')
+}
+
+function applyTemplate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => vars[key] ?? `{${key}}`)
+}
+const DEFAULT_ENTITY_TYPES = [
+  'Person',
+  'Creature',
+  'Organization',
+  'Location',
+  'Event',
+  'Concept',
+  'Method',
+  'Content',
+  'Data',
+  'Artifact',
+  'NaturalObject'
+]
+const DEFAULT_LANGUAGE = 'English'
+const DEFAULT_TEMPERATURE = 0
+const DEFAULT_TIMEOUT_MS = 60000
+
+type TaskConfig = {
+  model?: string
+  providerId?: string
+  modelId?: string
+  entityTypes?: string[]
+  outputLanguage?: string
+  llmConcurrency?: number
+  embeddingConfigId?: string
+  embeddingUpdatedAt?: string
+  [key: string]: unknown
+}
+
+type OpenAIChatMessage = {
+  role: 'system' | 'user' | 'assistant'
+  content: string
+}
+
+interface OpenAIChatResponse {
+  id?: string
+  object?: string
+  created?: number
+  model?: string
+  choices?: Array<{
+    index?: number
+    message?: { role?: string; content?: string }
+    text?: string
+    finish_reason?: string
+  }>
+  error?: {
+    message?: string
+    type?: string
+    code?: string | number
+  }
+}
+
+async function callOpenAIChat(params: {
+  baseUrl: string
+  apiKey: string
+  model: string
+  messages: OpenAIChatMessage[]
+  temperature?: number
+  timeoutMs?: number
+}): Promise<string> {
+  const { baseUrl, apiKey, model, messages } = params
+  const temperature = params.temperature ?? DEFAULT_TEMPERATURE
+  const timeoutMs = params.timeoutMs ?? DEFAULT_TIMEOUT_MS
+
+  const url = `${baseUrl.replace(/\/$/, '')}/v1/chat/completions`
+  const body = {
+    model,
+    messages,
+    temperature
+  }
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    })
+
+    let data: OpenAIChatResponse | null = null
+    try {
+      data = (await response.json()) as OpenAIChatResponse
+    } catch {
+      data = null
+    }
+
+    if (!response.ok) {
+      const errorMessage =
+        data?.error?.message ??
+        (data ? JSON.stringify(data) : '') ??
+        `HTTP ${response.status} ${response.statusText}`
+      throw new Error(errorMessage)
+    }
+
+    const content =
+      data?.choices?.[0]?.message?.content ??
+      data?.choices?.[0]?.text ??
+      ''
+
+    if (!content) {
+      throw new Error('Empty LLM response')
+    }
+
+    return content
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('Request timeout')
+    }
+    throw err
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+async function buildPromptInputs(params: {
+  content: string
+  entityTypes?: string[]
+  language?: string
+  providerId?: string
+  modelId?: string
+  embeddingUpdatedAt?: string
+}): Promise<{
+  systemPrompt: string
+  userPrompt: string
+  continuePrompt: string
+  cacheKey: string
+}> {
+  const entityTypes =
+    Array.isArray(params.entityTypes) && params.entityTypes.length > 0
+      ? params.entityTypes
+      : DEFAULT_ENTITY_TYPES
+  const entityTypesText = entityTypes.map((t) => JSON.stringify(String(t))).join(',')
+  const language = params.language || DEFAULT_LANGUAGE
+
+  const prompts = await loadPrompts()
+  const examplesText = applyTemplate(prompts.examples, {
+    tuple_delimiter: DEFAULT_TUPLE_DELIMITER,
+    completion_delimiter: DEFAULT_COMPLETION_DELIMITER
+  })
+
+  const systemPrompt = applyTemplate(prompts.system, {
+    entity_types: entityTypesText,
+    tuple_delimiter: DEFAULT_TUPLE_DELIMITER,
+    completion_delimiter: DEFAULT_COMPLETION_DELIMITER,
+    language,
+    examples: examplesText
+  })
+  const userPrompt = applyTemplate(prompts.user, {
+    entity_types: entityTypesText,
+    tuple_delimiter: DEFAULT_TUPLE_DELIMITER,
+    completion_delimiter: DEFAULT_COMPLETION_DELIMITER,
+    language,
+    input_text: sanitizeText(params.content)
+  })
+  const continuePrompt = applyTemplate(prompts.continue, {
+    tuple_delimiter: DEFAULT_TUPLE_DELIMITER,
+    completion_delimiter: DEFAULT_COMPLETION_DELIMITER,
+    language
+  })
+
+  const cacheSeed = [
+    systemPrompt,
+    userPrompt,
+    `model=${params.modelId ?? ''}`,
+    `provider=${params.providerId ?? ''}`,
+    `embedding=${params.embeddingUpdatedAt ?? ''}`
+  ].join('\n')
+  const cacheKey = `default:extract:${md5(cacheSeed)}`
+
+  return { systemPrompt, userPrompt, continuePrompt, cacheKey }
+}
+
+async function runExtraction(params: {
+  baseUrl: string
+  apiKey: string
+  model: string
+  systemPrompt: string
+  userPrompt: string
+  continuePrompt: string
+  maxRounds?: number
+}): Promise<string> {
+  const messages: OpenAIChatMessage[] = [
+    { role: 'system', content: params.systemPrompt },
+    { role: 'user', content: params.userPrompt }
+  ]
+
+  const maxRounds = Math.max(1, params.maxRounds ?? 2)
+  let fullOutput = ''
+
+  for (let i = 0; i < maxRounds; i += 1) {
+    const content = await callOpenAIChat({
+      baseUrl: params.baseUrl,
+      apiKey: params.apiKey,
+      model: params.model,
+      messages
+    })
+
+    fullOutput = fullOutput ? `${fullOutput}\n${content}` : content
+
+    if (fullOutput.includes(DEFAULT_COMPLETION_DELIMITER)) {
+      break
+    }
+
+    messages.push({ role: 'assistant', content })
+    messages.push({ role: 'user', content: params.continuePrompt })
+  }
+
+  return fullOutput
 }
 
 // ============================================================================
@@ -68,6 +311,7 @@ export class TaskScheduler {
   private client: KGSurrealClient
   private sendMessage: (msg: KGToMainMessage) => void
   private requestConcurrency: () => Promise<number>
+  private providers: Map<string, KGModelProviderConfig> = new Map()
 
   private pollTimer: ReturnType<typeof setInterval> | null = null
   private isProcessing = false
@@ -103,6 +347,83 @@ export class TaskScheduler {
   kick(): void {
     if (this.isProcessing) return
     void this.poll()
+  }
+
+  updateProviders(providers: KGModelProviderConfig[]): void {
+    const map = new Map<string, KGModelProviderConfig>()
+    for (const provider of providers ?? []) {
+      if (provider?.id) {
+        map.set(provider.id, provider)
+      }
+    }
+    this.providers = map
+    log(`Model providers updated: ${map.size}`)
+  }
+
+  private resolveProviderAndModel(
+    config: TaskConfig
+  ):
+    | { provider: KGModelProviderConfig; providerId: string; modelId: string }
+    | { error: string } {
+    let providerId = config.providerId
+    let modelId = config.modelId
+    const rawModel = typeof config.model === 'string' ? config.model : ''
+
+    if ((!providerId || !modelId) && rawModel) {
+      const parts = rawModel.split('/')
+      if (parts.length >= 2) {
+        if (!providerId) providerId = parts[0]
+        if (!modelId) modelId = parts.slice(1).join('/')
+      } else if (!modelId) {
+        modelId = rawModel
+      }
+    }
+
+    if (!providerId) {
+      return { error: 'Missing providerId for LLM request' }
+    }
+    if (!modelId) {
+      return { error: 'Missing modelId for LLM request' }
+    }
+
+    const provider = this.providers.get(providerId)
+    if (!provider) {
+      return { error: `Provider ${providerId} not found` }
+    }
+    if (!provider.enabled) {
+      return { error: `Provider ${providerId} disabled` }
+    }
+    if (!provider.baseUrl || !provider.apiKey) {
+      return { error: `Provider ${providerId} missing baseUrl/apiKey` }
+    }
+
+    return { provider, providerId, modelId }
+  }
+
+  private async readCache(
+    cacheKey: string
+  ): Promise<{ value: string; createTime?: string } | null> {
+    const cacheRows = this.client.extractRecords(
+      await this.client.query(
+        'SELECT `return` AS cached_return, create_time FROM kg_llm_result_cache WHERE cache_key = $cacheKey LIMIT 1;',
+        { cacheKey }
+      )
+    )
+    const row = cacheRows[0]
+    const value = row?.cached_return ?? row?.return
+    if (!value) return null
+    return { value: String(value), createTime: row?.create_time }
+  }
+
+  private async writeCache(cacheKey: string, value: string): Promise<void> {
+    try {
+      await this.client.query(
+        'CREATE kg_llm_result_cache CONTENT { cache_key: $cacheKey, cache_type: $cacheType, return: $value };',
+        { cacheKey, cacheType: 'default:extract', value }
+      )
+    } catch (error) {
+      logError('Cache insert failed', error)
+    }
   }
 
   // ==========================================================================
@@ -197,54 +518,51 @@ export class TaskScheduler {
         }
       }
 
-      // 核心循环：持续处理 pending chunks
-      while (true) {
-        // 每次循环请求并发数
-        const concurrency = await this.requestConcurrency()
+      // 核心处理：每次轮询只处理一个 task 的一批 chunks
+      const concurrency = Math.max(1, await this.requestConcurrency())
 
-        // 查找最早 pending chunk 对应 task
-        const taskResult = this.client.extractRecords(
-          await this.client.query(
-            `SELECT task_id, created_at FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1;`
-          )
+      // 查找最早 pending chunk 对应 task
+      const taskResult = this.client.extractRecords(
+        await this.client.query(
+          `SELECT task_id, created_at FROM kg_chunk WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1;`
         )
+      )
 
-        if (taskResult.length === 0) {
-          // 无 pending → 切静息
-          if (this.isActive) {
-            this.isActive = false
-            log('Core scheduler idle')
-          }
-          break
+      if (taskResult.length === 0) {
+        // 无 pending → 切静息
+        if (this.isActive) {
+          this.isActive = false
+          log('Core scheduler idle')
         }
-
-        // 有 pending → 切激活
-        if (!this.isActive) {
-          this.isActive = true
-          log('Core scheduler activated')
-        }
-
-        const taskIdStr = rid(taskResult[0].task_id)
-
-        // 获取 task 配置
-        const taskRecords = this.client.extractRecords(
-          await this.client.query(`SELECT * FROM ${taskIdStr};`)
-        )
-        const task = taskRecords[0]
-
-        if (!task) {
-          // task 配置缺失，将该 task 的 pending chunks 全部置 failed
-          await this.client.query(
-            `UPDATE kg_chunk SET status = 'failed', error = 'missing task config' WHERE task_id = $tid AND status = 'pending';`,
-            { tid: taskIdStr }
-          )
-          logError(`Task ${taskIdStr} config missing, marked pending chunks as failed`)
-          continue
-        }
-
-        // 处理该 task 的 pending chunks
-        await this.processTaskChunks(taskIdStr, task.config ?? {}, concurrency)
+        return
       }
+
+      // 有 pending → 切激活
+      if (!this.isActive) {
+        this.isActive = true
+        log('Core scheduler activated')
+      }
+
+      const taskIdStr = rid(taskResult[0].task_id)
+
+      // 获取 task 配置
+      const taskRecords = this.client.extractRecords(
+        await this.client.query(`SELECT * FROM ${taskIdStr};`)
+      )
+      const task = taskRecords[0]
+
+      if (!task) {
+        // task 配置缺失，将该 task 的 pending chunks 全部置 failed
+        await this.client.query(
+          `UPDATE kg_chunk SET status = 'failed', error = 'missing task config' WHERE task_id = $tid AND status = 'pending';`,
+          { tid: taskIdStr }
+        )
+        logError(`Task ${taskIdStr} config missing, marked pending chunks as failed`)
+        return
+      }
+
+      // 处理该 task 的 pending chunks
+      await this.processTaskChunks(taskIdStr, task.config ?? {}, concurrency)
     } catch (error) {
       logError('Poll error', error)
     } finally {
@@ -261,28 +579,33 @@ export class TaskScheduler {
     config: Record<string, any>,
     concurrency: number
   ): Promise<void> {
-    // 循环处理该 task 直到无 pending
-    while (true) {
-      const pendingChunks = this.client.extractRecords(
-        await this.client.query(
-          `SELECT * FROM kg_chunk WHERE task_id = $tid AND status = 'pending' ORDER BY chunk_index ASC LIMIT $lim;`,
-          { tid: taskIdStr, lim: concurrency }
-        )
+    const pendingChunks = this.client.extractRecords(
+      await this.client.query(
+        `SELECT * FROM kg_chunk WHERE task_id = $tid AND status = 'pending' ORDER BY chunk_index ASC LIMIT $lim;`,
+        { tid: taskIdStr, lim: Math.max(1, concurrency) }
       )
+    )
 
-      if (pendingChunks.length === 0) {
-        // 该 task 无 pending，派生更新后退出
-        await this.reconcileTaskStatus(taskIdStr)
-        break
-      }
-
-      log(`Processing ${taskIdStr}: ${pendingChunks.length} chunks (concurrency=${concurrency})`)
-
-      await Promise.allSettled(pendingChunks.map((c: any) => this.processChunk(c, config)))
-
-      // 每批处理后派生更新
+    if (pendingChunks.length === 0) {
+      // 该 task 无 pending，派生更新后退出
       await this.reconcileTaskStatus(taskIdStr)
+      return
     }
+
+    const innerConcurrency = Math.max(1, Number((config as TaskConfig).llmConcurrency ?? 1))
+    const actualConcurrency = Math.min(innerConcurrency, pendingChunks.length)
+
+    log(
+      `Processing ${taskIdStr}: ${pendingChunks.length} chunks (outer=${concurrency}, inner=${actualConcurrency})`
+    )
+
+    for (let i = 0; i < pendingChunks.length; i += actualConcurrency) {
+      const batch = pendingChunks.slice(i, i + actualConcurrency)
+      await Promise.allSettled(batch.map((c: any) => this.processChunk(c, config)))
+    }
+
+    // 每批处理后派生更新
+    await this.reconcileTaskStatus(taskIdStr)
   }
 
   private async processChunk(chunk: any, config: Record<string, any>): Promise<void> {
@@ -291,18 +614,52 @@ export class TaskScheduler {
     await this.client.query(`UPDATE ${chunkIdStr} SET status = 'progressing';`)
 
     try {
-      const llmResult = await callLLMStub(chunk.content, config)
-
-      if (llmResult.success) {
-        await this.client.query(
-          `UPDATE ${chunkIdStr} SET status = 'completed', result = $result, error = NONE;`,
-          { result: llmResult.result ?? {} }
-        )
-      } else {
-        await this.client.query(`UPDATE ${chunkIdStr} SET status = 'failed', error = $err;`, {
-          err: llmResult.error ?? 'Unknown LLM error'
-        })
+      const taskConfig = config as TaskConfig
+      const resolved = this.resolveProviderAndModel(taskConfig)
+      if ('error' in resolved) {
+        throw new Error(resolved.error)
       }
+
+      const { provider, providerId, modelId } = resolved
+
+      const { systemPrompt, userPrompt, continuePrompt, cacheKey } = await buildPromptInputs({
+        content: chunk.content ?? '',
+        entityTypes: Array.isArray(taskConfig.entityTypes) ? taskConfig.entityTypes : undefined,
+        language: taskConfig.outputLanguage,
+        providerId,
+        modelId,
+        embeddingUpdatedAt: taskConfig.embeddingUpdatedAt
+      })
+
+      const cached = await this.readCache(cacheKey)
+      if (cached?.value) {
+        await this.client.query(
+          `UPDATE ${chunkIdStr} SET status = 'completed', result = $result, error = NONE, cache_key = $cacheKey, cache_hit = true, extracted_at = $extractedAt;`,
+          {
+            result: { raw_response: cached.value },
+            cacheKey,
+            extractedAt: cached.createTime ?? new Date().toISOString()
+          }
+        )
+        return
+      }
+
+      const rawResponse = await runExtraction({
+        baseUrl: provider.baseUrl,
+        apiKey: provider.apiKey,
+        model: modelId,
+        systemPrompt,
+        userPrompt,
+        continuePrompt
+      })
+
+      const extractedAt = new Date().toISOString()
+      await this.client.query(
+        `UPDATE ${chunkIdStr} SET status = 'completed', result = $result, error = NONE, cache_key = $cacheKey, cache_hit = false, extracted_at = $extractedAt;`,
+        { result: { raw_response: rawResponse }, cacheKey, extractedAt }
+      )
+
+      await this.writeCache(cacheKey, rawResponse)
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
       logError(`Chunk ${chunkIdStr} processing error`, error)

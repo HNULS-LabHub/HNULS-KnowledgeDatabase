@@ -1,5 +1,18 @@
 import { BaseIPCHandler } from './base-handler'
 import { ModelConfigService } from '../services/model-config'
+import { knowledgeGraphBridge } from '../services/knowledge-graph-bridge'
+import type { KGModelProviderConfig } from '@shared/knowledge-graph-ipc.types'
+import type { ModelConfig } from '../services/model-config/types'
+
+function toKgProviders(config: ModelConfig): KGModelProviderConfig[] {
+  return (config.providers ?? []).map((p) => ({
+    id: p.id,
+    protocol: p.protocol,
+    baseUrl: p.baseUrl,
+    apiKey: p.apiKey,
+    enabled: p.enabled
+  }))
+}
 
 export class ModelConfigIPCHandler extends BaseIPCHandler {
   constructor(private readonly modelConfigService: ModelConfigService) {
@@ -21,6 +34,7 @@ export class ModelConfigIPCHandler extends BaseIPCHandler {
     patch: unknown
   ): Promise<{ success: true; data: unknown } | { success: false; error: string }> {
     const config = await this.modelConfigService.updateConfig(patch as any)
+    knowledgeGraphBridge.updateModelProviders(toKgProviders(config))
     return { success: true, data: config }
   }
 

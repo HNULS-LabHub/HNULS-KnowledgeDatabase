@@ -60,11 +60,23 @@ DEFINE FIELD IF NOT EXISTS status ON kg_chunk TYPE string DEFAULT 'pending'
   ASSERT $value IN ['pending', 'progressing', 'paused', 'completed', 'failed'];
 DEFINE FIELD IF NOT EXISTS result ON kg_chunk FLEXIBLE TYPE object DEFAULT {};
 DEFINE FIELD IF NOT EXISTS error ON kg_chunk TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS cache_key ON kg_chunk TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS cache_hit ON kg_chunk TYPE option<bool>;
+DEFINE FIELD IF NOT EXISTS extracted_at ON kg_chunk TYPE option<datetime>;
 DEFINE FIELD IF NOT EXISTS created_at ON kg_chunk TYPE datetime DEFAULT time::now();
 DEFINE FIELD IF NOT EXISTS updated_at ON kg_chunk TYPE datetime VALUE time::now();
 DEFINE INDEX IF NOT EXISTS idx_kg_chunk_task ON kg_chunk COLUMNS task_id;
 DEFINE INDEX IF NOT EXISTS idx_kg_chunk_status ON kg_chunk COLUMNS status;
 DEFINE INDEX IF NOT EXISTS idx_kg_chunk_task_status ON kg_chunk COLUMNS task_id, status;
+`
+
+const KG_LLM_CACHE_SCHEMA = `
+DEFINE TABLE IF NOT EXISTS kg_llm_result_cache SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS cache_key ON kg_llm_result_cache TYPE string;
+DEFINE FIELD IF NOT EXISTS cache_type ON kg_llm_result_cache TYPE string;
+DEFINE FIELD IF NOT EXISTS return ON kg_llm_result_cache TYPE string;
+DEFINE FIELD IF NOT EXISTS create_time ON kg_llm_result_cache TYPE datetime DEFAULT time::now();
+DEFINE INDEX IF NOT EXISTS uniq_kg_llm_cache_key ON kg_llm_result_cache COLUMNS cache_key UNIQUE;
 `
 
 // ============================================================================
@@ -89,6 +101,7 @@ export class TaskSubmissionService {
       log('Initializing kg_task and kg_chunk schemas...')
       await this.client.query(KG_TASK_SCHEMA)
       await this.client.query(KG_CHUNK_SCHEMA)
+      await this.client.query(KG_LLM_CACHE_SCHEMA)
       this.schemaInitialized = true
       log('Schema initialized successfully')
     } catch (error) {
@@ -109,6 +122,7 @@ export class TaskSubmissionService {
     await this.ensureSchema()
 
     const { fileKey, sourceNamespace, sourceDatabase, sourceTable, config } = params
+    const taskConfig: KGSubmitTaskParams['config'] = { ...(config ?? {}) }
 
     // 1. 从嵌入表拉 chunks
     log('Fetching chunks from embedding table', {
@@ -142,7 +156,35 @@ export class TaskSubmissionService {
 
     log(`Fetched ${chunks.length} chunks for fileKey="${fileKey}"`)
 
-    // 2. 创建 kg_task 记录
+    // 2. 查询嵌入版本信息（用于重新嵌入判定）
+    if (taskConfig.embeddingConfigId) {
+      try {
+        const embeddingSql = `
+          SELECT embedding_config_id, updated_at
+          FROM kb_document_embedding
+          WHERE file_key = $fileKey
+            AND embedding_config_id = $embeddingConfigId
+            AND status = 'completed'
+          ORDER BY updated_at DESC
+          LIMIT 1;
+        `
+        const embeddingResult = await this.client.queryInDatabase(
+          sourceNamespace,
+          sourceDatabase,
+          embeddingSql,
+          { fileKey, embeddingConfigId: taskConfig.embeddingConfigId }
+        )
+        const embeddingRecords = this.client.extractRecords(embeddingResult)
+        const record = embeddingRecords[0]
+        if (record?.updated_at) {
+          taskConfig.embeddingUpdatedAt = String(record.updated_at)
+        }
+      } catch (error) {
+        logError('Failed to fetch embedding updated_at, continue without snapshot', error)
+      }
+    }
+
+    // 3. 创建 kg_task 记录
     const createTaskSql = `
       CREATE kg_task CONTENT {
         status: 'pending',
@@ -164,7 +206,7 @@ export class TaskSubmissionService {
       sourceDatabase,
       sourceTable,
       chunksTotal: chunks.length,
-      config
+      config: taskConfig
     })
 
     const taskRecords = this.client.extractRecords(taskResult)

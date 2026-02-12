@@ -1,4 +1,4 @@
-import { AppService, UserConfigService } from './services'
+import { AppService, UserConfigService, ModelConfigService } from './services'
 import { IPCManager } from './ipc'
 import { globalMonitorBridge } from './services/global-monitor-bridge'
 import { embeddingEngineBridge } from './services/embedding-engine-bridge'
@@ -207,6 +207,23 @@ class Application {
       const userConfigService = new UserConfigService()
       const userConfig = await userConfigService.getConfig()
       knowledgeGraphBridge.updateConcurrency(userConfig.knowledgeGraph.chunkConcurrency)
+
+      // 同步模型提供商配置到 KG 子进程
+      try {
+        const modelConfigService = new ModelConfigService()
+        const modelConfig = await modelConfigService.getConfig()
+        knowledgeGraphBridge.updateModelProviders(
+          (modelConfig.providers ?? []).map((p) => ({
+            id: p.id,
+            protocol: p.protocol,
+            baseUrl: p.baseUrl,
+            apiKey: p.apiKey,
+            enabled: p.enabled
+          }))
+        )
+      } catch {
+        // ignore provider sync errors on startup
+      }
 
       // 监听事件
       knowledgeGraphBridge.onTaskCompleted((taskId) => {

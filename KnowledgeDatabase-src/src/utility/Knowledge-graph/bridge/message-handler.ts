@@ -76,6 +76,9 @@ export class MessageHandler {
         case 'kg:query-status':
           await this.handleQueryStatus(msg.requestId)
           break
+        case 'kg:update-model-providers':
+          this.scheduler.updateProviders(msg.providers ?? [])
+          break
 
         default:
           log(`Unknown message type: ${(msg as any).type}`)

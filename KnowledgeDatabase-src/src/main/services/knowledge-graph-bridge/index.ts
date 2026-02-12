@@ -11,7 +11,8 @@ import type {
   KGToMainMessage,
   KGDBConfig,
   KGSubmitTaskParams,
-  KGTaskStatus
+  KGTaskStatus,
+  KGModelProviderConfig
 } from '@shared/knowledge-graph-ipc.types'
 import { logger } from '../logger'
 
@@ -36,6 +37,7 @@ export class KnowledgeGraphBridge {
   private readyPromise: Promise<void> | null = null
   private readyResolve: (() => void) | null = null
   private currentConcurrency = 5
+  private pendingProviders: KGModelProviderConfig[] | null = null
 
   /** 初始化完成 Promise */
   private initPromise: Promise<void> | null = null
@@ -148,6 +150,17 @@ export class KnowledgeGraphBridge {
   }
 
   /**
+   * 更新 LLM Provider 配置
+   */
+  updateModelProviders(providers: KGModelProviderConfig[]): void {
+    this.pendingProviders = providers
+    if (!this.process || !this.isReady) {
+      return
+    }
+    this.sendToProcess({ type: 'kg:update-model-providers', providers })
+  }
+
+  /**
    * 查询所有任务状态
    */
   async queryStatus(): Promise<KGTaskStatus[]> {
@@ -189,6 +202,9 @@ export class KnowledgeGraphBridge {
       case 'kg:ready':
         this.isReady = true
         this.readyResolve?.()
+        if (this.pendingProviders) {
+          this.sendToProcess({ type: 'kg:update-model-providers', providers: this.pendingProviders })
+        }
         break
 
       case 'kg:init-result':

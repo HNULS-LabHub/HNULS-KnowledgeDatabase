@@ -67,7 +67,12 @@ export const useKgBuildStore = defineStore('kg-build', () => {
       sourceTable: embeddingTableName,
       config: {
         model: `${kgConfig.llmProviderId}/${kgConfig.llmModelId}`,
-        entityTypes: safeEntityTypes
+        providerId: kgConfig.llmProviderId,
+        modelId: kgConfig.llmModelId,
+        entityTypes: safeEntityTypes,
+        outputLanguage: kgConfig.outputLanguage,
+        llmConcurrency: kgConfig.chunkConcurrency,
+        embeddingConfigId: kgConfig.embeddingConfigId
       }
     }
 
