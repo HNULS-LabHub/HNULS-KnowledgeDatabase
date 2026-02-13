@@ -1,5 +1,5 @@
 ---
-name: Electron Tray Icon Setup
+name: electron-tray-icon-setup
 description: 在 Electron 应用中正确配置系统托盘图标，涵盖路径处理、资源打包、平台差异、用户体验最佳实践。基于 KnowledgeDatabase 项目实战总结，解决"托盘图标不显示"、"打包后路径错误"、"资源未包含"三大常见问题。
 ---
 

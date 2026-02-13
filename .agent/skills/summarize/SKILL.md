@@ -1,5 +1,5 @@
 ---
-name: Summarize
+name: summarize
 description: 总结当前项目状态，生成一份交接文档，帮助下一个 AI 模型快速理解并接手工作
 ---
 请按照【上下文锚点协议】为我们的当前工作生成一份“交接文档”。

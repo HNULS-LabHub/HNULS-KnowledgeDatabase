@@ -1,5 +1,5 @@
 ---
-name: SurrealDB 深度研判与实战指南
+name: surrealdb-deep-guide
 description: 当涉及以下场景时激活此技能：(1) 编写、审查、调试任何 SurrealQL 查询或 Schema 定义；(2) 讨论数据存储方案并使用 SurrealDB 时的状态机设计、数据流转、Schema 规划；(3) 操作本项目的 QueryService、surrealdb-query.ts、跨库查询、IPC 数据库调用；(4) 用户提到 Record ID、RELATE、图遍历、DEFINE EVENT/FIELD/TABLE、事务、MERGE/CONTENT/PATCH 等 SurrealDB 关键词；(5) 规划业务模型需要落地到 SurrealDB 的表结构、索引、权限设计。
 ---
 

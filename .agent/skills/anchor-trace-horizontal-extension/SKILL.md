@@ -1,5 +1,5 @@
 ---
-name: 双向链路追踪文件
+name: anchor-trace-horizontal-extension
 description: 当用户让你看某个链接的时候激活
 ---
 ## Skills：基于"锚点文件"双向追踪链路并横向扩展
