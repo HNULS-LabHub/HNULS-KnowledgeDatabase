@@ -12,7 +12,9 @@ import type {
   KGDBConfig,
   KGSubmitTaskParams,
   KGTaskStatus,
-  KGModelProviderConfig
+  KGModelProviderConfig,
+  KGCreateSchemaParams,
+  KGBuildTaskStatus
 } from '@shared/knowledge-graph-ipc.types'
 import { logger } from '../logger'
 
@@ -50,6 +52,18 @@ export class KnowledgeGraphBridge {
   private taskProgressListeners: Set<
     (taskId: string, completed: number, failed: number, total: number) => void
   > = new Set()
+  private buildProgressListeners: Set<
+    (
+      taskId: string,
+      completed: number,
+      failed: number,
+      total: number,
+      entitiesTotal: number,
+      relationsTotal: number
+    ) => void
+  > = new Set()
+  private buildCompletedListeners: Set<(taskId: string) => void> = new Set()
+  private buildFailedListeners: Set<(taskId: string, error: string) => void> = new Set()
 
   // ==========================================================================
   // 生命周期
@@ -172,6 +186,31 @@ export class KnowledgeGraphBridge {
     })
   }
 
+  /**
+   * 创建图谱表 Schema
+   */
+  async createGraphSchema(params: KGCreateSchemaParams): Promise<string[]> {
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+
+    return this.sendRequest<string[]>(requestId, {
+      type: 'kg:create-graph-schema',
+      requestId,
+      data: params
+    })
+  }
+
+  /**
+   * 查询图谱构建任务状态
+   */
+  async queryBuildStatus(): Promise<KGBuildTaskStatus[]> {
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+
+    return this.sendRequest<KGBuildTaskStatus[]>(requestId, {
+      type: 'kg:query-build-status',
+      requestId
+    })
+  }
+
   // ==========================================================================
   // 事件监听
   // ==========================================================================
@@ -193,6 +232,30 @@ export class KnowledgeGraphBridge {
     return () => this.taskProgressListeners.delete(listener)
   }
 
+  onBuildProgress(
+    listener: (
+      taskId: string,
+      completed: number,
+      failed: number,
+      total: number,
+      entitiesTotal: number,
+      relationsTotal: number
+    ) => void
+  ): () => void {
+    this.buildProgressListeners.add(listener)
+    return () => this.buildProgressListeners.delete(listener)
+  }
+
+  onBuildCompleted(listener: (taskId: string) => void): () => void {
+    this.buildCompletedListeners.add(listener)
+    return () => this.buildCompletedListeners.delete(listener)
+  }
+
+  onBuildFailed(listener: (taskId: string, error: string) => void): () => void {
+    this.buildFailedListeners.add(listener)
+    return () => this.buildFailedListeners.delete(listener)
+  }
+
   // ==========================================================================
   // 消息处理
   // ==========================================================================
@@ -203,7 +266,10 @@ export class KnowledgeGraphBridge {
         this.isReady = true
         this.readyResolve?.()
         if (this.pendingProviders) {
-          this.sendToProcess({ type: 'kg:update-model-providers', providers: this.pendingProviders })
+          this.sendToProcess({
+            type: 'kg:update-model-providers',
+            providers: this.pendingProviders
+          })
         }
         break
 
@@ -270,6 +336,61 @@ export class KnowledgeGraphBridge {
       case 'kg:request-concurrency':
         this.sendToProcess({ type: 'kg:concurrency-response', value: this.currentConcurrency })
         break
+
+      case 'kg:schema-created': {
+        const pending = this.pendingRequests.get(msg.requestId)
+        if (pending) {
+          clearTimeout(pending.timeoutId)
+          this.pendingRequests.delete(msg.requestId)
+          pending.resolve(msg.tables)
+        }
+        break
+      }
+
+      case 'kg:schema-error': {
+        const pending = this.pendingRequests.get(msg.requestId)
+        if (pending) {
+          clearTimeout(pending.timeoutId)
+          this.pendingRequests.delete(msg.requestId)
+          pending.reject(new Error(msg.error))
+        }
+        break
+      }
+
+      case 'kg:build-progress':
+        for (const listener of this.buildProgressListeners) {
+          listener(
+            msg.taskId,
+            msg.completed,
+            msg.failed,
+            msg.total,
+            msg.entitiesTotal,
+            msg.relationsTotal
+          )
+        }
+        break
+
+      case 'kg:build-completed':
+        for (const listener of this.buildCompletedListeners) {
+          listener(msg.taskId)
+        }
+        break
+
+      case 'kg:build-failed':
+        for (const listener of this.buildFailedListeners) {
+          listener(msg.taskId, msg.error)
+        }
+        break
+
+      case 'kg:build-status': {
+        const pending = this.pendingRequests.get(msg.requestId)
+        if (pending) {
+          clearTimeout(pending.timeoutId)
+          this.pendingRequests.delete(msg.requestId)
+          pending.resolve(msg.tasks)
+        }
+        break
+      }
 
       default:
         logger.warn('[KnowledgeGraphBridge] Unknown message type:', (msg as any).type)

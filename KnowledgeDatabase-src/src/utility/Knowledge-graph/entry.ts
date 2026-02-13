@@ -6,6 +6,7 @@
 import { KGSurrealClient } from './db/surreal-client'
 import { TaskSubmissionService } from './service/task-submission'
 import { TaskScheduler } from './core/task-scheduler'
+import { GraphBuildScheduler } from './core/graph-build-scheduler'
 import { MessageHandler } from './bridge/message-handler'
 import type { MainToKGMessage, KGToMainMessage } from '@shared/knowledge-graph-ipc.types'
 
@@ -139,10 +140,24 @@ function handleConcurrencyResponse(value: number): void {
 const surrealClient = new KGSurrealClient()
 const taskSubmission = new TaskSubmissionService(surrealClient)
 const scheduler = new TaskScheduler(surrealClient, sendMessage, requestConcurrency)
-const messageHandler = new MessageHandler(surrealClient, taskSubmission, scheduler, sendMessage)
+const graphBuildScheduler = new GraphBuildScheduler(surrealClient, sendMessage)
+const messageHandler = new MessageHandler(
+  surrealClient,
+  taskSubmission,
+  scheduler,
+  graphBuildScheduler,
+  sendMessage
+)
+
+// 胶水：第一阶段完成 → kick 第二阶段
+scheduler.onTaskCompleted = () => graphBuildScheduler.kick()
+
 // 启动调度器（无需等待 init，内部会自行等待连接）
 scheduler.start().catch((error) => {
   console.error('[KnowledgeGraph] Failed to start scheduler:', error)
+})
+graphBuildScheduler.start().catch((error) => {
+  console.error('[KnowledgeGraph] Failed to start graph build scheduler:', error)
 })
 
 // ============================================================================

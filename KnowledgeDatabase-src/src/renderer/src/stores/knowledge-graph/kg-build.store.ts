@@ -73,7 +73,10 @@ export const useKgBuildStore = defineStore('kg-build', () => {
         outputLanguage: kgConfig.outputLanguage,
         llmConcurrency: kgConfig.chunkConcurrency,
         embeddingConfigId: kgConfig.embeddingConfigId
-      }
+      },
+      targetNamespace: 'knowledge',
+      targetDatabase: databaseName,
+      targetTableBase: kgConfig.graphTableBase
     }
 
     try {
@@ -184,7 +187,8 @@ export const useKgBuildStore = defineStore('kg-build', () => {
     switch (backendStatus) {
       case 'pending':
         return 'pending'
-      case 'paused': return 'pending'
+      case 'paused':
+        return 'pending'
       case 'progressing':
         return 'running'
       case 'completed':

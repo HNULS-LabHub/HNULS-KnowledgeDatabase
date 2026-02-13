@@ -46,6 +46,9 @@ DEFINE FIELD IF NOT EXISTS chunks_total_origin ON kg_task TYPE int DEFAULT 0;
 DEFINE FIELD IF NOT EXISTS chunks_completed ON kg_task TYPE int DEFAULT 0;
 DEFINE FIELD IF NOT EXISTS chunks_failed ON kg_task TYPE int DEFAULT 0;
 DEFINE FIELD IF NOT EXISTS config ON kg_task FLEXIBLE TYPE object DEFAULT {};
+DEFINE FIELD IF NOT EXISTS target_namespace ON kg_task TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS target_database ON kg_task TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS target_table_base ON kg_task TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS created_at ON kg_task TYPE datetime DEFAULT time::now();
 DEFINE FIELD IF NOT EXISTS updated_at ON kg_task TYPE datetime VALUE time::now();
 DEFINE INDEX IF NOT EXISTS idx_kg_task_status ON kg_task COLUMNS status;
@@ -68,6 +71,43 @@ DEFINE FIELD IF NOT EXISTS updated_at ON kg_chunk TYPE datetime VALUE time::now(
 DEFINE INDEX IF NOT EXISTS idx_kg_chunk_task ON kg_chunk COLUMNS task_id;
 DEFINE INDEX IF NOT EXISTS idx_kg_chunk_status ON kg_chunk COLUMNS status;
 DEFINE INDEX IF NOT EXISTS idx_kg_chunk_task_status ON kg_chunk COLUMNS task_id, status;
+`
+
+const KG_BUILD_TASK_SCHEMA = `
+DEFINE TABLE IF NOT EXISTS kg_build_task SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS source_task_id    ON kg_build_task TYPE string;
+DEFINE FIELD IF NOT EXISTS file_key          ON kg_build_task TYPE string;
+DEFINE FIELD IF NOT EXISTS status            ON kg_build_task TYPE string DEFAULT 'pending'
+  ASSERT $value IN ['pending', 'progressing', 'completed', 'failed'];
+DEFINE FIELD IF NOT EXISTS target_namespace  ON kg_build_task TYPE string;
+DEFINE FIELD IF NOT EXISTS target_database   ON kg_build_task TYPE string;
+DEFINE FIELD IF NOT EXISTS target_table_base ON kg_build_task TYPE string;
+DEFINE FIELD IF NOT EXISTS config            ON kg_build_task FLEXIBLE TYPE object DEFAULT {};
+DEFINE FIELD IF NOT EXISTS chunks_total      ON kg_build_task TYPE int DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS chunks_completed  ON kg_build_task TYPE int DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS chunks_failed     ON kg_build_task TYPE int DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS entities_upserted ON kg_build_task TYPE int DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS relations_upserted ON kg_build_task TYPE int DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS created_at        ON kg_build_task TYPE datetime DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS updated_at        ON kg_build_task TYPE datetime VALUE time::now();
+DEFINE INDEX IF NOT EXISTS idx_kbt_status    ON kg_build_task COLUMNS status;
+`
+
+const KG_BUILD_CHUNK_SCHEMA = `
+DEFINE TABLE IF NOT EXISTS kg_build_chunk SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS task_id         ON kg_build_chunk TYPE string;
+DEFINE FIELD IF NOT EXISTS chunk_index     ON kg_build_chunk TYPE int;
+DEFINE FIELD IF NOT EXISTS cache_key       ON kg_build_chunk TYPE string;
+DEFINE FIELD IF NOT EXISTS status          ON kg_build_chunk TYPE string DEFAULT 'pending'
+  ASSERT $value IN ['pending', 'progressing', 'completed', 'failed'];
+DEFINE FIELD IF NOT EXISTS entities_count  ON kg_build_chunk TYPE int DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS relations_count ON kg_build_chunk TYPE int DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS error           ON kg_build_chunk TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS created_at      ON kg_build_chunk TYPE datetime DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS updated_at      ON kg_build_chunk TYPE datetime VALUE time::now();
+DEFINE INDEX IF NOT EXISTS idx_kbc_task    ON kg_build_chunk COLUMNS task_id;
+DEFINE INDEX IF NOT EXISTS idx_kbc_status  ON kg_build_chunk COLUMNS status;
+DEFINE INDEX IF NOT EXISTS idx_kbc_task_status ON kg_build_chunk COLUMNS task_id, status;
 `
 
 const KG_LLM_CACHE_SCHEMA = `
@@ -102,6 +142,8 @@ export class TaskSubmissionService {
       await this.client.query(KG_TASK_SCHEMA)
       await this.client.query(KG_CHUNK_SCHEMA)
       await this.client.query(KG_LLM_CACHE_SCHEMA)
+      await this.client.query(KG_BUILD_TASK_SCHEMA)
+      await this.client.query(KG_BUILD_CHUNK_SCHEMA)
       this.schemaInitialized = true
       log('Schema initialized successfully')
     } catch (error) {
@@ -121,7 +163,16 @@ export class TaskSubmissionService {
   async submitTask(params: KGSubmitTaskParams): Promise<{ taskId: string; chunksTotal: number }> {
     await this.ensureSchema()
 
-    const { fileKey, sourceNamespace, sourceDatabase, sourceTable, config } = params
+    const {
+      fileKey,
+      sourceNamespace,
+      sourceDatabase,
+      sourceTable,
+      config,
+      targetNamespace,
+      targetDatabase,
+      targetTableBase
+    } = params
     const taskConfig: KGSubmitTaskParams['config'] = { ...(config ?? {}) }
 
     // 1. 从嵌入表拉 chunks
@@ -196,7 +247,10 @@ export class TaskSubmissionService {
         chunks_total_origin: $chunksTotal,
         chunks_completed: 0,
         chunks_failed: 0,
-        config: $config
+        config: $config,
+        target_namespace: $targetNamespace,
+        target_database: $targetDatabase,
+        target_table_base: $targetTableBase
       };
     `
 
@@ -206,7 +260,10 @@ export class TaskSubmissionService {
       sourceDatabase,
       sourceTable,
       chunksTotal: chunks.length,
-      config: taskConfig
+      config: taskConfig,
+      targetNamespace: targetNamespace ?? null,
+      targetDatabase: targetDatabase ?? null,
+      targetTableBase: targetTableBase ?? null
     })
 
     const taskRecords = this.client.extractRecords(taskResult)

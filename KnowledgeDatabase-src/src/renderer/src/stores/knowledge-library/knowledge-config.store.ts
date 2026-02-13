@@ -294,9 +294,21 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
     kbId: number,
     configData: Omit<KnowledgeGraphModelConfig, 'id'>
   ): Promise<KnowledgeGraphModelConfig> {
+    // 获取嵌入配置的 dimensions
+    const embConfig = getEmbeddingConfigs
+      .value(kbId)
+      .find((c) => c.id === configData.embeddingConfigId)
+    const dimensions = embConfig?.dimensions ?? 0
+
+    // 生成图谱表基名
+    const safeId = configData.embeddingConfigId.replace(/[^a-zA-Z0-9_]/g, '_')
+    const graphTableBase = `kg_emb_cfg_${safeId}_${dimensions}`
+
     const newConfig: KnowledgeGraphModelConfig = {
       id: `kg_cfg_${Date.now()}`,
-      ...configData
+      ...configData,
+      graphTableBase,
+      graphTablesCreated: false
     }
 
     const currentConfigs = getKgConfigs.value(kbId)
@@ -307,6 +319,24 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
     }
 
     await updateGlobalConfig(kbId, { knowledgeGraph: updatedKg })
+
+    // 异步创建图谱表 Schema（不阻塞配置创建）
+    try {
+      const kbConfig = configByKbId.value.get(kbId)
+      const databaseName = (kbConfig as any)?._databaseName
+      if (databaseName) {
+        await window.api.knowledgeGraph.createGraphSchema({
+          targetNamespace: 'knowledge',
+          targetDatabase: databaseName,
+          graphTableBase
+        })
+        newConfig.graphTablesCreated = true
+        await updateKgConfig(kbId, newConfig.id, { graphTablesCreated: true })
+      }
+    } catch (error) {
+      console.error('Failed to create graph schema, will retry on first build', error)
+    }
+
     return newConfig
   }
 

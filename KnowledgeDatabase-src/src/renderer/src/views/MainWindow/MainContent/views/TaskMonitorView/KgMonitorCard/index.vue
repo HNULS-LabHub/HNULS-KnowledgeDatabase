@@ -153,14 +153,26 @@
                         @click="store.cancelTask(task.taskId)"
                         title="取消"
                       >
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg
+                          class="w-4 h-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
                           <line x1="18" y1="6" x2="6" y2="18" />
                           <line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
                       </button>
                       <button
                         class="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                        :disabled="!(task.status === 'pending' || task.status === 'progressing' || task.status === 'failed')"
+                        :disabled="
+                          !(
+                            task.status === 'pending' ||
+                            task.status === 'progressing' ||
+                            task.status === 'failed'
+                          )
+                        "
                         @click="store.pauseTask(task.taskId)"
                         title="暂停"
                       >
@@ -185,7 +197,13 @@
                         @click="store.retryTask(task.taskId)"
                         title="重试"
                       >
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg
+                          class="w-4 h-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
                           <polyline points="1 4 1 10 7 10" />
                           <path d="M3.5 15a8 8 0 1 0 2.2-9.4L1 10" />
                         </svg>
@@ -196,7 +214,13 @@
                         @click="store.removeTask(task.taskId)"
                         title="删除"
                       >
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg
+                          class="w-4 h-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
                           <polyline points="3 6 5 6 21 6" />
                           <path d="M8 6V4h8v2" />
                           <path d="M19 6l-1 14H6L5 6" />
@@ -237,7 +261,7 @@
                       </div>
                       <div class="max-h-80 overflow-y-auto">
                         <div class="overflow-x-auto">
-                        <table class="min-w-[720px] w-full text-left border-collapse text-xs">
+                          <table class="min-w-[720px] w-full text-left border-collapse text-xs">
                             <thead
                               class="bg-slate-50 text-slate-500 uppercase border-b border-slate-100"
                             >
@@ -289,29 +313,59 @@
                                       @click="store.retryChunk(task.taskId, chunk.chunkIndex)"
                                       title="重试"
                                     >
-                                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <svg
+                                        class="w-3.5 h-3.5"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                      >
                                         <polyline points="1 4 1 10 7 10" />
                                         <path d="M3.5 15a8 8 0 1 0 2.2-9.4L1 10" />
                                       </svg>
                                     </button>
                                     <button
                                       class="p-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                                      :disabled="!(chunk.status === 'pending' || chunk.status === 'progressing')"
+                                      :disabled="
+                                        !(
+                                          chunk.status === 'pending' ||
+                                          chunk.status === 'progressing'
+                                        )
+                                      "
                                       @click="store.cancelChunk(task.taskId, chunk.chunkIndex)"
                                       title="取消"
                                     >
-                                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <svg
+                                        class="w-3.5 h-3.5"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                      >
                                         <line x1="18" y1="6" x2="6" y2="18" />
                                         <line x1="6" y1="6" x2="18" y2="18" />
                                       </svg>
                                     </button>
                                     <button
                                       class="p-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                                      :disabled="!(chunk.status === 'pending' || chunk.status === 'paused' || chunk.status === 'completed' || chunk.status === 'failed')"
+                                      :disabled="
+                                        !(
+                                          chunk.status === 'pending' ||
+                                          chunk.status === 'paused' ||
+                                          chunk.status === 'completed' ||
+                                          chunk.status === 'failed'
+                                        )
+                                      "
                                       @click="store.removeChunk(task.taskId, chunk.chunkIndex)"
                                       title="删除"
                                     >
-                                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <svg
+                                        class="w-3.5 h-3.5"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                      >
                                         <polyline points="3 6 5 6 21 6" />
                                         <path d="M8 6V4h8v2" />
                                         <path d="M19 6l-1 14H6L5 6" />

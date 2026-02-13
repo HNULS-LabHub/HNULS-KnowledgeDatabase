@@ -7,11 +7,19 @@
 import type {
   KGSubmitTaskParams,
   KGTaskStatus,
-  KGTaskConfig
+  KGTaskConfig,
+  KGCreateSchemaParams,
+  KGBuildTaskStatus
 } from '../../Public/ShareTypes/knowledge-graph-ipc.types'
 
 // 重新导出供前端使用
-export type { KGSubmitTaskParams, KGTaskStatus, KGTaskConfig }
+export type {
+  KGSubmitTaskParams,
+  KGTaskStatus,
+  KGTaskConfig,
+  KGCreateSchemaParams,
+  KGBuildTaskStatus
+}
 
 /**
  * 知识图谱 API
@@ -48,4 +56,38 @@ export interface KnowledgeGraphAPI {
    * 监听任务失败
    */
   onTaskFailed(callback: (taskId: string, error: string) => void): () => void
+
+  /**
+   * 创建图谱表 Schema
+   */
+  createGraphSchema(params: KGCreateSchemaParams): Promise<string[]>
+
+  /**
+   * 查询图谱构建任务状态
+   */
+  queryBuildStatus(): Promise<KGBuildTaskStatus[]>
+
+  /**
+   * 监听图谱构建进度
+   */
+  onBuildProgress(
+    callback: (
+      taskId: string,
+      completed: number,
+      failed: number,
+      total: number,
+      entitiesTotal: number,
+      relationsTotal: number
+    ) => void
+  ): () => void
+
+  /**
+   * 监听图谱构建完成
+   */
+  onBuildCompleted(callback: (taskId: string) => void): () => void
+
+  /**
+   * 监听图谱构建失败
+   */
+  onBuildFailed(callback: (taskId: string, error: string) => void): () => void
 }

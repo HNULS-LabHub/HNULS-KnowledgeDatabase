@@ -1,19 +1,101 @@
 #V2
-INFO FOR DB;
-SELECT id, file_key, status, chunks_total, chunks_completed, chunks_failed, created_at, updated_at FROM kg_task WHERE (status = 'all' OR status = 'pending') LIMIT 10 START 0;
-SELECT COUNT() AS total FROM kg_task GROUP ALL;
-SELECT id, task_id, chunk_index, status, error, created_at, updated_at FROM kg_chunk WHERE task_id = 'test' LIMIT 10 START 0;
-SELECT COUNT() AS total FROM kg_chunk WHERE task_id = 'test' GROUP ALL;
-CREATE kg_task SET id = 'task:1', file_key = 'test.pdf', status = 'pending', chunks_total = 10, chunks_completed = 0, chunks_failed = 0, created_at = time::now(), updated_at = time::now();
-INFO FOR TABLE kg_task;
-CREATE kg_task SET file_key = 'test.pdf', status = 'pending', chunks_total = 10, chunks_completed = 0, chunks_failed = 0, source_database = 'test_db', source_namespace = 'test_ns', source_table = 'test_table';
-UPDATE kg_task SET status = 'failed', updated_at = time::now() WHERE id = kg_task:dtu2s8y3ihz9n1codrah AND status = 'pending';
-UPDATE kg_task SET status = 'pending', chunks_failed = 0, updated_at = time::now() WHERE id = kg_task:dtu2s8y3ihz9n1codrah AND status = 'failed';
-CREATE kg_task SET file_key = 'another.pdf', status = 'completed', chunks_total = 5, chunks_completed = 5, chunks_failed = 0, source_database = 'test_db', source_namespace = 'test_ns', source_table = 'test_table';
-DELETE FROM kg_chunk WHERE task_id = kg_task:215jpupzun2z9jpsrjwb;
-DELETE kg_task:215jpupzun2z9jpsrjwb;
-INFO FOR TABLE kg_chunk;
-CREATE kg_chunk SET task_id = 'kg_task:dtu2s8y3ihz9n1codrah', chunk_index = 0, content = 'Test chunk content', status = 'pending';
-UPDATE kg_chunk SET status = 'failed', error = 'cancelled by user', updated_at = time::now() WHERE task_id = 'kg_task:dtu2s8y3ihz9n1codrah' AND status = 'pending';
-UPDATE kg_chunk SET status = 'pending', error = NONE, updated_at = time::now() WHERE task_id = 'kg_task:dtu2s8y3ihz9n1codrah' AND status = 'failed';
-DELETE kg_task:dtu2s8y3ihz9n1codrah; DELETE FROM kg_chunk;
+-- 1. Entity table
+DEFINE TABLE kg_entity SCHEMAFULL;
+DEFINE FIELD entity_name ON kg_entity TYPE string;
+DEFINE FIELD entity_type ON kg_entity TYPE string;
+DEFINE FIELD description ON kg_entity TYPE string DEFAULT '';
+DEFINE FIELD source_ids ON kg_entity TYPE array<string> DEFAULT [];
+DEFINE FIELD file_keys ON kg_entity TYPE array<string> DEFAULT [];
+DEFINE FIELD meta ON kg_entity FLEXIBLE TYPE object DEFAULT {};
+DEFINE FIELD created_at ON kg_entity TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated_at ON kg_entity TYPE datetime VALUE time::now();
+DEFINE INDEX uniq_entity_name ON kg_entity COLUMNS entity_name UNIQUE;
+DEFINE INDEX idx_entity_type ON kg_entity COLUMNS entity_type;
+-- 2. Relation table (deterministic ID, array<string>)
+DEFINE TABLE kg_relates TYPE RELATION FROM kg_entity TO kg_entity SCHEMAFULL;
+DEFINE FIELD keywords ON kg_relates TYPE string DEFAULT '';
+DEFINE FIELD description ON kg_relates TYPE string DEFAULT '';
+DEFINE FIELD weight ON kg_relates TYPE float DEFAULT 1.0;
+DEFINE FIELD source_ids ON kg_relates TYPE array<string> DEFAULT [];
+DEFINE FIELD file_keys ON kg_relates TYPE array<string> DEFAULT [];
+DEFINE FIELD meta ON kg_relates FLEXIBLE TYPE object DEFAULT {};
+DEFINE FIELD created_at ON kg_relates TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated_at ON kg_relates TYPE datetime VALUE time::now();
+-- 3. Mapping tables
+DEFINE TABLE kg_entity_chunks SCHEMAFULL;
+DEFINE FIELD entity_name ON kg_entity_chunks TYPE string;
+DEFINE FIELD chunk_ids ON kg_entity_chunks TYPE array<string> DEFAULT [];
+DEFINE FIELD updated_at ON kg_entity_chunks TYPE datetime VALUE time::now();
+DEFINE INDEX uniq_ec_name ON kg_entity_chunks COLUMNS entity_name UNIQUE;
+DEFINE TABLE kg_relation_chunks SCHEMAFULL;
+DEFINE FIELD relation_key ON kg_relation_chunks TYPE string;
+DEFINE FIELD chunk_ids ON kg_relation_chunks TYPE array<string> DEFAULT [];
+DEFINE FIELD updated_at ON kg_relation_chunks TYPE datetime VALUE time::now();
+DEFINE INDEX uniq_rc_key ON kg_relation_chunks COLUMNS relation_key UNIQUE;
+-- ========== SIMULATE CHUNK 1 PROCESSING ==========
+-- Entity: Machine Learning (first time)
+UPSERT kg_entity:Machine_Learning SET entity_name='Machine Learning', entity_type='Concept', description=IF description IS NONE OR description='' THEN 'A field of AI that uses statistical methods' ELSE string::concat(description, '\\n---\\n', 'A field of AI that uses statistical methods') END, source_ids=IF source_ids IS NONE THEN ['chunk_1'] ELSE array::union(source_ids, ['chunk_1']) END, file_keys=IF file_keys IS NONE THEN ['file_a'] ELSE array::union(file_keys, ['file_a']) END;
+-- Entity: Deep Learning (first time)
+UPSERT kg_entity:Deep_Learning SET entity_name='Deep Learning', entity_type='Concept', description='A subset of ML using neural networks', source_ids=IF source_ids IS NONE THEN ['chunk_1'] ELSE array::union(source_ids, ['chunk_1']) END, file_keys=IF file_keys IS NONE THEN ['file_a'] ELSE array::union(file_keys, ['file_a']) END;
+-- Relation: ML -> DL (deterministic ID, first time)
+RELATE kg_entity:Machine_Learning -> kg_relates:Machine_Learning_Deep_Learning -> kg_entity:Deep_Learning SET keywords='subfield, technique', description='Deep Learning is a subfield of ML', weight=1.0, source_ids=['chunk_1'], file_keys=['file_a'];
+-- Mapping updates
+UPSERT kg_entity_chunks:Machine_Learning SET entity_name='Machine Learning', chunk_ids=IF chunk_ids IS NONE THEN ['chunk_1'] ELSE array::union(chunk_ids, ['chunk_1']) END;
+UPSERT kg_entity_chunks:Deep_Learning SET entity_name='Deep Learning', chunk_ids=IF chunk_ids IS NONE THEN ['chunk_1'] ELSE array::union(chunk_ids, ['chunk_1']) END;
+UPSERT kg_relation_chunks:Machine_Learning_Deep_Learning SET relation_key='Machine_Learning::Deep_Learning', chunk_ids=IF chunk_ids IS NONE THEN ['chunk_1'] ELSE array::union(chunk_ids, ['chunk_1']) END;
+-- ========== SIMULATE CHUNK 2 PROCESSING ==========
+-- Entity: Machine Learning (second time - description concat)
+UPSERT kg_entity:Machine_Learning SET entity_name='Machine Learning', entity_type='Concept', description=IF description IS NONE OR description='' THEN 'Enables computers to learn from data' ELSE string::concat(description, '\\n---\\n', 'Enables computers to learn from data') END, source_ids=IF source_ids IS NONE THEN ['chunk_2'] ELSE array::union(source_ids, ['chunk_2']) END, file_keys=IF file_keys IS NONE THEN ['file_a'] ELSE array::union(file_keys, ['file_a']) END;
+-- Relation: ML -> DL (deterministic ID, second time - should update)
+RELATE kg_entity:Machine_Learning -> kg_relates:Machine_Learning_Deep_Learning -> kg_entity:Deep_Learning SET keywords='subfield, technique', description=IF description IS NONE OR description='' THEN 'DL extends ML with deep neural nets' ELSE string::concat(description, '\\n---\\n', 'DL extends ML with deep neural nets') END, weight=1.0, source_ids=IF source_ids IS NONE THEN ['chunk_2'] ELSE array::union(source_ids, ['chunk_2']) END, file_keys=IF file_keys IS NONE THEN ['file_a'] ELSE array::union(file_keys, ['file_a']) END;
+-- Mapping updates
+UPSERT kg_entity_chunks:Machine_Learning SET entity_name='Machine Learning', chunk_ids=IF chunk_ids IS NONE THEN ['chunk_2'] ELSE array::union(chunk_ids, ['chunk_2']) END;
+UPSERT kg_relation_chunks:Machine_Learning_Deep_Learning SET relation_key='Machine_Learning::Deep_Learning', chunk_ids=IF chunk_ids IS NONE THEN ['chunk_2'] ELSE array::union(chunk_ids, ['chunk_2']) END;
+-- ========== VERIFY ALL RESULTS ==========
+DEFINE TABLE kg_entity SCHEMAFULL;
+DEFINE FIELD entity_name ON kg_entity TYPE string;
+DEFINE FIELD entity_type ON kg_entity TYPE string;
+DEFINE FIELD description ON kg_entity TYPE string DEFAULT '';
+DEFINE FIELD source_ids ON kg_entity TYPE array<string> DEFAULT [];
+DEFINE FIELD file_keys ON kg_entity TYPE array<string> DEFAULT [];
+DEFINE FIELD meta ON kg_entity FLEXIBLE TYPE object DEFAULT {};
+DEFINE FIELD created_at ON kg_entity TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated_at ON kg_entity TYPE datetime VALUE time::now();
+DEFINE INDEX uniq_entity_name ON kg_entity COLUMNS entity_name UNIQUE;
+DEFINE TABLE kg_relates TYPE RELATION FROM kg_entity TO kg_entity SCHEMAFULL;
+DEFINE FIELD keywords ON kg_relates TYPE string DEFAULT '';
+DEFINE FIELD description ON kg_relates TYPE string DEFAULT '';
+DEFINE FIELD weight ON kg_relates TYPE float DEFAULT 1.0;
+DEFINE FIELD source_ids ON kg_relates TYPE array<string> DEFAULT [];
+DEFINE FIELD file_keys ON kg_relates TYPE array<string> DEFAULT [];
+DEFINE FIELD meta ON kg_relates FLEXIBLE TYPE object DEFAULT {};
+DEFINE FIELD created_at ON kg_relates TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated_at ON kg_relates TYPE datetime VALUE time::now();
+DEFINE TABLE kg_entity_chunks SCHEMAFULL;
+DEFINE FIELD entity_name ON kg_entity_chunks TYPE string;
+DEFINE FIELD chunk_ids ON kg_entity_chunks TYPE array<string> DEFAULT [];
+DEFINE FIELD updated_at ON kg_entity_chunks TYPE datetime VALUE time::now();
+DEFINE INDEX uniq_ec_name ON kg_entity_chunks COLUMNS entity_name UNIQUE;
+DEFINE TABLE kg_relation_chunks SCHEMAFULL;
+DEFINE FIELD relation_key ON kg_relation_chunks TYPE string;
+DEFINE FIELD chunk_ids ON kg_relation_chunks TYPE array<string> DEFAULT [];
+DEFINE FIELD updated_at ON kg_relation_chunks TYPE datetime VALUE time::now();
+DEFINE INDEX uniq_rc_key ON kg_relation_chunks COLUMNS relation_key UNIQUE;
+UPSERT kg_entity:Machine_Learning SET entity_name='Machine Learning', entity_type='Concept', description=IF description IS NONE OR description='' THEN 'A field of AI' ELSE string::concat(description, '\\n---\\n', 'A field of AI') END, source_ids=IF source_ids IS NONE THEN ['chunk_1'] ELSE array::union(source_ids, ['chunk_1']) END, file_keys=IF file_keys IS NONE THEN ['file_a'] ELSE array::union(file_keys, ['file_a']) END;
+UPSERT kg_entity:Deep_Learning SET entity_name='Deep Learning', entity_type='Concept', description='Deep neural networks', source_ids=IF source_ids IS NONE THEN ['chunk_1'] ELSE array::union(source_ids, ['chunk_1']) END, file_keys=IF file_keys IS NONE THEN ['file_a'] ELSE array::union(file_keys, ['file_a']) END;
+UPSERT kg_entity:Neural_Network SET entity_name='Neural Network', entity_type='Concept', description='Computational model', source_ids=IF source_ids IS NONE THEN ['chunk_1'] ELSE array::union(source_ids, ['chunk_1']) END, file_keys=IF file_keys IS NONE THEN ['file_a'] ELSE array::union(file_keys, ['file_a']) END;
+RELATE kg_entity:Machine_Learning -> kg_relates:Machine_Learning_Deep_Learning -> kg_entity:Deep_Learning SET keywords='subfield', description='DL is subfield of ML', source_ids=['chunk_1'], file_keys=['file_a'];
+RELATE kg_entity:Deep_Learning -> kg_relates:Deep_Learning_Neural_Network -> kg_entity:Neural_Network SET keywords='uses', description='DL uses neural networks', source_ids=['chunk_1'], file_keys=['file_a'];
+UPSERT kg_entity_chunks:Machine_Learning SET entity_name='Machine Learning', chunk_ids=IF chunk_ids IS NONE THEN ['chunk_1'] ELSE array::union(chunk_ids, ['chunk_1']) END;
+UPSERT kg_entity_chunks:Deep_Learning SET entity_name='Deep Learning', chunk_ids=IF chunk_ids IS NONE THEN ['chunk_1'] ELSE array::union(chunk_ids, ['chunk_1']) END;
+UPSERT kg_entity_chunks:Neural_Network SET entity_name='Neural Network', chunk_ids=IF chunk_ids IS NONE THEN ['chunk_1'] ELSE array::union(chunk_ids, ['chunk_1']) END;
+UPSERT kg_entity:Machine_Learning SET entity_name='Machine Learning', entity_type='Concept', description=IF description IS NONE OR description='' THEN 'Learns from data' ELSE string::concat(description, '\\n---\\n', 'Learns from data') END, source_ids=IF source_ids IS NONE THEN ['chunk_2'] ELSE array::union(source_ids, ['chunk_2']) END, file_keys=IF file_keys IS NONE THEN ['file_a'] ELSE array::union(file_keys, ['file_a']) END;
+RELATE kg_entity:Machine_Learning -> kg_relates:Machine_Learning_Deep_Learning -> kg_entity:Deep_Learning SET keywords='subfield', description=IF description IS NONE OR description='' THEN 'DL extends ML' ELSE string::concat(description, '\\n---\\n', 'DL extends ML') END, source_ids=IF source_ids IS NONE THEN ['chunk_2'] ELSE array::union(source_ids, ['chunk_2']) END, file_keys=IF file_keys IS NONE THEN ['file_a'] ELSE array::union(file_keys, ['file_a']) END;
+UPSERT kg_entity_chunks:Machine_Learning SET entity_name='Machine Learning', chunk_ids=IF chunk_ids IS NONE THEN ['chunk_2'] ELSE array::union(chunk_ids, ['chunk_2']) END;
+SELECT * FROM kg_entity;
+SELECT * FROM kg_relates;
+SELECT count() AS edge_count FROM kg_relates GROUP ALL;
+SELECT ->kg_relates->kg_entity AS neighbors FROM kg_entity:Machine_Learning;
+SELECT ->kg_relates->kg_entity->kg_relates->kg_entity AS two_hop FROM kg_entity:Machine_Learning;
+SELECT * FROM kg_entity_chunks;
+SELECT * FROM kg_relation_chunks;

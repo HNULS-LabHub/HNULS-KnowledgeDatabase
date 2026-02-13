@@ -51,6 +51,8 @@ export interface KnowledgeGraphModelConfig {
   chunkConcurrency: number
   entityTypes: string[]
   outputLanguage: string
+  graphTableBase?: string
+  graphTablesCreated?: boolean
 }
 
 export interface KnowledgeGraphSectionConfig {

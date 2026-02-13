@@ -49,6 +49,7 @@ npm run dev
 - 模型列表中包含目标模型
 
 验证点：
+
 - 任务提交后 **不会提示“Provider not found / disabled”**
 
 ### 3.3 导入文档并完成嵌入
@@ -58,6 +59,7 @@ npm run dev
 3. 等待嵌入完成（Embedding 引擎产出 chunks）
 
 验证点：
+
 - embedding 表中可查询到 `file_key` 对应的 chunks
 
 ### 3.4 发起知识图谱构建
@@ -71,6 +73,7 @@ npm run dev
 点击“开始构建”。
 
 验证点：
+
 - `kg_task` 新增记录
 - `kg_chunk` 新增记录，状态从 pending → progressing → completed
 - `kg_chunk.result.raw_response` 有内容
@@ -80,6 +83,7 @@ npm run dev
 对同一文档再次发起 KG 构建（同样配置）：
 
 验证点：
+
 - `kg_chunk.cache_hit = true`
 - `kg_llm_result_cache` 不重复新增（同 cache_key）
 - 日志中无重复 LLM 请求（可通过主进程日志观察）
@@ -90,6 +94,7 @@ npm run dev
 2. 重新发起 KG 构建
 
 验证点：
+
 - 由于 `embeddingUpdatedAt` 变化，`cache_key` 不同
 - 新任务会重新走 LLM（cache_hit = false）
 
@@ -99,6 +104,7 @@ npm run dev
 2. 修改 KG 配置中的 `llmConcurrency`（内层）
 
 验证点：
+
 - 每次轮询只处理**一批** chunks（外层生效）
 - 每批内实际并发 ≤ llmConcurrency
 
@@ -122,27 +128,27 @@ npm run dev
 
 ### 4.3 自动化覆盖建议
 
-| 测试用例 | 断言点 |
-| --- | --- |
-| 提交任务 | kg_task/kg_chunk 创建 |
+| 测试用例 | 断言点                                     |
+| -------- | ------------------------------------------ |
+| 提交任务 | kg_task/kg_chunk 创建                      |
 | LLM 调用 | chunk status=completed + raw_response 有值 |
-| 缓存命中 | cache_hit=true + cache_key 复用 |
-| 并发策略 | 同批最大并发不超限 |
-| 版本切换 | embeddingUpdatedAt 变化导致 cache miss |
+| 缓存命中 | cache_hit=true + cache_key 复用            |
+| 并发策略 | 同批最大并发不超限                         |
+| 版本切换 | embeddingUpdatedAt 变化导致 cache miss     |
 
 ---
 
 ## 5. 常见问题排查
 
-1. **Provider not found / disabled**  
+1. **Provider not found / disabled**
    - 检查模型配置是否已保存
    - 检查 KG 子进程启动后是否收到 provider 更新
 
-2. **cache 一直 miss**  
+2. **cache 一直 miss**
    - 检查 cache_key 是否随 embeddingUpdatedAt 变化
    - 检查 kg_llm_result_cache 是否写入成功
 
-3. **chunk 一直 pending**  
+3. **chunk 一直 pending**
    - 检查 KG 子进程是否初始化完成
    - 检查 provider 是否可用（baseUrl / apiKey）
 
@@ -155,4 +161,3 @@ SELECT * FROM kg_task ORDER BY created_at DESC LIMIT 5;
 SELECT * FROM kg_chunk WHERE task_id = $taskId ORDER BY chunk_index ASC LIMIT 10;
 SELECT * FROM kg_llm_result_cache ORDER BY create_time DESC LIMIT 5;
 ```
-

@@ -66,6 +66,12 @@ export interface KGSubmitTaskParams {
   sourceTable: string
   /** 任务配置 */
   config: KGTaskConfig
+  /** 目标知识库 namespace（第二阶段 graph build） */
+  targetNamespace?: string
+  /** 目标知识库 database */
+  targetDatabase?: string
+  /** 图谱表基名，如 'kg_emb_cfg_xxx_3072' */
+  targetTableBase?: string
 }
 
 // ============================================================================
@@ -95,6 +101,8 @@ export type MainToKGMessage =
   | { type: 'kg:query-status'; requestId: string }
   | { type: 'kg:concurrency-response'; value: number }
   | { type: 'kg:update-model-providers'; providers: KGModelProviderConfig[] }
+  | { type: 'kg:create-graph-schema'; requestId: string; data: KGCreateSchemaParams }
+  | { type: 'kg:query-build-status'; requestId: string }
 
 // ============================================================================
 // KG → Main 消息
@@ -117,3 +125,43 @@ export type KGToMainMessage =
   | { type: 'kg:status'; requestId: string; tasks: KGTaskStatus[] }
   | { type: 'kg:log'; level: 'debug' | 'info' | 'warn' | 'error'; message: string; meta?: any }
   | { type: 'kg:request-concurrency' }
+  | { type: 'kg:schema-created'; requestId: string; tables: string[] }
+  | { type: 'kg:schema-error'; requestId: string; error: string }
+  | {
+      type: 'kg:build-progress'
+      taskId: string
+      completed: number
+      failed: number
+      total: number
+      entitiesTotal: number
+      relationsTotal: number
+    }
+  | { type: 'kg:build-completed'; taskId: string }
+  | { type: 'kg:build-failed'; taskId: string; error: string }
+  | { type: 'kg:build-status'; requestId: string; tasks: KGBuildTaskStatus[] }
+
+// ============================================================================
+// Graph Schema 创建参数
+// ============================================================================
+
+export interface KGCreateSchemaParams {
+  targetNamespace: string
+  targetDatabase: string
+  graphTableBase: string
+}
+
+// ============================================================================
+// Graph Build 任务状态
+// ============================================================================
+
+export interface KGBuildTaskStatus {
+  taskId: string
+  sourceTaskId: string
+  fileKey: string
+  status: string
+  chunksTotal: number
+  chunksCompleted: number
+  chunksFailed: number
+  entitiesUpserted: number
+  relationsUpserted: number
+}

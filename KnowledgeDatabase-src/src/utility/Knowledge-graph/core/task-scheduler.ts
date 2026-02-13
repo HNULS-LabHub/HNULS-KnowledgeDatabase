@@ -195,10 +195,7 @@ async function callOpenAIChat(params: {
       throw new Error(errorMessage)
     }
 
-    const content =
-      data?.choices?.[0]?.message?.content ??
-      data?.choices?.[0]?.text ??
-      ''
+    const content = data?.choices?.[0]?.message?.content ?? data?.choices?.[0]?.text ?? ''
 
     if (!content) {
       throw new Error('Empty LLM response')
@@ -326,6 +323,9 @@ export class TaskScheduler {
   private cleanupDone = false
   private isActive = false // 激活/静息状态
 
+  /** 第一阶段任务完成回调（用于衔接第二阶段） */
+  public onTaskCompleted: (() => void) | null = null
+
   private readonly POLL_INTERVAL = 2000
 
   constructor(
@@ -370,9 +370,7 @@ export class TaskScheduler {
 
   private resolveProviderAndModel(
     config: TaskConfig
-  ):
-    | { provider: KGModelProviderConfig; providerId: string; modelId: string }
-    | { error: string } {
+  ): { provider: KGModelProviderConfig; providerId: string; modelId: string } | { error: string } {
     let providerId = config.providerId
     let modelId = config.modelId
     const rawModel = typeof config.model === 'string' ? config.model : ''
@@ -462,7 +460,7 @@ export class TaskScheduler {
       await this.reconcileTaskStatus(taskId)
     }
 
-    // 4. 清理已完成任务（completed == 原始总分块）
+    // 4. 清理已完成任务（completed == 原始总分块 且已被第二阶段接管）
     const taskRows = this.client.extractRecords(
       await this.client.query(
         `SELECT id, chunks_completed, chunks_failed, chunks_total_origin, chunks_total FROM kg_task;`
@@ -485,12 +483,23 @@ export class TaskScheduler {
       })
       .filter((id: string | null) => Boolean(id)) as string[]
 
+    let deletedCount = 0
     for (const taskId of completedTaskIds) {
-      await this.client.query(`DELETE kg_chunk WHERE task_id = $tid;`, { tid: taskId })
-      await this.client.query(`DELETE ${taskId};`)
+      // 只有已被第二阶段接管（存在对应 build_task）才安全清理
+      const buildExists = this.client.extractRecords(
+        await this.client.query(
+          `SELECT id FROM kg_build_task WHERE source_task_id = $tid LIMIT 1;`,
+          { tid: taskId }
+        )
+      )
+      if (buildExists.length > 0) {
+        await this.client.query(`DELETE kg_chunk WHERE task_id = $tid;`, { tid: taskId })
+        await this.client.query(`DELETE ${taskId};`)
+        deletedCount++
+      }
     }
     log(
-      `Cleanup: deleted ${completedTaskIds.length} completed tasks by chunks_completed == chunks_total_origin`
+      `Cleanup: deleted ${deletedCount} completed tasks (with build_task) out of ${completedTaskIds.length} total completed`
     )
 
     log('Startup cleanup completed')
@@ -800,6 +809,7 @@ export class TaskScheduler {
     if (status === 'completed') {
       this.sendMessage({ type: 'kg:task-completed', taskId: taskIdStr })
       log(`Task ${taskIdStr} completed: ${effectiveCompleted}/${originTotal} chunks`)
+      this.onTaskCompleted?.()
     }
 
     // 任务失败：发送失败消息
