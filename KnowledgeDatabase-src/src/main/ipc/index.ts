@@ -38,8 +38,12 @@ export class IPCManager {
     knowledgeLibraryService: KnowledgeLibraryService,
     kgMonitorService: KgMonitorService
   ): void {
-    // 注册所有 IPC 处理器
-    this.handlers.push(new TestIPCHandler())
+    // 注册模型配置处理器（需要先创建，供其他 handler 使用）
+    const modelConfigService = new ModelConfigService()
+    this.handlers.push(new ModelConfigIPCHandler(modelConfigService))
+
+    // 注册测试处理器（传入 modelConfigService 以支持 LLM 调用）
+    this.handlers.push(new TestIPCHandler(modelConfigService))
 
     // 注册数据库处理器
     this.handlers.push(new DatabaseIPCHandler(surrealDBService))
@@ -57,10 +61,6 @@ export class IPCManager {
     // 注册用户配置处理器
     const userConfigService = new UserConfigService()
     this.handlers.push(new UserConfigIPCHandler(userConfigService))
-
-    // 注册模型配置处理器
-    const modelConfigService = new ModelConfigService()
-    this.handlers.push(new ModelConfigIPCHandler(modelConfigService))
 
     // 注册 MinerU 解析处理器
     const minerUParserService = new MinerUParserService()

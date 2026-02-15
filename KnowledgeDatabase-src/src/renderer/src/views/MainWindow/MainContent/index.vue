@@ -32,6 +32,7 @@ import DocsView from './views/DocsView.vue'
 import KnowledgeView from './views/KnowledgeView/index.vue'
 import TaskMonitorView from './views/TaskMonitorView/index.vue'
 import UserSettingView from './views/UserSettingView/index.vue'
+import TestView from './views/TestView/index.vue'
 
 const currentPage = ref('dashboard')
 const extraBreadcrumb = ref('')
@@ -44,7 +45,8 @@ const pageConfig = {
   rag: RAGView,
   graph: GraphView,
   docs: DocsView,
-  'user-setting': UserSettingView
+  'user-setting': UserSettingView,
+  test: TestView
 }
 
 const currentComponent = computed(() => pageConfig[currentPage.value] || DashboardView)
