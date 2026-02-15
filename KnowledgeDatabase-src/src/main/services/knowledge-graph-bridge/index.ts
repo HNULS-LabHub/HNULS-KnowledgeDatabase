@@ -14,7 +14,11 @@ import type {
   KGTaskStatus,
   KGModelProviderConfig,
   KGCreateSchemaParams,
-  KGBuildTaskStatus
+  KGBuildTaskStatus,
+  KGGraphQueryParams,
+  KGGraphEntity,
+  KGGraphRelation,
+  KGGraphDataProgress
 } from '@shared/knowledge-graph-ipc.types'
 import { logger } from '../logger'
 
@@ -26,6 +30,14 @@ interface PendingRequest<T> {
   resolve: (value: T) => void
   reject: (error: Error) => void
   timeoutId: NodeJS.Timeout
+}
+
+/** 图谱数据批次事件 */
+export interface GraphDataBatchEvent {
+  sessionId: string
+  entities: KGGraphEntity[]
+  relations: KGGraphRelation[]
+  progress: KGGraphDataProgress
 }
 
 // ============================================================================
@@ -64,6 +76,12 @@ export class KnowledgeGraphBridge {
   > = new Set()
   private buildCompletedListeners: Set<(taskId: string) => void> = new Set()
   private buildFailedListeners: Set<(taskId: string, error: string) => void> = new Set()
+
+  /** 图谱数据查询事件监听器 */
+  private graphDataBatchListeners: Set<(data: GraphDataBatchEvent) => void> = new Set()
+  private graphDataCompleteListeners: Set<(sessionId: string) => void> = new Set()
+  private graphDataErrorListeners: Set<(sessionId: string, error: string) => void> = new Set()
+  private graphDataCancelledListeners: Set<(sessionId: string) => void> = new Set()
 
   // ==========================================================================
   // 生命周期
@@ -211,6 +229,27 @@ export class KnowledgeGraphBridge {
     })
   }
 
+  /**
+   * 查询图谱数据（流式）
+   * @returns sessionId 用于后续取消或识别事件
+   */
+  async queryGraphData(params: KGGraphQueryParams): Promise<string> {
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+
+    return this.sendRequest<string>(requestId, {
+      type: 'kg:query-graph-data',
+      requestId,
+      data: params
+    })
+  }
+
+  /**
+   * 取消图谱数据查询
+   */
+  cancelGraphQuery(sessionId: string): void {
+    this.sendToProcess({ type: 'kg:cancel-graph-query', sessionId })
+  }
+
   // ==========================================================================
   // 事件监听
   // ==========================================================================
@@ -254,6 +293,27 @@ export class KnowledgeGraphBridge {
   onBuildFailed(listener: (taskId: string, error: string) => void): () => void {
     this.buildFailedListeners.add(listener)
     return () => this.buildFailedListeners.delete(listener)
+  }
+
+  // 图谱数据查询事件监听器
+  onGraphDataBatch(listener: (data: GraphDataBatchEvent) => void): () => void {
+    this.graphDataBatchListeners.add(listener)
+    return () => this.graphDataBatchListeners.delete(listener)
+  }
+
+  onGraphDataComplete(listener: (sessionId: string) => void): () => void {
+    this.graphDataCompleteListeners.add(listener)
+    return () => this.graphDataCompleteListeners.delete(listener)
+  }
+
+  onGraphDataError(listener: (sessionId: string, error: string) => void): () => void {
+    this.graphDataErrorListeners.add(listener)
+    return () => this.graphDataErrorListeners.delete(listener)
+  }
+
+  onGraphDataCancelled(listener: (sessionId: string) => void): () => void {
+    this.graphDataCancelledListeners.add(listener)
+    return () => this.graphDataCancelledListeners.delete(listener)
   }
 
   // ==========================================================================
@@ -391,6 +451,56 @@ export class KnowledgeGraphBridge {
         }
         break
       }
+
+      // 图谱数据查询响应
+      case 'kg:graph-query-started': {
+        const pending = this.pendingRequests.get(msg.requestId)
+        if (pending) {
+          clearTimeout(pending.timeoutId)
+          this.pendingRequests.delete(msg.requestId)
+          pending.resolve(msg.sessionId)
+        }
+        break
+      }
+
+      case 'kg:graph-data-batch':
+        for (const listener of this.graphDataBatchListeners) {
+          listener({
+            sessionId: msg.sessionId,
+            entities: msg.entities,
+            relations: msg.relations,
+            progress: msg.progress
+          })
+        }
+        break
+
+      case 'kg:graph-data-complete':
+        for (const listener of this.graphDataCompleteListeners) {
+          listener(msg.sessionId)
+        }
+        break
+
+      case 'kg:graph-data-error':
+        // 检查是否是 pending request 的错误（参数校验失败等）
+        for (const [requestId, pending] of this.pendingRequests) {
+          if (requestId === msg.sessionId) {
+            clearTimeout(pending.timeoutId)
+            this.pendingRequests.delete(requestId)
+            pending.reject(new Error(msg.error))
+            return
+          }
+        }
+        // 否则是查询过程中的错误
+        for (const listener of this.graphDataErrorListeners) {
+          listener(msg.sessionId, msg.error)
+        }
+        break
+
+      case 'kg:graph-data-cancelled':
+        for (const listener of this.graphDataCancelledListeners) {
+          listener(msg.sessionId)
+        }
+        break
 
       default:
         logger.warn('[KnowledgeGraphBridge] Unknown message type:', (msg as any).type)

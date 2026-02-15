@@ -115,11 +115,14 @@
           <input
             v-model="entityInput"
             type="text"
-            placeholder="输入后按回车添加"
-            class="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-400"
+            placeholder="输入类型名，支持逗号分隔批量添加"
+            class="flex-1 min-w-[180px] bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-400"
             @keydown.enter.prevent="addEntityType"
           />
         </div>
+        <p class="text-xs text-slate-400">
+          提示：输入多个类型时用逗号分隔，如「人物,组织,地点,事件」
+        </p>
       </div>
 
       <!-- 输出语言 -->
@@ -227,9 +230,20 @@ function handleModelSelect(selection: ModelSelection): void {
 }
 
 function addEntityType(): void {
-  const val = entityInput.value.trim()
-  if (val && !localConfig.entityTypes.includes(val)) {
-    localConfig.entityTypes.push(val)
+  const input = entityInput.value.trim()
+  if (!input) {
+    entityInput.value = ''
+    return
+  }
+
+  // 支持逗号分隔批量添加（中英文逗号都支持）
+  const newTypes = input
+    .split(/[,，]/)
+    .map((t) => t.trim())
+    .filter((t) => t && !localConfig.entityTypes.includes(t))
+
+  if (newTypes.length > 0) {
+    localConfig.entityTypes.push(...newTypes)
     autoSave()
   }
   entityInput.value = ''

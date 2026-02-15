@@ -4,7 +4,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import type {
   GraphEntity,
   GraphRelation,
@@ -13,10 +13,6 @@ import type {
   GraphOption,
   NodeDetail
 } from './types'
-import {
-  generateMockEntities,
-  generateMockRelations
-} from './graph-viewer.mock'
 import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
 import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
 
@@ -45,6 +41,12 @@ export const useGraphViewerStore = defineStore('graph-viewer', () => {
   // 配置加载状态
   const configsLoading = ref(false)
   const loadedKbIds = ref<Set<number>>(new Set())
+
+  // 当前查询会话
+  const currentSessionId = ref<string | null>(null)
+
+  // 事件监听器清理函数
+  const cleanupFns: (() => void)[] = []
 
   // ============ 计算属性 ============
 
@@ -91,6 +93,102 @@ export const useGraphViewerStore = defineStore('graph-viewer', () => {
 
   // ============ 方法 ============
 
+  /** 初始化事件监听器 */
+  function setupEventListeners(): void {
+    // 清理旧的监听器
+    cleanupEventListeners()
+
+    const api = window.api.knowledgeGraph
+
+    // 监听批次数据
+    cleanupFns.push(api.onGraphDataBatch((data) => {
+      // 只处理当前会话的数据
+      if (data.sessionId !== currentSessionId.value) return
+
+      // 追加实体
+      if (data.entities.length > 0) {
+        entities.value.push(...data.entities.map(e => ({
+          id: e.id,
+          name: e.name,
+          type: e.type,
+          description: e.description
+        })))
+      }
+
+      // 追加关系
+      if (data.relations.length > 0) {
+        relations.value.push(...data.relations.map(r => ({
+          id: r.id,
+          source: r.source,
+          target: r.target,
+          keywords: r.keywords,
+          description: r.description,
+          weight: r.weight
+        })))
+      }
+
+      // 更新进度
+      progress.value = {
+        entitiesLoaded: data.progress.entitiesLoaded,
+        entitiesTotal: data.progress.entitiesTotal,
+        relationsLoaded: data.progress.relationsLoaded,
+        relationsTotal: data.progress.relationsTotal
+      }
+
+      // 更新实体类型
+      updateEntityTypes()
+    }))
+
+    // 监听完成
+    cleanupFns.push(api.onGraphDataComplete((sessionId) => {
+      if (sessionId !== currentSessionId.value) return
+      console.log('[GraphView] Query completed:', sessionId)
+      
+      // 如果数据为空，显示特殊状态
+      if (entities.value.length === 0 && relations.value.length === 0) {
+        errorMessage.value = '该知识图谱暂无数据，请先构建图谱'
+        loadState.value = 'error'
+      } else {
+        loadState.value = 'ready'
+      }
+      currentSessionId.value = null
+    }))
+
+    // 监听错误
+    cleanupFns.push(api.onGraphDataError((sessionId, error) => {
+      if (sessionId !== currentSessionId.value) return
+      console.error('[GraphView] Query error:', error)
+      errorMessage.value = error
+      loadState.value = 'error'
+      currentSessionId.value = null
+    }))
+
+    // 监听取消
+    cleanupFns.push(api.onGraphDataCancelled((sessionId) => {
+      if (sessionId !== currentSessionId.value) return
+      console.log('[GraphView] Query cancelled:', sessionId)
+      // 取消时不改变状态，因为可能是切换图谱导致的
+      currentSessionId.value = null
+    }))
+  }
+
+  /** 清理事件监听器 */
+  function cleanupEventListeners(): void {
+    for (const cleanup of cleanupFns) {
+      cleanup()
+    }
+    cleanupFns.length = 0
+  }
+
+  /** 更新实体类型列表 */
+  function updateEntityTypes(): void {
+    const types = new Set<string>()
+    for (const e of entities.value) {
+      if (e.type) types.add(e.type)
+    }
+    entityTypes.value = Array.from(types).sort()
+  }
+
   async function loadAllConfigs(): Promise<void> {
     if (configsLoading.value) return
     configsLoading.value = true
@@ -112,6 +210,9 @@ export const useGraphViewerStore = defineStore('graph-viewer', () => {
   }
 
   async function loadGraph(option: GraphOption): Promise<void> {
+    // 取消当前查询
+    cancelCurrentQuery()
+
     selectedGraphOption.value = option
     loadState.value = 'loading'
     errorMessage.value = null
@@ -120,33 +221,37 @@ export const useGraphViewerStore = defineStore('graph-viewer', () => {
     entityTypes.value = []
     selectedNodeId.value = null
     hoveredNodeId.value = null
+    progress.value = { entitiesLoaded: 0, entitiesTotal: 0, relationsLoaded: 0, relationsTotal: 0 }
+
+    // 确保事件监听器已设置
+    setupEventListeners()
 
     try {
-      // TODO: 替换为真实 IPC 调用
-      const allEntities = generateMockEntities()
-      const allRelations = generateMockRelations()
+      // namespace 固定为 'knowledge'
+      const NAMESPACE = 'knowledge'
 
-      progress.value = { entitiesLoaded: 0, entitiesTotal: allEntities.length, relationsLoaded: 0, relationsTotal: allRelations.length }
+      // 调用 IPC 开始流式查询
+      const sessionId = await window.api.knowledgeGraph.queryGraphData({
+        targetNamespace: NAMESPACE,
+        targetDatabase: option.databaseName,
+        graphTableBase: option.graphTableBase,
+        batchSize: 100
+      })
 
-      const BATCH = 10
-      for (let i = 0; i < allEntities.length; i += BATCH) {
-        await sleep(80)
-        entities.value.push(...allEntities.slice(i, i + BATCH))
-        progress.value = { ...progress.value, entitiesLoaded: Math.min(i + BATCH, allEntities.length) }
-      }
-      for (let i = 0; i < allRelations.length; i += BATCH) {
-        await sleep(60)
-        relations.value.push(...allRelations.slice(i, i + BATCH))
-        progress.value = { ...progress.value, relationsLoaded: Math.min(i + BATCH, allRelations.length) }
-      }
-
-      const types = new Set<string>()
-      for (const e of entities.value) types.add(e.type)
-      entityTypes.value = Array.from(types).sort()
-      loadState.value = 'ready'
+      currentSessionId.value = sessionId
+      console.log('[GraphView] Query started:', sessionId)
     } catch (err) {
       errorMessage.value = err instanceof Error ? err.message : String(err)
       loadState.value = 'error'
+      console.error('[GraphView] Failed to start query:', err)
+    }
+  }
+
+  /** 取消当前查询 */
+  function cancelCurrentQuery(): void {
+    if (currentSessionId.value) {
+      window.api.knowledgeGraph.cancelGraphQuery(currentSessionId.value)
+      currentSessionId.value = null
     }
   }
 
@@ -154,6 +259,7 @@ export const useGraphViewerStore = defineStore('graph-viewer', () => {
   function hoverNode(nodeId: string | null): void { hoveredNodeId.value = nodeId }
 
   function reset(): void {
+    cancelCurrentQuery()
     loadState.value = 'idle'
     entities.value = []
     relations.value = []
@@ -174,6 +280,12 @@ export const useGraphViewerStore = defineStore('graph-viewer', () => {
     }
   }, { deep: true })
 
+  // 组件卸载时清理
+  onUnmounted(() => {
+    cancelCurrentQuery()
+    cleanupEventListeners()
+  })
+
   return {
     loadState, progress, entities, relations, entityTypes, errorMessage,
     selectedGraphOption, selectedNodeId, hoveredNodeId, configsLoading,
@@ -181,7 +293,3 @@ export const useGraphViewerStore = defineStore('graph-viewer', () => {
     loadAllConfigs, loadGraph, selectNode, hoverNode, reset
   }
 })
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}

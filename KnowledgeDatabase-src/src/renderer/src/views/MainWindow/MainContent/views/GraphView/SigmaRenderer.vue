@@ -25,7 +25,7 @@ import noverlap from 'graphology-layout-noverlap'
 import { degreeCentrality } from 'graphology-metrics/centrality/degree'
 import { EdgeCurvedArrowProgram, indexParallelEdgesIndex } from '@sigma/edge-curve'
 import type { GraphEntity, GraphRelation } from './types'
-import { buildColorMap, getTypeColor } from './color-palette'
+import { buildColorMap, getTypeColor, blendColors } from './color-palette'
 
 const props = defineProps<{
   entities: GraphEntity[]
@@ -54,6 +54,12 @@ function buildGraph(entities: GraphEntity[], relations: GraphRelation[]): Graph 
   colorMap = buildColorMap(props.entityTypes)
   emit('color-map-ready', colorMap)
 
+  // 构建实体 ID -> 类型 的映射，用于边颜色计算
+  const entityTypeMap = new Map<string, string>()
+  for (const e of entities) {
+    entityTypeMap.set(e.id, e.type)
+  }
+
   // 添加节点
   for (const e of entities) {
     g.addNode(e.id, {
@@ -65,13 +71,19 @@ function buildGraph(entities: GraphEntity[], relations: GraphRelation[]): Graph 
     })
   }
 
-  // 添加边
+  // 添加边 - 颜色使用两端节点颜色的混合
   for (const r of relations) {
     if (g.hasNode(r.source) && g.hasNode(r.target)) {
+      const sourceType = entityTypeMap.get(r.source) ?? ''
+      const targetType = entityTypeMap.get(r.target) ?? ''
+      const sourceColor = getTypeColor(colorMap, sourceType)
+      const targetColor = getTypeColor(colorMap, targetType)
+      const edgeColor = blendColors(sourceColor, targetColor, 0.5)
+
       g.addEdge(r.source, r.target, {
         weight: r.weight,
         label: r.keywords,
-        color: 'rgba(160, 160, 160, 0.5)',
+        color: edgeColor,
         size: 1,
         type: 'curvedArrow' // 使用曲线箭头
       })

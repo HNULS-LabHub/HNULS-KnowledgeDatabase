@@ -9,7 +9,11 @@ import type {
   KGTaskStatus,
   KGTaskConfig,
   KGCreateSchemaParams,
-  KGBuildTaskStatus
+  KGBuildTaskStatus,
+  KGGraphQueryParams,
+  KGGraphEntity,
+  KGGraphRelation,
+  KGGraphDataProgress
 } from '../../Public/ShareTypes/knowledge-graph-ipc.types'
 
 // 重新导出供前端使用
@@ -18,7 +22,19 @@ export type {
   KGTaskStatus,
   KGTaskConfig,
   KGCreateSchemaParams,
-  KGBuildTaskStatus
+  KGBuildTaskStatus,
+  KGGraphQueryParams,
+  KGGraphEntity,
+  KGGraphRelation,
+  KGGraphDataProgress
+}
+
+/** 图谱数据批次事件 */
+export interface GraphDataBatchEvent {
+  sessionId: string
+  entities: KGGraphEntity[]
+  relations: KGGraphRelation[]
+  progress: KGGraphDataProgress
 }
 
 /**
@@ -90,4 +106,39 @@ export interface KnowledgeGraphAPI {
    * 监听图谱构建失败
    */
   onBuildFailed(callback: (taskId: string, error: string) => void): () => void
+
+  // ============================================================================
+  // 图谱数据流式查询
+  // ============================================================================
+
+  /**
+   * 查询图谱数据（流式）
+   * @returns sessionId 用于后续取消或识别事件
+   */
+  queryGraphData(params: KGGraphQueryParams): Promise<string>
+
+  /**
+   * 取消图谱数据查询
+   */
+  cancelGraphQuery(sessionId: string): void
+
+  /**
+   * 监听图谱数据批次
+   */
+  onGraphDataBatch(callback: (data: GraphDataBatchEvent) => void): () => void
+
+  /**
+   * 监听图谱数据查询完成
+   */
+  onGraphDataComplete(callback: (sessionId: string) => void): () => void
+
+  /**
+   * 监听图谱数据查询错误
+   */
+  onGraphDataError(callback: (sessionId: string, error: string) => void): () => void
+
+  /**
+   * 监听图谱数据查询取消
+   */
+  onGraphDataCancelled(callback: (sessionId: string) => void): () => void
 }

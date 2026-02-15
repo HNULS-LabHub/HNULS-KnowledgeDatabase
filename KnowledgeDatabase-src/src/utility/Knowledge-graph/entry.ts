@@ -5,6 +5,7 @@
 
 import { KGSurrealClient } from './db/surreal-client'
 import { TaskSubmissionService } from './service/task-submission'
+import { GraphQueryService } from './service/graph-query'
 import { TaskScheduler } from './core/task-scheduler'
 import { GraphBuildScheduler } from './core/graph-build-scheduler'
 import { MessageHandler } from './bridge/message-handler'
@@ -139,6 +140,7 @@ function handleConcurrencyResponse(value: number): void {
 
 const surrealClient = new KGSurrealClient()
 const taskSubmission = new TaskSubmissionService(surrealClient)
+const graphQueryService = new GraphQueryService(surrealClient, sendMessage)
 const scheduler = new TaskScheduler(surrealClient, sendMessage, requestConcurrency)
 const graphBuildScheduler = new GraphBuildScheduler(surrealClient, sendMessage)
 const messageHandler = new MessageHandler(
@@ -146,6 +148,7 @@ const messageHandler = new MessageHandler(
   taskSubmission,
   scheduler,
   graphBuildScheduler,
+  graphQueryService,
   sendMessage
 )
 

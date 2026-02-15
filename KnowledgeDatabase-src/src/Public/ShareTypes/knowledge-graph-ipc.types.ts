@@ -91,6 +91,48 @@ export interface KGTaskStatus {
 }
 
 // ============================================================================
+// 图谱数据流式查询参数
+// ============================================================================
+
+export interface KGGraphQueryParams {
+  /** 目标 namespace */
+  targetNamespace: string
+  /** 目标 database */
+  targetDatabase: string
+  /** 图谱表基名，如 'kg_emb_cfg_xxx_3072' */
+  graphTableBase: string
+  /** 每批次返回的记录数，默认 100 */
+  batchSize?: number
+}
+
+// ============================================================================
+// 图谱数据类型（精简版，用于可视化）
+// ============================================================================
+
+export interface KGGraphEntity {
+  id: string
+  name: string
+  type: string
+  description: string
+}
+
+export interface KGGraphRelation {
+  id: string
+  source: string
+  target: string
+  keywords: string
+  description: string
+  weight: number
+}
+
+export interface KGGraphDataProgress {
+  entitiesLoaded: number
+  entitiesTotal: number
+  relationsLoaded: number
+  relationsTotal: number
+}
+
+// ============================================================================
 // Main → KG 消息
 // ============================================================================
 
@@ -103,6 +145,9 @@ export type MainToKGMessage =
   | { type: 'kg:update-model-providers'; providers: KGModelProviderConfig[] }
   | { type: 'kg:create-graph-schema'; requestId: string; data: KGCreateSchemaParams }
   | { type: 'kg:query-build-status'; requestId: string }
+  // 图谱数据流式查询
+  | { type: 'kg:query-graph-data'; requestId: string; data: KGGraphQueryParams }
+  | { type: 'kg:cancel-graph-query'; sessionId: string }
 
 // ============================================================================
 // KG → Main 消息
@@ -139,6 +184,18 @@ export type KGToMainMessage =
   | { type: 'kg:build-completed'; taskId: string }
   | { type: 'kg:build-failed'; taskId: string; error: string }
   | { type: 'kg:build-status'; requestId: string; tasks: KGBuildTaskStatus[] }
+  // 图谱数据流式查询响应
+  | { type: 'kg:graph-query-started'; requestId: string; sessionId: string }
+  | {
+      type: 'kg:graph-data-batch'
+      sessionId: string
+      entities: KGGraphEntity[]
+      relations: KGGraphRelation[]
+      progress: KGGraphDataProgress
+    }
+  | { type: 'kg:graph-data-complete'; sessionId: string }
+  | { type: 'kg:graph-data-error'; sessionId: string; error: string }
+  | { type: 'kg:graph-data-cancelled'; sessionId: string }
 
 // ============================================================================
 // Graph Schema 创建参数

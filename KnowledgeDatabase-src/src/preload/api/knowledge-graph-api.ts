@@ -4,12 +4,13 @@
  */
 
 import { ipcRenderer } from 'electron'
-import type { KnowledgeGraphAPI } from '../types/knowledge-graph.types'
+import type { KnowledgeGraphAPI, GraphDataBatchEvent } from '../types/knowledge-graph.types'
 import type {
   KGSubmitTaskParams,
   KGTaskStatus,
   KGCreateSchemaParams,
-  KGBuildTaskStatus
+  KGBuildTaskStatus,
+  KGGraphQueryParams
 } from '../types/knowledge-graph.types'
 
 const CH = {
@@ -18,13 +19,21 @@ const CH = {
   UPDATE_CONCURRENCY: 'knowledge-graph:update-concurrency',
   CREATE_GRAPH_SCHEMA: 'knowledge-graph:create-graph-schema',
   QUERY_BUILD_STATUS: 'knowledge-graph:query-build-status',
+  // 图谱数据查询
+  QUERY_GRAPH_DATA: 'knowledge-graph:query-graph-data',
+  CANCEL_GRAPH_QUERY: 'knowledge-graph:cancel-graph-query',
   // 事件（main → renderer）
   TASK_PROGRESS: 'knowledge-graph:task-progress',
   TASK_COMPLETED: 'knowledge-graph:task-completed',
   TASK_FAILED: 'knowledge-graph:task-failed',
   BUILD_PROGRESS: 'knowledge-graph:build-progress',
   BUILD_COMPLETED: 'knowledge-graph:build-completed',
-  BUILD_FAILED: 'knowledge-graph:build-failed'
+  BUILD_FAILED: 'knowledge-graph:build-failed',
+  // 图谱数据查询事件
+  GRAPH_DATA_BATCH: 'knowledge-graph:graph-data-batch',
+  GRAPH_DATA_COMPLETE: 'knowledge-graph:graph-data-complete',
+  GRAPH_DATA_ERROR: 'knowledge-graph:graph-data-error',
+  GRAPH_DATA_CANCELLED: 'knowledge-graph:graph-data-cancelled'
 } as const
 
 export const knowledgeGraphAPI: KnowledgeGraphAPI = {
@@ -94,5 +103,41 @@ export const knowledgeGraphAPI: KnowledgeGraphAPI = {
     const handler = (_e: any, taskId: string, error: string) => callback(taskId, error)
     ipcRenderer.on(CH.BUILD_FAILED, handler)
     return () => ipcRenderer.removeListener(CH.BUILD_FAILED, handler)
+  },
+
+  // ============================================================================
+  // 图谱数据流式查询
+  // ============================================================================
+
+  async queryGraphData(params: KGGraphQueryParams): Promise<string> {
+    return ipcRenderer.invoke(CH.QUERY_GRAPH_DATA, params)
+  },
+
+  cancelGraphQuery(sessionId: string): void {
+    ipcRenderer.send(CH.CANCEL_GRAPH_QUERY, sessionId)
+  },
+
+  onGraphDataBatch(callback) {
+    const handler = (_e: any, data: GraphDataBatchEvent) => callback(data)
+    ipcRenderer.on(CH.GRAPH_DATA_BATCH, handler)
+    return () => ipcRenderer.removeListener(CH.GRAPH_DATA_BATCH, handler)
+  },
+
+  onGraphDataComplete(callback) {
+    const handler = (_e: any, sessionId: string) => callback(sessionId)
+    ipcRenderer.on(CH.GRAPH_DATA_COMPLETE, handler)
+    return () => ipcRenderer.removeListener(CH.GRAPH_DATA_COMPLETE, handler)
+  },
+
+  onGraphDataError(callback) {
+    const handler = (_e: any, sessionId: string, error: string) => callback(sessionId, error)
+    ipcRenderer.on(CH.GRAPH_DATA_ERROR, handler)
+    return () => ipcRenderer.removeListener(CH.GRAPH_DATA_ERROR, handler)
+  },
+
+  onGraphDataCancelled(callback) {
+    const handler = (_e: any, sessionId: string) => callback(sessionId)
+    ipcRenderer.on(CH.GRAPH_DATA_CANCELLED, handler)
+    return () => ipcRenderer.removeListener(CH.GRAPH_DATA_CANCELLED, handler)
   }
 }

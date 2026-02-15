@@ -7,11 +7,13 @@ import type { KGSurrealClient } from '../db/surreal-client'
 import type { TaskSubmissionService } from '../service/task-submission'
 import type { TaskScheduler } from '../core/task-scheduler'
 import type { GraphBuildScheduler } from '../core/graph-build-scheduler'
+import type { GraphQueryService } from '../service/graph-query'
 import type {
   MainToKGMessage,
   KGToMainMessage,
   KGDBConfig,
-  KGCreateSchemaParams
+  KGCreateSchemaParams,
+  KGGraphQueryParams
 } from '@shared/knowledge-graph-ipc.types'
 import { createGraphSchema } from '../service/graph-schema'
 
@@ -46,6 +48,7 @@ export class MessageHandler {
   private taskSubmission: TaskSubmissionService
   private scheduler: TaskScheduler
   private graphBuildScheduler: GraphBuildScheduler
+  private graphQueryService: GraphQueryService
   private sendMessage: (msg: KGToMainMessage) => void
 
   constructor(
@@ -53,12 +56,14 @@ export class MessageHandler {
     taskSubmission: TaskSubmissionService,
     scheduler: TaskScheduler,
     graphBuildScheduler: GraphBuildScheduler,
+    graphQueryService: GraphQueryService,
     sendMessage: (msg: KGToMainMessage) => void
   ) {
     this.client = client
     this.taskSubmission = taskSubmission
     this.scheduler = scheduler
     this.graphBuildScheduler = graphBuildScheduler
+    this.graphQueryService = graphQueryService
     this.sendMessage = sendMessage
   }
 
@@ -92,6 +97,14 @@ export class MessageHandler {
 
         case 'kg:query-build-status':
           await this.handleQueryBuildStatus(msg.requestId)
+          break
+
+        case 'kg:query-graph-data':
+          this.handleQueryGraphData(msg.requestId, msg.data)
+          break
+
+        case 'kg:cancel-graph-query':
+          this.handleCancelGraphQuery(msg.sessionId)
           break
 
         default:
@@ -214,5 +227,42 @@ export class MessageHandler {
       logError('Query build status failed', error)
       this.sendMessage({ type: 'kg:build-status', requestId, tasks: [] })
     }
+  }
+
+  // ==========================================================================
+  // 图谱数据流式查询
+  // ==========================================================================
+
+  private handleQueryGraphData(requestId: string, data: KGGraphQueryParams): void {
+    // 参数校验
+    if (!data.targetNamespace || !data.targetDatabase || !data.graphTableBase) {
+      this.sendMessage({
+        type: 'kg:graph-data-error',
+        sessionId: requestId,
+        error: 'Missing required parameters: targetNamespace, targetDatabase, or graphTableBase'
+      })
+      return
+    }
+
+    try {
+      const sessionId = this.graphQueryService.startQuery(data)
+      this.sendMessage({
+        type: 'kg:graph-query-started',
+        requestId,
+        sessionId
+      })
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error)
+      logError('Start graph query failed', error)
+      this.sendMessage({
+        type: 'kg:graph-data-error',
+        sessionId: requestId,
+        error: errMsg
+      })
+    }
+  }
+
+  private handleCancelGraphQuery(sessionId: string): void {
+    this.graphQueryService.cancelQuery(sessionId)
   }
 }

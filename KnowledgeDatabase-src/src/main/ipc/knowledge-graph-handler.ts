@@ -6,7 +6,7 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { knowledgeGraphBridge } from '../services/knowledge-graph-bridge'
 import { logger } from '../services/logger'
-import type { KGSubmitTaskParams, KGCreateSchemaParams } from '@shared/knowledge-graph-ipc.types'
+import type { KGSubmitTaskParams, KGCreateSchemaParams, KGGraphQueryParams } from '@shared/knowledge-graph-ipc.types'
 
 const CH = {
   SUBMIT_TASK: 'knowledge-graph:submit-task',
@@ -14,12 +14,21 @@ const CH = {
   UPDATE_CONCURRENCY: 'knowledge-graph:update-concurrency',
   CREATE_GRAPH_SCHEMA: 'knowledge-graph:create-graph-schema',
   QUERY_BUILD_STATUS: 'knowledge-graph:query-build-status',
+  // 图谱数据查询
+  QUERY_GRAPH_DATA: 'knowledge-graph:query-graph-data',
+  CANCEL_GRAPH_QUERY: 'knowledge-graph:cancel-graph-query',
+  // 事件
   TASK_PROGRESS: 'knowledge-graph:task-progress',
   TASK_COMPLETED: 'knowledge-graph:task-completed',
   TASK_FAILED: 'knowledge-graph:task-failed',
   BUILD_PROGRESS: 'knowledge-graph:build-progress',
   BUILD_COMPLETED: 'knowledge-graph:build-completed',
-  BUILD_FAILED: 'knowledge-graph:build-failed'
+  BUILD_FAILED: 'knowledge-graph:build-failed',
+  // 图谱数据查询事件
+  GRAPH_DATA_BATCH: 'knowledge-graph:graph-data-batch',
+  GRAPH_DATA_COMPLETE: 'knowledge-graph:graph-data-complete',
+  GRAPH_DATA_ERROR: 'knowledge-graph:graph-data-error',
+  GRAPH_DATA_CANCELLED: 'knowledge-graph:graph-data-cancelled'
 } as const
 
 /** 向所有渲染窗口广播事件 */
@@ -35,6 +44,10 @@ let unsubFailed: (() => void) | null = null
 let unsubBuildProgress: (() => void) | null = null
 let unsubBuildCompleted: (() => void) | null = null
 let unsubBuildFailed: (() => void) | null = null
+let unsubGraphDataBatch: (() => void) | null = null
+let unsubGraphDataComplete: (() => void) | null = null
+let unsubGraphDataError: (() => void) | null = null
+let unsubGraphDataCancelled: (() => void) | null = null
 
 export function registerKnowledgeGraphHandlers(): void {
   ipcMain.handle(CH.SUBMIT_TASK, async (_event, params: KGSubmitTaskParams) => {
@@ -79,6 +92,22 @@ export function registerKnowledgeGraphHandlers(): void {
     }
   })
 
+  // 图谱数据流式查询
+  ipcMain.handle(CH.QUERY_GRAPH_DATA, async (_event, params: KGGraphQueryParams) => {
+    logger.info('[KG-IPCHandler] queryGraphData received:', params)
+    try {
+      return await knowledgeGraphBridge.queryGraphData(params)
+    } catch (error) {
+      logger.error('[KG-IPCHandler] queryGraphData failed:', error)
+      throw error
+    }
+  })
+
+  ipcMain.on(CH.CANCEL_GRAPH_QUERY, (_event, sessionId: string) => {
+    logger.info('[KG-IPCHandler] cancelGraphQuery:', sessionId)
+    knowledgeGraphBridge.cancelGraphQuery(sessionId)
+  })
+
   // 订阅 bridge 事件，广播到渲染进程
   unsubProgress = knowledgeGraphBridge.onTaskProgress((taskId, completed, failed, total) => {
     broadcast(CH.TASK_PROGRESS, taskId, completed, failed, total)
@@ -106,6 +135,23 @@ export function registerKnowledgeGraphHandlers(): void {
     broadcast(CH.BUILD_FAILED, taskId, error)
   })
 
+  // 图谱数据查询事件
+  unsubGraphDataBatch = knowledgeGraphBridge.onGraphDataBatch((data) => {
+    broadcast(CH.GRAPH_DATA_BATCH, data)
+  })
+
+  unsubGraphDataComplete = knowledgeGraphBridge.onGraphDataComplete((sessionId) => {
+    broadcast(CH.GRAPH_DATA_COMPLETE, sessionId)
+  })
+
+  unsubGraphDataError = knowledgeGraphBridge.onGraphDataError((sessionId, error) => {
+    broadcast(CH.GRAPH_DATA_ERROR, sessionId, error)
+  })
+
+  unsubGraphDataCancelled = knowledgeGraphBridge.onGraphDataCancelled((sessionId) => {
+    broadcast(CH.GRAPH_DATA_CANCELLED, sessionId)
+  })
+
   logger.info('[KG-IPCHandler] Handlers registered')
 }
 
@@ -115,11 +161,17 @@ export function unregisterKnowledgeGraphHandlers(): void {
   ipcMain.removeHandler(CH.UPDATE_CONCURRENCY)
   ipcMain.removeHandler(CH.CREATE_GRAPH_SCHEMA)
   ipcMain.removeHandler(CH.QUERY_BUILD_STATUS)
+  ipcMain.removeHandler(CH.QUERY_GRAPH_DATA)
+  ipcMain.removeAllListeners(CH.CANCEL_GRAPH_QUERY)
   unsubProgress?.()
   unsubCompleted?.()
   unsubFailed?.()
   unsubBuildProgress?.()
   unsubBuildCompleted?.()
   unsubBuildFailed?.()
+  unsubGraphDataBatch?.()
+  unsubGraphDataComplete?.()
+  unsubGraphDataError?.()
+  unsubGraphDataCancelled?.()
   logger.info('[KG-IPCHandler] Handlers unregistered')
 }
