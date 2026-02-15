@@ -86,8 +86,10 @@ export async function upsertGraphData(
     const r = relations[i]
     const relId = makeRelationId(r.srcSanitized, r.tgtSanitized)
     const p = `r${i}`
+    // RELATE 方向必须与 makeRelationId 的排序一致，否则不同 chunk 对同一关系的方向不同会导致 in/out 冲突
+    const sorted = [r.srcSanitized, r.tgtSanitized].sort()
     statements.push(`
-      RELATE ${tableNames.entity}:\u27E8${r.srcSanitized}\u27E9 -> ${tableNames.relates}:\u27E8${relId}\u27E9 -> ${tableNames.entity}:\u27E8${r.tgtSanitized}\u27E9 SET
+      RELATE ${tableNames.entity}:\u27E8${sorted[0]}\u27E9 -> ${tableNames.relates}:\u27E8${relId}\u27E9 -> ${tableNames.entity}:\u27E8${sorted[1]}\u27E9 SET
         keywords = $${p}_kw,
         description = IF description IS NONE OR description = ''
           THEN $${p}_desc

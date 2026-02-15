@@ -292,7 +292,8 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
 
   async function createKgConfig(
     kbId: number,
-    configData: Omit<KnowledgeGraphModelConfig, 'id'>
+    configData: Omit<KnowledgeGraphModelConfig, 'id'>,
+    databaseName: string
   ): Promise<KnowledgeGraphModelConfig> {
     // 获取嵌入配置的 dimensions
     const embConfig = getEmbeddingConfigs
@@ -320,24 +321,42 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
 
     await updateGlobalConfig(kbId, { knowledgeGraph: updatedKg })
 
-    // 异步创建图谱表 Schema（不阻塞配置创建）
+    // 创建图谱表 Schema
     try {
-      const kbConfig = configByKbId.value.get(kbId)
-      const databaseName = (kbConfig as any)?._databaseName
-      if (databaseName) {
-        await window.api.knowledgeGraph.createGraphSchema({
-          targetNamespace: 'knowledge',
-          targetDatabase: databaseName,
-          graphTableBase
-        })
-        newConfig.graphTablesCreated = true
-        await updateKgConfig(kbId, newConfig.id, { graphTablesCreated: true })
-      }
+      await window.api.knowledgeGraph.createGraphSchema({
+        targetNamespace: 'knowledge',
+        targetDatabase: databaseName,
+        graphTableBase
+      })
+      newConfig.graphTablesCreated = true
+      await updateKgConfig(kbId, newConfig.id, { graphTablesCreated: true })
     } catch (error) {
-      console.error('Failed to create graph schema, will retry on first build', error)
+      console.error('Failed to create graph schema, will retry on load', error)
     }
 
     return newConfig
+  }
+
+  /**
+   * 加载配置时，检查所有 KG 配置的 graphTablesCreated 标志
+   * 对未创建表的配置尝试建表（IF NOT EXISTS 语义）
+   */
+  async function ensureGraphTables(kbId: number, databaseName: string): Promise<void> {
+    const configs = getKgConfigs.value(kbId)
+    for (const cfg of configs) {
+      if (cfg.graphTableBase && !cfg.graphTablesCreated) {
+        try {
+          await window.api.knowledgeGraph.createGraphSchema({
+            targetNamespace: 'knowledge',
+            targetDatabase: databaseName,
+            graphTableBase: cfg.graphTableBase
+          })
+          await updateKgConfig(kbId, cfg.id, { graphTablesCreated: true })
+        } catch (error) {
+          console.error(`Failed to ensure graph tables for config ${cfg.id}:`, error)
+        }
+      }
+    }
   }
 
   async function deleteKgConfig(kbId: number, configId: string): Promise<void> {
@@ -409,6 +428,7 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
     createKgConfig,
     deleteKgConfig,
     updateKgConfig,
-    setDefaultKgConfigId
+    setDefaultKgConfigId,
+    ensureGraphTables
   }
 })

@@ -142,6 +142,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
+import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
 import type { KnowledgeGraphModelConfig } from '@preload/types'
 import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 import CreateKgConfigDialog from './CreateKgConfigDialog.vue'
@@ -155,7 +156,10 @@ const emit = defineEmits<{
 }>()
 
 const knowledgeConfigStore = useKnowledgeConfigStore()
+const knowledgeLibraryStore = useKnowledgeLibraryStore()
 const showCreateDialog = ref(false)
+
+const knowledgeBase = computed(() => knowledgeLibraryStore.getById(props.knowledgeBaseId))
 
 const configs = computed(() => knowledgeConfigStore.getKgConfigs(props.knowledgeBaseId))
 const embeddingConfigs = computed(() =>
@@ -181,9 +185,19 @@ function getEmbeddingName(embeddingConfigId: string): string {
 
 onMounted(async () => {
   await knowledgeConfigStore.loadConfig(props.knowledgeBaseId)
+  // 加载配置后，检查未建表的 KG 配置并尝试建表
+  const dbName = knowledgeBase.value?.databaseName
+  if (dbName) {
+    await knowledgeConfigStore.ensureGraphTables(props.knowledgeBaseId, dbName)
+  }
 })
 
 async function handleCreate(data: { name: string; embeddingConfigId: string }) {
+  const dbName = knowledgeBase.value?.databaseName
+  if (!dbName) {
+    console.error('Cannot create KG config: databaseName not found')
+    return
+  }
   const newConfig = await knowledgeConfigStore.createKgConfig(props.knowledgeBaseId, {
     name: data.name,
     embeddingConfigId: data.embeddingConfigId,
@@ -192,7 +206,7 @@ async function handleCreate(data: { name: string; embeddingConfigId: string }) {
     chunkConcurrency: 3,
     entityTypes: ['人物', '组织', '地点', '概念', '事件'],
     outputLanguage: 'zh-CN'
-  })
+  }, dbName)
   // 创建后直接进入详情页
   emit('open-kg-detail', newConfig)
 }

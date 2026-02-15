@@ -148,7 +148,7 @@ export class GraphBuildScheduler {
       // 1. 优先处理已有 pending build_chunks
       const pendingChunk = this.client.extractRecords(
         await this.client.query(
-          `SELECT task_id FROM kg_build_chunk WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1;`
+          `SELECT task_id, created_at FROM kg_build_chunk WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1;`
         )
       )
 
@@ -391,18 +391,35 @@ export class GraphBuildScheduler {
         console.warn(`[KG-GraphBuild] Chunk ${chunkIdStr}: parsed 0 entities and 0 relations`)
       }
 
-      // 4. upsert 到目标库
+      // 4. upsert 到目标库（含事务冲突重试）
       const tableNames = getKgTableNames(buildTask.target_table_base)
-      const result = await upsertGraphData(
-        this.client,
-        buildTask.target_namespace,
-        buildTask.target_database,
-        tableNames,
-        parsed.entities,
-        parsed.relations,
-        cacheKey,
-        buildTask.file_key ?? ''
-      )
+      let result: { entitiesUpserted: number; relationsUpserted: number } | undefined
+      const MAX_RETRIES = 3
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          result = await upsertGraphData(
+            this.client,
+            buildTask.target_namespace,
+            buildTask.target_database,
+            tableNames,
+            parsed.entities,
+            parsed.relations,
+            cacheKey,
+            buildTask.file_key ?? ''
+          )
+          break
+        } catch (retryErr: any) {
+          const msg = retryErr?.message ?? String(retryErr)
+          if (msg.includes('can be retried') && attempt < MAX_RETRIES) {
+            const delay = 200 * Math.pow(2, attempt)
+            log(`Chunk ${chunkIdStr}: write conflict, retry ${attempt + 1}/${MAX_RETRIES} after ${delay}ms`)
+            await new Promise((r) => setTimeout(r, delay))
+            continue
+          }
+          throw retryErr
+        }
+      }
+      if (!result) throw new Error('Unexpected: upsert did not return result')
 
       // 5. 标记完成
       await this.client.query(
