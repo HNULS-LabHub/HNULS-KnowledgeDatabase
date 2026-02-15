@@ -26,7 +26,7 @@ import TopBar from '../TopBar/index.vue'
 import NavBar from '../NavBar/index.vue'
 import DashboardView from './views/DashboardView.vue'
 import RAGView from './views/RAGView/index.vue'
-import GraphView from './views/GraphView.vue'
+import GraphView from './views/GraphView/index.vue'
 import DocsView from './views/DocsView.vue'
 
 import KnowledgeView from './views/KnowledgeView/index.vue'
