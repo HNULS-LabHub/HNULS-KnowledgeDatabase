@@ -1,5 +1,14 @@
 <template>
-  <div ref="containerRef" class="gv-sigma-renderer w-full h-full bg-slate-50" />
+  <div ref="containerRef" class="gv-sigma-renderer w-full h-full bg-slate-50">
+    <!-- 布局状态指示器 -->
+    <div
+      v-if="layoutRunning"
+      class="absolute bottom-3 right-3 z-10 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-lg border border-slate-200 shadow-sm flex items-center gap-2"
+    >
+      <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+      <span class="text-xs text-slate-600">布局优化中...</span>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -8,10 +17,10 @@
  * 使用 Sigma.js + Graphology 实现高性能 WebGL 渲染
  * 
  * 布局流程：
- * 1. 圆形初始布局 (circular)
- * 2. ForceAtlas2 力导向布局 - 基于引力/斥力模型，让相连节点靠近，不相连节点远离
+ * 1. CirclePack 气泡图布局 - 按实体类型分组
+ * 2. ForceAtlas2 力导向布局（Web Worker 异步）- 优化节点位置
  * 3. Noverlap 防重叠 - 微调节点位置避免重叠
- * 4. 节点大小根据 degree centrality 调整 - 连接越多的节点越大
+ * 4. 节点大小根据 degree centrality 调整
  * 
  * 边渲染：使用 @sigma/edge-curve 的贝塞尔曲线
  */
@@ -19,8 +28,9 @@
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import Graph from 'graphology'
 import Sigma from 'sigma'
-import { circular } from 'graphology-layout'
-import forceAtlas2 from 'graphology-layout-forceatlas2'
+import { circlepack } from 'graphology-layout'
+import FA2Layout from 'graphology-layout-forceatlas2/worker'
+import { inferSettings } from 'graphology-layout-forceatlas2'
 import noverlap from 'graphology-layout-noverlap'
 import { degreeCentrality } from 'graphology-metrics/centrality/degree'
 import { EdgeCurvedArrowProgram, indexParallelEdgesIndex } from '@sigma/edge-curve'
@@ -42,9 +52,11 @@ const emit = defineEmits<{
 }>()
 
 const containerRef = ref<HTMLElement | null>(null)
+const layoutRunning = ref(false)
 
 let graph: Graph | null = null
 let sigma: Sigma | null = null
+let fa2Layout: FA2Layout | null = null
 let colorMap = new Map<string, string>()
 
 // ============ 构建图数据 ============
@@ -99,37 +111,14 @@ function buildGraph(entities: GraphEntity[], relations: GraphRelation[]): Graph 
 
 // ============ 布局计算 ============
 
-function applyLayout(g: Graph): void {
-  // 1. 初始圆形布局
-  circular.assign(g, { scale: 300 })
-
-  // 2. ForceAtlas2 力导向布局
-  // - gravity: 向中心的引力，防止图散开
-  // - scalingRatio: 斥力缩放，值越大节点越分散
-  // - barnesHutOptimize: 大图优化，使用 Barnes-Hut 近似算法
-  // - adjustSizes: 考虑节点大小避免重叠
-  forceAtlas2.assign(g, {
-    iterations: 200,
-    settings: {
-      gravity: 1,
-      scalingRatio: 2,
-      barnesHutOptimize: g.order > 100,
-      strongGravityMode: false,
-      slowDown: 5,
-      adjustSizes: true
-    }
+function applyInitialLayout(g: Graph): void {
+  // 1. CirclePack 气泡图布局 - 按实体类型分组，scale 大让分布更分散
+  circlepack.assign(g, {
+    hierarchyAttributes: ['entityType'],
+    scale: 5000 // 较大的 scale 让布局更分散
   })
 
-  // 3. Noverlap 防重叠微调
-  noverlap.assign(g, {
-    maxIterations: 100,
-    settings: {
-      margin: 5,
-      ratio: 1.5
-    }
-  })
-
-  // 4. 根据 degree centrality 调整节点大小
+  // 2. 根据 degree centrality 调整节点大小
   const degrees = degreeCentrality(g)
   const maxDegree = Math.max(1, ...Object.values(degrees))
 
@@ -138,6 +127,56 @@ function applyLayout(g: Graph): void {
     const size = 4 + (d / maxDegree) * 16
     g.setNodeAttribute(node, 'size', size)
   })
+}
+
+function startAsyncLayout(g: Graph): void {
+  // 清理旧的 Worker
+  if (fa2Layout) {
+    fa2Layout.kill()
+    fa2Layout = null
+  }
+
+  // 根据图规模推断合适的参数
+  const sensibleSettings = inferSettings(g)
+
+  fa2Layout = new FA2Layout(g, {
+    settings: {
+      ...sensibleSettings,
+      gravity: 0.5,           // 较小的引力，让图更分散
+      scalingRatio: 100,       // 较大的斥力缩放，节点更分散
+      barnesHutOptimize: g.order > 50,
+      strongGravityMode: false,
+      slowDown: 2,
+      adjustSizes: true
+    }
+  })
+
+  layoutRunning.value = true
+  fa2Layout.start()
+
+  // 最多运行 3 秒后停止
+  setTimeout(() => {
+    stopAsyncLayout()
+  }, 3000)
+}
+
+function stopAsyncLayout(): void {
+  if (fa2Layout?.isRunning()) {
+    fa2Layout.stop()
+  }
+  layoutRunning.value = false
+
+  // 最后做一次 noverlap 防重叠微调
+  if (graph) {
+    noverlap.assign(graph, {
+      maxIterations: 50,
+      settings: {
+        margin: 8,
+        ratio: 2
+      }
+    })
+    sigma?.refresh()
+  }
 }
 
 // ============ Sigma 渲染器 ============
@@ -215,7 +254,9 @@ function updateHighlight(): void {
     if (isNeighbor) {
       return { ...data, zIndex: 1 }
     }
-    return { ...data, color: 'rgba(200, 200, 200, 0.4)', label: '', zIndex: 0 }
+    // 非活跃节点：缩小 + 灰色滤镜效果
+    const size = typeof data.size === 'number' ? data.size * 0.5 : 3
+    return { ...data, color: '#d1d5db', size, label: '', zIndex: 0 }
   })
 
   sigma.setSetting('edgeReducer', (edge, data) => {
@@ -226,13 +267,14 @@ function updateHighlight(): void {
     const isActive = source === activeNode || target === activeNode
 
     if (isActive) {
-      // 选中时显示渐变色（两端节点颜色混合）
+      // 选中时显示渐变色（两端节点颜色混合），加粗
       const sourceColor = graph.getEdgeAttribute(edge, 'sourceColor') as string
       const targetColor = graph.getEdgeAttribute(edge, 'targetColor') as string
       const blendedColor = blendColors(sourceColor, targetColor, 0.5)
-      return { ...data, color: blendedColor, size: 2, zIndex: 1 }
+      return { ...data, color: blendedColor, size: 3, zIndex: 1 }
     }
-    return { ...data, color: 'rgba(200, 200, 200, 0.1)', zIndex: 0 }
+    // 非活跃边：灰色滤镜
+    return { ...data, color: '#e5e7eb', size: 0.5, zIndex: 0 }
   })
 
   sigma.refresh()
@@ -245,18 +287,31 @@ function initGraph(): void {
 
   console.log('[GraphView] Building graph:', props.entities.length, 'nodes,', props.relations.length, 'edges')
 
+  // 清理旧的
+  stopAsyncLayout()
+  if (fa2Layout) {
+    fa2Layout.kill()
+    fa2Layout = null
+  }
   if (sigma) {
     sigma.kill()
     sigma = null
   }
 
   graph = buildGraph(props.entities, props.relations)
-  applyLayout(graph)
+  
+  // 1. 先应用初始布局（同步，很快）
+  applyInitialLayout(graph)
+  
+  // 2. 创建渲染器，让用户先看到初始状态
   sigma = createSigma(graph)
 
   if (sigma) {
     sigma.getCamera().animatedReset({ duration: 300 })
   }
+
+  // 3. 启动异步布局优化
+  startAsyncLayout(graph)
 }
 
 onMounted(() => {
@@ -266,6 +321,11 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  stopAsyncLayout()
+  if (fa2Layout) {
+    fa2Layout.kill()
+    fa2Layout = null
+  }
   if (sigma) {
     sigma.kill()
     sigma = null
