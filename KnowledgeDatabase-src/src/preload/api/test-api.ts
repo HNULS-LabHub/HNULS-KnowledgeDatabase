@@ -21,6 +21,21 @@ export interface LLMChatResponse {
   }
 }
 
+export interface LLMStreamRequest extends LLMChatRequest {
+  sessionId: string
+}
+
+export interface LLMStreamChunk {
+  sessionId: string
+  type: 'reasoning' | 'content' | 'usage'
+  content?: string
+  usage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
+}
+
 // ============================================================================
 // API
 // ============================================================================
@@ -41,9 +56,43 @@ export const testAPI = {
   },
 
   /**
-   * LLM 对话测试
+   * LLM 对话测试（非流式）
    */
   llmChat: (request: LLMChatRequest): Promise<LLMChatResponse> => {
     return ipcRenderer.invoke('test:llmchat', request)
+  },
+
+  /**
+   * LLM 流式对话
+   */
+  llmStream: (request: LLMStreamRequest): Promise<{ success: boolean; error?: string }> => {
+    return ipcRenderer.invoke('test:llmstream', request)
+  },
+
+  /**
+   * 监听流式 chunk
+   */
+  onLlmStreamChunk: (callback: (chunk: LLMStreamChunk) => void): (() => void) => {
+    const handler = (_event: any, chunk: LLMStreamChunk) => callback(chunk)
+    ipcRenderer.on('test:llmstream:chunk', handler)
+    return () => ipcRenderer.removeListener('test:llmstream:chunk', handler)
+  },
+
+  /**
+   * 监听流式完成
+   */
+  onLlmStreamDone: (callback: (data: { sessionId: string }) => void): (() => void) => {
+    const handler = (_event: any, data: { sessionId: string }) => callback(data)
+    ipcRenderer.on('test:llmstream:done', handler)
+    return () => ipcRenderer.removeListener('test:llmstream:done', handler)
+  },
+
+  /**
+   * 监听流式错误
+   */
+  onLlmStreamError: (callback: (data: { sessionId: string; error: string }) => void): (() => void) => {
+    const handler = (_event: any, data: { sessionId: string; error: string }) => callback(data)
+    ipcRenderer.on('test:llmstream:error', handler)
+    return () => ipcRenderer.removeListener('test:llmstream:error', handler)
   }
 }

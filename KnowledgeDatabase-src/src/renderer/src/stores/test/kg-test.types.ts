@@ -17,9 +17,26 @@ export interface LLMChatRequest {
   maxTokens?: number
 }
 
+/** LLM 流式请求参数 */
+export interface LLMStreamRequest extends LLMChatRequest {
+  sessionId: string
+}
+
 /** LLM 响应 */
 export interface LLMChatResponse {
   content: string
+  usage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
+}
+
+/** 流式 chunk */
+export interface LLMStreamChunk {
+  sessionId: string
+  type: 'reasoning' | 'content' | 'usage'
+  content?: string
   usage?: {
     promptTokens: number
     completionTokens: number
@@ -41,6 +58,7 @@ export type KgTestStatus = 'idle' | 'loading' | 'success' | 'error'
 
 /** 测试结果 */
 export interface KgTestResult {
+  reasoning: string
   content: string
   usage?: {
     promptTokens: number

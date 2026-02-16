@@ -95,15 +95,37 @@
           {{ t.label }}
         </button>
         <!-- 状态指示 -->
-        <span v-if="store.status === 'loading'" class="ml-auto text-xs text-amber-600">请求中...</span>
+        <span v-if="store.status === 'loading'" class="ml-auto text-xs text-amber-600 flex items-center gap-1">
+          <svg class="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="12" />
+          </svg>
+          流式输出中...
+        </span>
         <span v-else-if="store.status === 'success'" class="ml-auto text-xs text-emerald-600">完成</span>
         <span v-else-if="store.status === 'error'" class="ml-auto text-xs text-red-600">错误</span>
       </div>
 
       <!-- 内容 -->
-      <div class="flex-1 overflow-auto p-5">
+      <div class="flex-1 overflow-auto p-5 space-y-4">
+        <!-- 思考过程（仅在 result 标签且有内容时显示） -->
+        <div
+          v-if="rightTab === 'result' && (store.streamingReasoning || store.result?.reasoning)"
+          class="ts-reasoning-block"
+        >
+          <div class="flex items-center gap-2 mb-2">
+            <svg class="w-4 h-4 text-purple-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 16v-4M12 8h.01" />
+            </svg>
+            <span class="text-xs font-semibold text-purple-700">思考过程</span>
+          </div>
+          <pre class="p-3 bg-purple-50 border border-purple-200 rounded-lg text-xs text-purple-800 whitespace-pre-wrap overflow-auto font-mono max-h-[200px]">{{ store.streamingReasoning || store.result?.reasoning }}</pre>
+        </div>
+
+        <!-- 主内容 -->
         <pre
-          class="ts-code-block w-full h-full p-4 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 whitespace-pre-wrap overflow-auto font-mono"
+          class="ts-code-block w-full p-4 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 whitespace-pre-wrap overflow-auto font-mono"
+          :class="{ 'min-h-[300px]': rightTab === 'result' }"
         >{{ displayContent }}</pre>
       </div>
 
@@ -147,7 +169,15 @@ const rightTabs = [
 const displayContent = computed(() => {
   if (rightTab.value === 'system') return store.systemPrompt
   if (rightTab.value === 'user') return store.userPrompt
+
+  // result 标签
   if (store.result?.error) return `错误: ${store.result.error}`
+
+  // 流式输出中显示实时内容
+  if (store.status === 'loading') {
+    return store.streamingContent || '等待响应...'
+  }
+
   return store.result?.content || '点击「发送测试」查看模型输出'
 })
 

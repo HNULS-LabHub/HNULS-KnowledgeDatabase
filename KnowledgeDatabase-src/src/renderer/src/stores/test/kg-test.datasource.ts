@@ -3,44 +3,38 @@
  * @description 封装 IPC 调用，支持 mock 切换
  */
 
-import type { LLMChatRequest, LLMChatResponse } from './kg-test.types'
-
-const USE_MOCK = false // 开发时可切换为 true
-
-// ============================================================================
-// Mock 实现
-// ============================================================================
-
-async function mockLLMChat(request: LLMChatRequest): Promise<LLMChatResponse> {
-  // 模拟延迟
-  await new Promise((r) => setTimeout(r, 1500))
-
-  // 模拟响应
-  return {
-    content: `entity<|#|>张三<|#|>人物<|#|>一个测试人物
-entity<|#|>北京<|#|>地点<|#|>中国首都
-relation<|#|>张三<|#|>北京<|#|>居住<|#|>张三居住在北京
-<|COMPLETE|>`,
-    usage: {
-      promptTokens: 500,
-      completionTokens: 100,
-      totalTokens: 600
-    }
-  }
-}
+import type { LLMStreamRequest, LLMStreamChunk } from './kg-test.types'
 
 // ============================================================================
 // 真实实现
 // ============================================================================
 
-async function realLLMChat(request: LLMChatRequest): Promise<LLMChatResponse> {
-  return window.api.test.llmChat(request)
-}
-
-// ============================================================================
-// 导出
-// ============================================================================
-
 export const kgTestDatasource = {
-  llmChat: USE_MOCK ? mockLLMChat : realLLMChat
+  /**
+   * 发起流式 LLM 调用
+   */
+  llmStream: (request: LLMStreamRequest): Promise<{ success: boolean; error?: string }> => {
+    return window.api.test.llmStream(request)
+  },
+
+  /**
+   * 监听流式 chunk
+   */
+  onLlmStreamChunk: (callback: (chunk: LLMStreamChunk) => void): (() => void) => {
+    return window.api.test.onLlmStreamChunk(callback)
+  },
+
+  /**
+   * 监听流式完成
+   */
+  onLlmStreamDone: (callback: (data: { sessionId: string }) => void): (() => void) => {
+    return window.api.test.onLlmStreamDone(callback)
+  },
+
+  /**
+   * 监听流式错误
+   */
+  onLlmStreamError: (callback: (data: { sessionId: string; error: string }) => void): (() => void) => {
+    return window.api.test.onLlmStreamError(callback)
+  }
 }
