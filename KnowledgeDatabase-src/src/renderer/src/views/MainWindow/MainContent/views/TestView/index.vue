@@ -29,17 +29,20 @@
     <!-- 内容区 -->
     <main class="ts-main flex-1 overflow-hidden">
       <KgModelTest v-if="activeTab === 'kg-model'" />
+      <SigmaLayoutTest v-else-if="activeTab === 'sigma-layout'" />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import KgModelTest from './KgModelTest.vue'
+import KgModelTest from './KgModelTest/index.vue'
+import SigmaLayoutTest from './SigmaLayoutTest/index.vue'
 
 const activeTab = ref('kg-model')
 
 const tabs = [
-  { id: 'kg-model', label: '知识图谱模型测试' }
+  { id: 'kg-model', label: '知识图谱模型测试' },
+  { id: 'sigma-layout', label: 'Sigma布局测试' }
 ]
 </script>

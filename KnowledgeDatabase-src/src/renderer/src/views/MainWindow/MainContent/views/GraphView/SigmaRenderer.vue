@@ -17,9 +17,9 @@
  * 使用 Sigma.js + Graphology 实现高性能 WebGL 渲染
  * 
  * 布局流程：
- * 1. CirclePack 气泡图布局 - 按实体类型分组
- * 2. ForceAtlas2 力导向布局（Web Worker 异步）- 优化节点位置
- * 3. Noverlap 防重叠 - 微调节点位置避免重叠
+ * 1. 随机初始位置 + 按类型预聚类
+ * 2. ForceAtlas2 力导向布局（Web Worker 异步）
+ * 3. Noverlap 防重叠微调
  * 4. 节点大小根据 degree centrality 调整
  * 
  * 边渲染：使用 @sigma/edge-curve 的贝塞尔曲线
@@ -28,11 +28,10 @@
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import Graph from 'graphology'
 import Sigma from 'sigma'
-import { circlepack } from 'graphology-layout'
 import FA2Layout from 'graphology-layout-forceatlas2/worker'
 import { inferSettings } from 'graphology-layout-forceatlas2'
 import noverlap from 'graphology-layout-noverlap'
-import { degreeCentrality } from 'graphology-metrics/centrality/degree'
+import { createNodeBorderProgram } from '@sigma/node-border'
 import { EdgeCurvedArrowProgram, indexParallelEdgesIndex } from '@sigma/edge-curve'
 import type { GraphEntity, GraphRelation } from './types'
 import { buildColorMap, getTypeColor, blendColors } from './color-palette'
@@ -111,21 +110,300 @@ function buildGraph(entities: GraphEntity[], relations: GraphRelation[]): Graph 
 
 // ============ 布局计算 ============
 
+/**
+ * 有机布局 (Organic Layout)
+ * 
+ * 核心特点：
+ * 1. 聚类之间距离很远（好几倍直径的间隔）
+ * 2. 跨类型关联的节点分散在聚类之间的空白区域（像桥梁一样）
+ * 3. 纯聚类内节点保持在聚类内部，稀疏分布
+ * 4. 节点间距根据节点大小动态计算，至少 3 倍半径
+ */
 function applyInitialLayout(g: Graph): void {
-  // 1. CirclePack 气泡图布局 - 按实体类型分组，scale 大让分布更分散
-  circlepack.assign(g, {
-    hierarchyAttributes: ['entityType'],
-    scale: 5000 // 较大的 scale 让布局更分散
+  // ========== 先计算节点大小（关联数越多越大） ==========
+  const nodeSizes = new Map<string, number>()
+  g.forEachNode((node) => {
+    const degree = g.degree(node)
+    const size = 4 + Math.sqrt(degree) * 2.5  // 基础 4，按度数平方根增长
+    nodeSizes.set(node, size)
+    g.setNodeAttribute(node, 'size', size)
   })
 
-  // 2. 根据 degree centrality 调整节点大小
-  const degrees = degreeCentrality(g)
-  const maxDegree = Math.max(1, ...Object.values(degrees))
+  // 节点间距系数：3 倍半径
+  const SPACING_RATIO = 8
 
-  g.forEachNode((node) => {
-    const d = degrees[node] ?? 0
-    const size = 4 + (d / maxDegree) * 16
-    g.setNodeAttribute(node, 'size', size)
+  // 按类型分组
+  const typeGroups = new Map<string, string[]>()
+  g.forEachNode((node, attrs) => {
+    const type = attrs.entityType as string
+    if (!typeGroups.has(type)) typeGroups.set(type, [])
+    typeGroups.get(type)!.push(node)
+  })
+
+  const types = Array.from(typeGroups.keys())
+  if (types.length === 0) return
+
+  // 计算每个聚类的平均节点大小
+  const clusterAvgSize = new Map<string, number>()
+  types.forEach(type => {
+    const nodes = typeGroups.get(type)!
+    const totalSize = nodes.reduce((sum, n) => sum + (nodeSizes.get(n) ?? 6), 0)
+    clusterAvgSize.set(type, totalSize / nodes.length)
+  })
+  
+  // ========== 第一步：计算聚类中心位置（间隔很远） ==========
+  const clusterCenters = new Map<string, { x: number; y: number; size: number }>()
+  
+  types.forEach((type, i) => {
+    const nodes = typeGroups.get(type)!
+    const count = nodes.length
+    const avgSize = clusterAvgSize.get(type) ?? 6
+    // 聚类半径根据节点数和平均大小计算
+    const clusterRadius = Math.sqrt(count) * avgSize * SPACING_RATIO * 1.2
+    const angle = (i / types.length) * 2 * Math.PI
+    const angleJitter = (Math.random() - 0.5) * 0.8
+    const radiusJitter = (Math.random() - 0.5) * 300
+    const distFromCenter = 600 + clusterRadius * 3 + radiusJitter
+    clusterCenters.set(type, {
+      x: distFromCenter * Math.cos(angle + angleJitter),
+      y: distFromCenter * Math.sin(angle + angleJitter),
+      size: clusterRadius
+    })
+  })
+
+  // 聚类间力导向迭代 - 保证聚类间距至少 4 倍直径
+  for (let iter = 0; iter < 40; iter++) {
+    const forces = new Map<string, { fx: number; fy: number }>()
+    types.forEach(t => forces.set(t, { fx: 0, fy: 0 }))
+
+    for (let i = 0; i < types.length; i++) {
+      for (let j = i + 1; j < types.length; j++) {
+        const c1 = clusterCenters.get(types[i])!
+        const c2 = clusterCenters.get(types[j])!
+        const dx = c2.x - c1.x
+        const dy = c2.y - c1.y
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1
+        
+        const minDist = (c1.size + c2.size) * 2 * 4
+        
+        if (dist < minDist) {
+          const overlap = minDist - dist
+          const force = overlap * 2
+          const fx = (dx / dist) * force
+          const fy = (dy / dist) * force
+          
+          forces.get(types[i])!.fx -= fx
+          forces.get(types[i])!.fy -= fy
+          forces.get(types[j])!.fx += fx
+          forces.get(types[j])!.fy += fy
+        }
+      }
+    }
+
+    types.forEach(type => {
+      const c = clusterCenters.get(type)!
+      const f = forces.get(type)!
+      f.fx -= c.x * 0.01
+      f.fy -= c.y * 0.01
+    })
+
+    types.forEach(type => {
+      const c = clusterCenters.get(type)!
+      const f = forces.get(type)!
+      c.x += f.fx * 0.4
+      c.y += f.fy * 0.4
+    })
+  }
+
+  // 聚类中心随机扰动
+  types.forEach(type => {
+    const c = clusterCenters.get(type)!
+    c.x += (Math.random() - 0.5) * c.size * 0.6
+    c.y += (Math.random() - 0.5) * c.size * 0.6
+  })
+
+  // ========== 预计算：每个节点的跨类型邻居 ==========
+  const crossTypeNeighbors = new Map<string, Set<string>>()
+  
+  g.forEachNode((node, attrs) => {
+    const myType = attrs.entityType as string
+    const neighborTypes = new Set<string>()
+    
+    g.forEachNeighbor(node, (_neighbor, neighborAttrs) => {
+      const nType = neighborAttrs.entityType as string
+      if (nType !== myType) {
+        neighborTypes.add(nType)
+      }
+    })
+    
+    if (neighborTypes.size > 0) {
+      crossTypeNeighbors.set(node, neighborTypes)
+    }
+  })
+
+  // ========== 第二步：放置节点（根据节点大小动态计算间距） ==========
+  // 空间分区网格，用于快速查找附近节点（避免 O(n²) 检查）
+  const GRID_SIZE = 50  // 网格大小
+  const spatialGrid = new Map<string, Array<{ id: string; x: number; y: number; size: number }>>()
+  
+  const getGridKey = (x: number, y: number): string => {
+    const gx = Math.floor(x / GRID_SIZE)
+    const gy = Math.floor(y / GRID_SIZE)
+    return `${gx},${gy}`
+  }
+  
+  const addToGrid = (node: { id: string; x: number; y: number; size: number }): void => {
+    const key = getGridKey(node.x, node.y)
+    if (!spatialGrid.has(key)) spatialGrid.set(key, [])
+    spatialGrid.get(key)!.push(node)
+  }
+  
+  const getNearbyNodes = (x: number, y: number, radius: number): Array<{ id: string; x: number; y: number; size: number }> => {
+    const result: Array<{ id: string; x: number; y: number; size: number }> = []
+    const cellRadius = Math.ceil(radius / GRID_SIZE) + 1
+    const cx = Math.floor(x / GRID_SIZE)
+    const cy = Math.floor(y / GRID_SIZE)
+    
+    for (let dx = -cellRadius; dx <= cellRadius; dx++) {
+      for (let dy = -cellRadius; dy <= cellRadius; dy++) {
+        const key = `${cx + dx},${cy + dy}`
+        const cell = spatialGrid.get(key)
+        if (cell) result.push(...cell)
+      }
+    }
+    return result
+  }
+
+  // 尝试放置节点，避免与已放置节点重叠
+  const tryPlaceNode = (
+    node: string,
+    baseX: number,
+    baseY: number,
+    maxAttempts: number = 12
+  ): { x: number; y: number } => {
+    const nodeSize = nodeSizes.get(node) ?? 6
+    const searchRadius = nodeSize * SPACING_RATIO * 3
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const jitterScale = 1 + attempt * 0.8
+      const x = baseX + (Math.random() - 0.5) * nodeSize * SPACING_RATIO * jitterScale
+      const y = baseY + (Math.random() - 0.5) * nodeSize * SPACING_RATIO * jitterScale
+      
+      // 只检查附近的节点
+      const nearby = getNearbyNodes(x, y, searchRadius)
+      let hasOverlap = false
+      
+      for (const placed of nearby) {
+        const dx = x - placed.x
+        const dy = y - placed.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        const minDist = (nodeSize + placed.size) * SPACING_RATIO / 2
+        
+        if (dist < minDist) {
+          hasOverlap = true
+          break
+        }
+      }
+      
+      if (!hasOverlap) {
+        return { x, y }
+      }
+    }
+    
+    // 所有尝试都失败，向外推开
+    const pushAngle = Math.random() * 2 * Math.PI
+    const pushDist = nodeSize * SPACING_RATIO * 4
+    return {
+      x: baseX + Math.cos(pushAngle) * pushDist,
+      y: baseY + Math.sin(pushAngle) * pushDist
+    }
+  }
+
+  // 收集所有节点并按大小排序（大节点优先放置）
+  const allNodes: Array<{ node: string; type: string; isBridge: boolean }> = []
+  
+  types.forEach(type => {
+    const nodes = typeGroups.get(type)!
+    nodes.forEach(node => {
+      allNodes.push({
+        node,
+        type,
+        isBridge: crossTypeNeighbors.has(node)
+      })
+    })
+  })
+  
+  // 按大小降序排序
+  allNodes.sort((a, b) => (nodeSizes.get(b.node) ?? 0) - (nodeSizes.get(a.node) ?? 0))
+
+  // 记录每个聚类的当前螺旋状态
+  const clusterSpiralState = new Map<string, { radius: number; angleOffset: number; count: number }>()
+  types.forEach(type => {
+    const avgSize = clusterAvgSize.get(type) ?? 6
+    clusterSpiralState.set(type, {
+      radius: avgSize * SPACING_RATIO,
+      angleOffset: 0,
+      count: 0
+    })
+  })
+
+  // 按大小顺序放置所有节点
+  allNodes.forEach(({ node, type, isBridge }) => {
+    const center = clusterCenters.get(type)!
+    const nodeSize = nodeSizes.get(node) ?? 6
+    
+    let baseX: number, baseY: number
+    
+    if (isBridge) {
+      // 桥梁节点：放到聚类之间
+      const neighborTypes = crossTypeNeighbors.get(node)!
+      let sumX = center.x, sumY = center.y, weight = 1
+      
+      neighborTypes.forEach(neighborType => {
+        const neighborCenter = clusterCenters.get(neighborType)
+        if (neighborCenter) {
+          sumX += neighborCenter.x
+          sumY += neighborCenter.y
+          weight++
+        }
+      })
+      
+      const avgX = sumX / weight
+      const avgY = sumY / weight
+      const dirX = avgX - center.x
+      const dirY = avgY - center.y
+      const dirLen = Math.sqrt(dirX * dirX + dirY * dirY) || 1
+      
+      // 距离：从聚类边缘到目标方向的 70%
+      const dist = center.size * 1.2 + Math.random() * (dirLen * 0.5)
+      const perpX = -dirY / dirLen
+      const perpY = dirX / dirLen
+      const perpOffset = (Math.random() - 0.5) * 300
+      
+      baseX = center.x + (dirX / dirLen) * dist + perpX * perpOffset
+      baseY = center.y + (dirY / dirLen) * dist + perpY * perpOffset
+    } else {
+      // 纯内部节点：螺旋分布
+      const state = clusterSpiralState.get(type)!
+      const circumference = 2 * Math.PI * state.radius
+      const nodesPerRing = Math.max(1, Math.floor(circumference / (nodeSize * SPACING_RATIO)))
+      const ringIndex = state.count % nodesPerRing
+      
+      const theta = state.angleOffset + (ringIndex / nodesPerRing) * 2 * Math.PI
+      baseX = center.x + state.radius * Math.cos(theta)
+      baseY = center.y + state.radius * Math.sin(theta)
+      
+      state.count++
+      if (ringIndex === nodesPerRing - 1) {
+        state.radius += nodeSize * SPACING_RATIO
+        state.angleOffset += 0.5
+      }
+    }
+    
+    const pos = tryPlaceNode(node, baseX, baseY)
+    g.setNodeAttribute(node, 'x', pos.x)
+    g.setNodeAttribute(node, 'y', pos.y)
+    addToGrid({ id: node, x: pos.x, y: pos.y, size: nodeSize })
   })
 }
 
@@ -142,22 +420,25 @@ function startAsyncLayout(g: Graph): void {
   fa2Layout = new FA2Layout(g, {
     settings: {
       ...sensibleSettings,
-      gravity: 0.5,           // 较小的引力，让图更分散
-      scalingRatio: 100,       // 较大的斥力缩放，节点更分散
-      barnesHutOptimize: g.order > 50,
+      gravity: 0.02,           // 轻微向心力，保持聚类结构
+      scalingRatio: 15,        // 适中斥力，微调而不破坏布局
+      barnesHutOptimize: g.order > 100,
+      barnesHutTheta: 0.6,
       strongGravityMode: false,
-      slowDown: 2,
-      adjustSizes: true
+      slowDown: 1,
+      adjustSizes: true,
+      linLogMode: false
     }
   })
 
   layoutRunning.value = true
   fa2Layout.start()
 
-  // 最多运行 3 秒后停止
+  // 有机布局已经很好了，只需要短时间微调
+  const duration = Math.min(2000, Math.max(1000, g.order))
   setTimeout(() => {
     stopAsyncLayout()
-  }, 3000)
+  }, duration)
 }
 
 function stopAsyncLayout(): void {
@@ -166,13 +447,14 @@ function stopAsyncLayout(): void {
   }
   layoutRunning.value = false
 
-  // 最后做一次 noverlap 防重叠微调
+  // 轻量 noverlap 防重叠微调（考虑节点大小）
   if (graph) {
     noverlap.assign(graph, {
-      maxIterations: 50,
+      maxIterations: 15,
       settings: {
-        margin: 8,
-        ratio: 2
+        margin: 2,
+        ratio: 1.2,
+        gridSize: 20
       }
     })
     sigma?.refresh()
@@ -183,6 +465,14 @@ function stopAsyncLayout(): void {
 
 function createSigma(g: Graph): Sigma | null {
   if (!containerRef.value) return null
+
+  // 白色边框 + 颜色填充的节点程序
+  const NodeBorderProgram = createNodeBorderProgram({
+    borders: [
+      { size: { value: 0.15 }, color: { value: '#ffffff' } },
+      { size: { fill: true }, color: { attribute: 'color' } }
+    ]
+  })
 
   const s = new Sigma(g, containerRef.value, {
     renderLabels: true,
@@ -195,12 +485,15 @@ function createSigma(g: Graph): Sigma | null {
     labelColor: { color: '#334155' },
     defaultNodeColor: '#94a3b8',
     defaultEdgeColor: '#bfdbfe',
-    defaultEdgeType: 'curvedArrow', // 默认使用曲线箭头
+    defaultEdgeType: 'curvedArrow',
+    defaultNodeType: 'border',
     minCameraRatio: 0.1,
     maxCameraRatio: 5,
     zIndex: true,
     enableEdgeEvents: false,
-    // 注册曲线边渲染程序
+    nodeProgramClasses: {
+      border: NodeBorderProgram
+    },
     edgeProgramClasses: {
       curvedArrow: EdgeCurvedArrowProgram
     }
