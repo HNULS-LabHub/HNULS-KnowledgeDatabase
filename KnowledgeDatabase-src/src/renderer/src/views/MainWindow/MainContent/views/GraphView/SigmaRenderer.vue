@@ -71,21 +71,22 @@ function buildGraph(entities: GraphEntity[], relations: GraphRelation[]): Graph 
     })
   }
 
-  // 添加边 - 颜色使用两端节点颜色的混合
+  // 添加边 - 存储两端颜色信息，选中时才显示渐变色
   for (const r of relations) {
     if (g.hasNode(r.source) && g.hasNode(r.target)) {
       const sourceType = entityTypeMap.get(r.source) ?? ''
       const targetType = entityTypeMap.get(r.target) ?? ''
       const sourceColor = getTypeColor(colorMap, sourceType)
       const targetColor = getTypeColor(colorMap, targetType)
-      const edgeColor = blendColors(sourceColor, targetColor, 0.5)
 
       g.addEdge(r.source, r.target, {
         weight: r.weight,
         label: r.keywords,
-        color: edgeColor,
+        color: '#bfdbfe', // 常态浅蓝色
+        sourceColor, // 存储用于高亮时计算
+        targetColor,
         size: 1,
-        type: 'curvedArrow' // 使用曲线箭头
+        type: 'curvedArrow'
       })
     }
   }
@@ -154,7 +155,7 @@ function createSigma(g: Graph): Sigma | null {
     labelWeight: 'normal',
     labelColor: { color: '#334155' },
     defaultNodeColor: '#94a3b8',
-    defaultEdgeColor: 'rgba(160, 160, 160, 0.5)',
+    defaultEdgeColor: '#bfdbfe',
     defaultEdgeType: 'curvedArrow', // 默认使用曲线箭头
     minCameraRatio: 0.1,
     maxCameraRatio: 5,
@@ -166,14 +167,14 @@ function createSigma(g: Graph): Sigma | null {
     }
   })
 
-  // 悬停效果
-  s.on('enterNode', ({ node }) => {
-    emit('hover-node', node)
-  })
+  // 悬停效果 - 已禁用，仅点击触发高亮
+  // s.on('enterNode', ({ node }) => {
+  //   emit('hover-node', node)
+  // })
 
-  s.on('leaveNode', () => {
-    emit('hover-node', null)
-  })
+  // s.on('leaveNode', () => {
+  //   emit('hover-node', null)
+  // })
 
   // 点击选中
   s.on('clickNode', ({ node }) => {
@@ -192,7 +193,8 @@ function createSigma(g: Graph): Sigma | null {
 function updateHighlight(): void {
   if (!sigma || !graph) return
 
-  const activeNode = props.selectedNodeId ?? props.hoveredNodeId
+  // 仅响应点击选中，不响应悬停
+  const activeNode = props.selectedNodeId
   const activeNeighbors = new Set<string>()
 
   if (activeNode && graph.hasNode(activeNode)) {
@@ -224,7 +226,11 @@ function updateHighlight(): void {
     const isActive = source === activeNode || target === activeNode
 
     if (isActive) {
-      return { ...data, color: 'rgba(91, 143, 249, 0.8)', size: 2, zIndex: 1 }
+      // 选中时显示渐变色（两端节点颜色混合）
+      const sourceColor = graph.getEdgeAttribute(edge, 'sourceColor') as string
+      const targetColor = graph.getEdgeAttribute(edge, 'targetColor') as string
+      const blendedColor = blendColors(sourceColor, targetColor, 0.5)
+      return { ...data, color: blendedColor, size: 2, zIndex: 1 }
     }
     return { ...data, color: 'rgba(200, 200, 200, 0.1)', zIndex: 0 }
   })

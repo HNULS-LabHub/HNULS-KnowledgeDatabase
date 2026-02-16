@@ -48,23 +48,43 @@ export interface LLMStreamChunk {
 export interface KgTestConfig {
   entityTypes: string[]
   outputLanguage: string
-  providerId: string
-  modelId: string
   inputText: string
 }
 
-/** 测试状态 */
-export type KgTestStatus = 'idle' | 'loading' | 'success' | 'error'
+/** 选中的模型 */
+export interface SelectedModel {
+  providerId: string
+  modelId: string
+}
 
-/** 测试结果 */
-export interface KgTestResult {
+/** 单个模型的测试状态 */
+export type ModelTestStatus = 'idle' | 'loading' | 'success' | 'error'
+
+/** 单个模型的测试结果 */
+export interface ModelTestResult {
+  sessionId: string
+  modelId: string
+  providerId: string
+  status: ModelTestStatus
+  // 流式内容
   reasoning: string
   content: string
+  // 计时
+  startTime: number
+  firstTokenTime: number | null
+  endTime: number | null
+  // 统计
   usage?: {
     promptTokens: number
     completionTokens: number
     totalTokens: number
   }
   error?: string
-  timestamp: number
+}
+
+/** 计算后的性能指标 */
+export interface ModelMetrics {
+  totalTime: number | null      // 总耗时 ms
+  firstTokenTime: number | null // 首字时间 ms
+  tokensPerSecond: number | null // tokens/s
 }

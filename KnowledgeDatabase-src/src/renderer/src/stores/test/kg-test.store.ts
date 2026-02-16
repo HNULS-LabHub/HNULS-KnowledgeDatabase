@@ -1,12 +1,27 @@
 /**
  * @file 知识图谱测试 Store
- * @description 管理 KG 模型测试的状态
+ * @description 管理多模型并行测试的状态
  */
 
 import { defineStore } from 'pinia'
-import { ref, computed, onUnmounted } from 'vue'
-import type { KgTestConfig, KgTestStatus, KgTestResult, LLMMessage, LLMStreamChunk } from './kg-test.types'
+import { ref, computed, reactive } from 'vue'
+import type {
+  KgTestConfig,
+  SelectedModel,
+  ModelTestResult,
+  ModelMetrics,
+  LLMMessage,
+  LLMStreamChunk
+} from './kg-test.types'
 import { kgTestDatasource } from './kg-test.datasource'
+import {
+  saveTestHistory,
+  getAllHistory,
+  deleteHistory,
+  clearAllHistory,
+  getHistoryCount,
+  type TestHistoryRecord
+} from './kg-test-history'
 import {
   entityExtractionSystem,
   entityExtractionUser,
@@ -19,7 +34,6 @@ import {
 
 const TUPLE_DELIMITER = '<|#|>'
 const COMPLETION_DELIMITER = '<|COMPLETE|>'
-
 const DEFAULT_ENTITY_TYPES = ['人物', '组织', '地点', '事件', '概念']
 
 // ============================================================================
@@ -27,27 +41,28 @@ const DEFAULT_ENTITY_TYPES = ['人物', '组织', '地点', '事件', '概念']
 // ============================================================================
 
 export const useKgTestStore = defineStore('kg-test', () => {
-  // ============ 状态 ============
+  // ============ 配置状态 ============
   const config = ref<KgTestConfig>({
     entityTypes: [...DEFAULT_ENTITY_TYPES],
     outputLanguage: 'Chinese',
-    providerId: '',
-    modelId: '',
     inputText: ''
   })
 
-  const status = ref<KgTestStatus>('idle')
-  const result = ref<KgTestResult | null>(null)
+  // 选中的模型列表
+  const selectedModels = ref<SelectedModel[]>([])
 
-  // 流式输出的实时内容
-  const streamingReasoning = ref('')
-  const streamingContent = ref('')
+  // 每个模型的测试结果（按 sessionId 索引）
+  const testResults = reactive<Map<string, ModelTestResult>>(new Map())
 
-  // 当前会话 ID
-  const currentSessionId = ref<string | null>(null)
+  // 历史记录
+  const historyRecords = ref<TestHistoryRecord[]>([])
+  const historyCount = ref(0)
+  const historyLoading = ref(false)
 
   // 清理函数
-  const cleanupFns: (() => void)[] = []
+  let cleanupChunk: (() => void) | null = null
+  let cleanupDone: (() => void) | null = null
+  let cleanupError: (() => void) | null = null
 
   // ============ 计算属性 ============
   const entityTypesText = computed(() =>
@@ -75,14 +90,17 @@ export const useKgTestStore = defineStore('kg-test', () => {
   })
 
   const canSend = computed(
-    () => config.value.modelId && config.value.inputText.trim() && status.value !== 'loading'
+    () => selectedModels.value.length > 0 && config.value.inputText.trim()
   )
 
-  // ============ 方法 ============
+  const isAnyLoading = computed(() =>
+    Array.from(testResults.values()).some((r) => r.status === 'loading')
+  )
 
-  function setEntityTypes(types: string[]): void {
-    config.value.entityTypes = types
-  }
+  // 获取结果列表（按添加顺序）
+  const resultsList = computed(() => Array.from(testResults.values()))
+
+  // ============ 方法 ============
 
   function addEntityTypes(input: string): void {
     const newTypes = input
@@ -102,90 +120,120 @@ export const useKgTestStore = defineStore('kg-test', () => {
     config.value.outputLanguage = lang
   }
 
-  function setModel(providerId: string, modelId: string): void {
-    config.value.providerId = providerId
-    config.value.modelId = modelId
-  }
-
   function setInputText(text: string): void {
     config.value.inputText = text
   }
 
+  function addModel(providerId: string, modelId: string): void {
+    if (!selectedModels.value.some((m) => m.modelId === modelId)) {
+      selectedModels.value.push({ providerId, modelId })
+    }
+  }
+
+  function removeModel(modelId: string): void {
+    const idx = selectedModels.value.findIndex((m) => m.modelId === modelId)
+    if (idx !== -1) {
+      selectedModels.value.splice(idx, 1)
+    }
+  }
+
+  function clearModels(): void {
+    selectedModels.value = []
+  }
+
+  /** 计算性能指标 */
+  function getMetrics(result: ModelTestResult): ModelMetrics {
+    const totalTime = result.endTime ? result.endTime - result.startTime : null
+    const firstTokenTime = result.firstTokenTime
+      ? result.firstTokenTime - result.startTime
+      : null
+
+    let tokensPerSecond: number | null = null
+    if (totalTime && result.usage?.completionTokens) {
+      tokensPerSecond = Math.round((result.usage.completionTokens / totalTime) * 1000)
+    }
+
+    return { totalTime, firstTokenTime, tokensPerSecond }
+  }
+
   function setupStreamListeners(): void {
-    // 清理旧的监听器
     cleanupStreamListeners()
 
     // 监听 chunk
-    cleanupFns.push(
-      kgTestDatasource.onLlmStreamChunk((chunk: LLMStreamChunk) => {
-        if (chunk.sessionId !== currentSessionId.value) return
+    cleanupChunk = kgTestDatasource.onLlmStreamChunk((chunk: LLMStreamChunk) => {
+      const result = testResults.get(chunk.sessionId)
+      if (!result) return
 
-        if (chunk.type === 'reasoning' && chunk.content) {
-          streamingReasoning.value += chunk.content
-        } else if (chunk.type === 'content' && chunk.content) {
-          streamingContent.value += chunk.content
-        } else if (chunk.type === 'usage' && chunk.usage) {
-          result.value = {
-            reasoning: streamingReasoning.value,
-            content: streamingContent.value,
-            usage: chunk.usage,
-            timestamp: Date.now()
-          }
-        }
-      })
-    )
+      // 记录首字时间
+      if (result.firstTokenTime === null && (chunk.content || chunk.type === 'content')) {
+        result.firstTokenTime = Date.now()
+      }
+
+      if (chunk.type === 'reasoning' && chunk.content) {
+        result.reasoning += chunk.content
+      } else if (chunk.type === 'content' && chunk.content) {
+        result.content += chunk.content
+      } else if (chunk.type === 'usage' && chunk.usage) {
+        result.usage = chunk.usage
+      }
+    })
 
     // 监听完成
-    cleanupFns.push(
-      kgTestDatasource.onLlmStreamDone((data) => {
-        if (data.sessionId !== currentSessionId.value) return
+    cleanupDone = kgTestDatasource.onLlmStreamDone((data) => {
+      const result = testResults.get(data.sessionId)
+      if (!result) return
 
-        result.value = {
-          reasoning: streamingReasoning.value,
-          content: streamingContent.value,
-          usage: result.value?.usage,
-          timestamp: Date.now()
-        }
-        status.value = 'success'
-        currentSessionId.value = null
-      })
-    )
+      result.endTime = Date.now()
+      result.status = 'success'
+    })
 
     // 监听错误
-    cleanupFns.push(
-      kgTestDatasource.onLlmStreamError((data) => {
-        if (data.sessionId !== currentSessionId.value) return
+    cleanupError = kgTestDatasource.onLlmStreamError((data) => {
+      const result = testResults.get(data.sessionId)
+      if (!result) return
 
-        result.value = {
-          reasoning: streamingReasoning.value,
-          content: streamingContent.value,
-          error: data.error,
-          timestamp: Date.now()
-        }
-        status.value = 'error'
-        currentSessionId.value = null
-      })
-    )
+      result.endTime = Date.now()
+      result.status = 'error'
+      result.error = data.error
+    })
   }
 
   function cleanupStreamListeners(): void {
-    for (const cleanup of cleanupFns) {
-      cleanup()
-    }
-    cleanupFns.length = 0
+    cleanupChunk?.()
+    cleanupDone?.()
+    cleanupError?.()
+    cleanupChunk = null
+    cleanupDone = null
+    cleanupError = null
   }
 
-  async function sendTest(): Promise<void> {
+  /** 保存当前配置快照到历史 */
+  async function saveConfigSnapshot(): Promise<void> {
+    const id = `test_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+    const record: TestHistoryRecord = {
+      id,
+      timestamp: Date.now(),
+      config: { ...config.value },
+      models: [...selectedModels.value]
+    }
+
+    try {
+      await saveTestHistory(record)
+      await loadHistoryCount()
+    } catch (err) {
+      console.error('Failed to save config snapshot:', err)
+    }
+  }
+
+  /** 并行发送所有模型的测试 */
+  async function sendAllTests(): Promise<void> {
     if (!canSend.value) return
 
-    // 生成会话 ID
-    const sessionId = `kgtest_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-    currentSessionId.value = sessionId
+    // 保存配置快照
+    await saveConfigSnapshot()
 
-    status.value = 'loading'
-    result.value = null
-    streamingReasoning.value = ''
-    streamingContent.value = ''
+    // 清空之前的结果
+    testResults.clear()
 
     // 设置监听器
     setupStreamListeners()
@@ -195,24 +243,95 @@ export const useKgTestStore = defineStore('kg-test', () => {
       { role: 'user', content: userPrompt.value }
     ]
 
-    try {
-      await kgTestDatasource.llmStream({
+    // 并行发起所有请求
+    const promises = selectedModels.value.map(async (model) => {
+      const sessionId = `kgtest_${model.modelId}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+
+      // 初始化结果
+      testResults.set(sessionId, {
         sessionId,
-        providerId: config.value.providerId,
-        modelId: config.value.modelId,
-        messages,
-        temperature: 0
-      })
-    } catch (error) {
-      result.value = {
+        modelId: model.modelId,
+        providerId: model.providerId,
+        status: 'loading',
         reasoning: '',
         content: '',
-        error: error instanceof Error ? error.message : String(error),
-        timestamp: Date.now()
+        startTime: Date.now(),
+        firstTokenTime: null,
+        endTime: null
+      })
+
+      try {
+        await kgTestDatasource.llmStream({
+          sessionId,
+          providerId: model.providerId,
+          modelId: model.modelId,
+          messages,
+          temperature: 0
+        })
+      } catch (error) {
+        const result = testResults.get(sessionId)
+        if (result) {
+          result.status = 'error'
+          result.endTime = Date.now()
+          result.error = error instanceof Error ? error.message : String(error)
+        }
       }
-      status.value = 'error'
-      currentSessionId.value = null
+    })
+
+    await Promise.allSettled(promises)
+  }
+
+  function clearResults(): void {
+    testResults.clear()
+  }
+
+  // ============ 历史相关方法 ============
+
+  async function loadHistory(): Promise<void> {
+    historyLoading.value = true
+    try {
+      historyRecords.value = await getAllHistory()
+      historyCount.value = historyRecords.value.length
+    } catch (err) {
+      console.error('Failed to load history:', err)
+    } finally {
+      historyLoading.value = false
     }
+  }
+
+  async function loadHistoryCount(): Promise<void> {
+    try {
+      historyCount.value = await getHistoryCount()
+    } catch (err) {
+      console.error('Failed to load history count:', err)
+    }
+  }
+
+  async function removeHistory(id: string): Promise<void> {
+    try {
+      await deleteHistory(id)
+      historyRecords.value = historyRecords.value.filter((r) => r.id !== id)
+      historyCount.value = historyRecords.value.length
+    } catch (err) {
+      console.error('Failed to delete history:', err)
+    }
+  }
+
+  async function clearHistory(): Promise<void> {
+    try {
+      await clearAllHistory()
+      historyRecords.value = []
+      historyCount.value = 0
+    } catch (err) {
+      console.error('Failed to clear history:', err)
+    }
+  }
+
+  /** 从历史记录恢复配置 */
+  function restoreFromHistory(record: TestHistoryRecord): void {
+    config.value = { ...record.config }
+    selectedModels.value = [...record.models]
+    testResults.clear()
   }
 
   function reset(): void {
@@ -220,41 +339,44 @@ export const useKgTestStore = defineStore('kg-test', () => {
     config.value = {
       entityTypes: [...DEFAULT_ENTITY_TYPES],
       outputLanguage: 'Chinese',
-      providerId: '',
-      modelId: '',
       inputText: ''
     }
-    status.value = 'idle'
-    result.value = null
-    streamingReasoning.value = ''
-    streamingContent.value = ''
-    currentSessionId.value = null
+    selectedModels.value = []
+    testResults.clear()
   }
-
-  // 组件卸载时清理
-  onUnmounted(() => {
-    cleanupStreamListeners()
-  })
 
   return {
     // 状态
     config,
-    status,
-    result,
-    streamingReasoning,
-    streamingContent,
+    selectedModels,
+    testResults,
+    historyRecords,
+    historyCount,
+    historyLoading,
     // 计算属性
     systemPrompt,
     userPrompt,
     canSend,
+    isAnyLoading,
+    resultsList,
     // 方法
-    setEntityTypes,
     addEntityTypes,
     removeEntityType,
     setOutputLanguage,
-    setModel,
     setInputText,
-    sendTest,
-    reset
+    addModel,
+    removeModel,
+    clearModels,
+    getMetrics,
+    sendAllTests,
+    clearResults,
+    reset,
+    cleanupStreamListeners,
+    // 历史方法
+    loadHistory,
+    loadHistoryCount,
+    removeHistory,
+    clearHistory,
+    restoreFromHistory
   }
 })
