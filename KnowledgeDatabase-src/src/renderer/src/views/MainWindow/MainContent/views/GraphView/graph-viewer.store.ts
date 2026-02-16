@@ -13,6 +13,18 @@ import type {
   GraphOption,
   NodeDetail
 } from './types'
+
+/** 选中边的详情 */
+export interface EdgeDetail {
+  id: string
+  sourceId: string
+  sourceName: string
+  targetId: string
+  targetName: string
+  keywords: string
+  description: string
+  weight: number
+}
 import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
 import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
 
@@ -36,6 +48,7 @@ export const useGraphViewerStore = defineStore('graph-viewer', () => {
   // 选中状态
   const selectedGraphOption = ref<GraphOption | null>(null)
   const selectedNodeId = ref<string | null>(null)
+  const selectedEdgeId = ref<string | null>(null)  // 新增：选中的边
   const hoveredNodeId = ref<string | null>(null)
 
   // 配置加载状态
@@ -89,6 +102,33 @@ export const useGraphViewerStore = defineStore('graph-viewer', () => {
       if (rel.target === entity.id) { neighbors.add(rel.source); degree++ }
     }
     return { id: entity.id, name: entity.name, type: entity.type, description: entity.description, degree, neighbors: Array.from(neighbors) }
+  })
+
+  /** 选中边的详情 */
+  const selectedEdgeDetail = computed<EdgeDetail | null>(() => {
+    if (!selectedEdgeId.value) return null
+    const rel = relations.value.find(r => r.id === selectedEdgeId.value)
+    if (!rel) return null
+    const sourceEntity = entities.value.find(e => e.id === rel.source)
+    const targetEntity = entities.value.find(e => e.id === rel.target)
+    return {
+      id: rel.id,
+      sourceId: rel.source,
+      sourceName: sourceEntity?.name ?? rel.source,
+      targetId: rel.target,
+      targetName: targetEntity?.name ?? rel.target,
+      keywords: rel.keywords,
+      description: rel.description,
+      weight: rel.weight
+    }
+  })
+
+  /** 获取选中节点的关联边列表 */
+  const selectedNodeEdges = computed<GraphRelation[]>(() => {
+    if (!selectedNodeId.value) return []
+    return relations.value.filter(
+      r => r.source === selectedNodeId.value || r.target === selectedNodeId.value
+    )
   })
 
   // ============ 方法 ============
@@ -220,6 +260,7 @@ export const useGraphViewerStore = defineStore('graph-viewer', () => {
     relations.value = []
     entityTypes.value = []
     selectedNodeId.value = null
+    selectedEdgeId.value = null
     hoveredNodeId.value = null
     progress.value = { entitiesLoaded: 0, entitiesTotal: 0, relationsLoaded: 0, relationsTotal: 0 }
 
@@ -255,7 +296,13 @@ export const useGraphViewerStore = defineStore('graph-viewer', () => {
     }
   }
 
-  function selectNode(nodeId: string | null): void { selectedNodeId.value = nodeId }
+  function selectNode(nodeId: string | null): void {
+    selectedNodeId.value = nodeId
+    selectedEdgeId.value = null  // 选中节点时清除边选中
+  }
+  function selectEdge(edgeId: string | null): void {
+    selectedEdgeId.value = edgeId
+  }
   function hoverNode(nodeId: string | null): void { hoveredNodeId.value = nodeId }
 
   function reset(): void {
@@ -267,6 +314,7 @@ export const useGraphViewerStore = defineStore('graph-viewer', () => {
     errorMessage.value = null
     selectedGraphOption.value = null
     selectedNodeId.value = null
+    selectedEdgeId.value = null
     hoveredNodeId.value = null
     progress.value = { entitiesLoaded: 0, entitiesTotal: 0, relationsLoaded: 0, relationsTotal: 0 }
   }
@@ -288,8 +336,8 @@ export const useGraphViewerStore = defineStore('graph-viewer', () => {
 
   return {
     loadState, progress, entities, relations, entityTypes, errorMessage,
-    selectedGraphOption, selectedNodeId, hoveredNodeId, configsLoading,
-    graphOptions, progressPercent, selectedNodeDetail,
-    loadAllConfigs, loadGraph, selectNode, hoverNode, reset
+    selectedGraphOption, selectedNodeId, selectedEdgeId, hoveredNodeId, configsLoading,
+    graphOptions, progressPercent, selectedNodeDetail, selectedEdgeDetail, selectedNodeEdges,
+    loadAllConfigs, loadGraph, selectNode, selectEdge, hoverNode, reset
   }
 })

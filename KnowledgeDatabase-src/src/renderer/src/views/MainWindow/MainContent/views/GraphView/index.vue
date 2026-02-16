@@ -81,8 +81,10 @@
           :relations="store.relations"
           :entity-types="store.entityTypes"
           :selected-node-id="store.selectedNodeId"
+          :selected-edge-id="store.selectedEdgeId"
           :hovered-node-id="store.hoveredNodeId"
           @select-node="store.selectNode"
+          @select-edge="store.selectEdge"
           @hover-node="store.hoverNode"
           @color-map-ready="handleColorMapReady"
         />
@@ -90,11 +92,16 @@
         <!-- 图例 -->
         <GraphLegend :legend="legendItems" />
 
-        <!-- 节点详情面板 -->
-        <NodeDetailPanel
-          :detail="store.selectedNodeDetail"
+        <!-- 详情抽屉 -->
+        <DetailDrawer
+          :node-detail="store.selectedNodeDetail"
+          :edge-detail="store.selectedEdgeDetail"
+          :edges="store.selectedNodeEdges"
           :color-map="colorMap"
-          @close="store.selectNode(null)"
+          :entities="store.entities"
+          @close="handleDrawerClose"
+          @back-to-node="store.selectEdge(null)"
+          @select-edge="store.selectEdge"
         />
       </template>
     </main>
@@ -111,7 +118,7 @@ import GraphSelector from './GraphSelector.vue'
 import LoadingOverlay from './LoadingOverlay.vue'
 import SigmaRenderer from './SigmaRenderer.vue'
 import GraphLegend from './GraphLegend.vue'
-import NodeDetailPanel from './NodeDetailPanel.vue'
+import DetailDrawer from './DetailDrawer.vue'
 
 const store = useGraphViewerStore()
 const colorMap = ref<Map<string, string>>(new Map())
@@ -138,5 +145,10 @@ function handleRetry(): void {
   if (store.selectedGraphOption) {
     store.loadGraph(store.selectedGraphOption)
   }
+}
+
+function handleDrawerClose(): void {
+  store.selectNode(null)
+  store.selectEdge(null)
 }
 </script>
