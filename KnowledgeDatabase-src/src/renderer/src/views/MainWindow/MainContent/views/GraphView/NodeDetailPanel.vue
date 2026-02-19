@@ -6,10 +6,7 @@
     >
       <!-- 头部 -->
       <div class="flex items-center gap-2 px-4 py-3 border-b border-slate-50">
-        <span
-          class="w-3 h-3 rounded-full flex-shrink-0"
-          :style="{ backgroundColor: typeColor }"
-        />
+        <span class="w-3 h-3 rounded-full flex-shrink-0" :style="{ backgroundColor: typeColor }" />
         <h4 class="text-sm font-semibold text-slate-800 truncate flex-1 m-0">
           {{ detail.name }}
         </h4>
@@ -17,7 +14,13 @@
           class="w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer border-none bg-transparent"
           @click="$emit('close')"
         >
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="w-3.5 h-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
@@ -85,7 +88,9 @@ const typeColor = computed(() => {
 <style scoped>
 .slide-enter-active,
 .slide-leave-active {
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
 }
 .slide-enter-from,
 .slide-leave-to {

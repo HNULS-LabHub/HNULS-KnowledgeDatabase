@@ -10,7 +10,8 @@ import type {
   KGTaskStatus,
   KGCreateSchemaParams,
   KGBuildTaskStatus,
-  KGGraphQueryParams
+  KGGraphQueryParams,
+  KGEmbeddingProgressData
 } from '../types/knowledge-graph.types'
 
 const CH = {
@@ -22,6 +23,9 @@ const CH = {
   // 图谱数据查询
   QUERY_GRAPH_DATA: 'knowledge-graph:query-graph-data',
   CANCEL_GRAPH_QUERY: 'knowledge-graph:cancel-graph-query',
+  // 嵌入相关
+  QUERY_EMBEDDING_STATUS: 'knowledge-graph:query-embedding-status',
+  EMBEDDING_PROGRESS: 'knowledge-graph:embedding-progress',
   // 事件（main → renderer）
   TASK_PROGRESS: 'knowledge-graph:task-progress',
   TASK_COMPLETED: 'knowledge-graph:task-completed',
@@ -139,5 +143,19 @@ export const knowledgeGraphAPI: KnowledgeGraphAPI = {
     const handler = (_e: any, sessionId: string) => callback(sessionId)
     ipcRenderer.on(CH.GRAPH_DATA_CANCELLED, handler)
     return () => ipcRenderer.removeListener(CH.GRAPH_DATA_CANCELLED, handler)
+  },
+
+  // ============================================================================
+  // 嵌入状态监控
+  // ============================================================================
+
+  async queryEmbeddingStatus(): Promise<KGEmbeddingProgressData | null> {
+    return ipcRenderer.invoke(CH.QUERY_EMBEDDING_STATUS)
+  },
+
+  onEmbeddingProgress(callback) {
+    const handler = (_e: any, data: KGEmbeddingProgressData) => callback(data)
+    ipcRenderer.on(CH.EMBEDDING_PROGRESS, handler)
+    return () => ipcRenderer.removeListener(CH.EMBEDDING_PROGRESS, handler)
   }
 }

@@ -18,7 +18,9 @@ import type {
   KGGraphQueryParams,
   KGGraphEntity,
   KGGraphRelation,
-  KGGraphDataProgress
+  KGGraphDataProgress,
+  KGTriggerEmbeddingParams,
+  KGEmbeddingProgressData
 } from '@shared/knowledge-graph-ipc.types'
 import { logger } from '../logger'
 
@@ -74,7 +76,15 @@ export class KnowledgeGraphBridge {
       relationsTotal: number
     ) => void
   > = new Set()
-  private buildCompletedListeners: Set<(taskId: string) => void> = new Set()
+  private buildCompletedListeners: Set<
+    (
+      taskId: string,
+      targetNamespace?: string,
+      targetDatabase?: string,
+      graphTableBase?: string,
+      embeddingConfigId?: string
+    ) => void
+  > = new Set()
   private buildFailedListeners: Set<(taskId: string, error: string) => void> = new Set()
 
   /** 图谱数据查询事件监听器 */
@@ -82,6 +92,9 @@ export class KnowledgeGraphBridge {
   private graphDataCompleteListeners: Set<(sessionId: string) => void> = new Set()
   private graphDataErrorListeners: Set<(sessionId: string, error: string) => void> = new Set()
   private graphDataCancelledListeners: Set<(sessionId: string) => void> = new Set()
+
+  /** 嵌入进度事件监听器 */
+  private embeddingProgressListeners: Set<(data: KGEmbeddingProgressData) => void> = new Set()
 
   // ==========================================================================
   // 生命周期
@@ -250,6 +263,25 @@ export class KnowledgeGraphBridge {
     this.sendToProcess({ type: 'kg:cancel-graph-query', sessionId })
   }
 
+  /**
+   * 触发嵌入任务
+   */
+  triggerEmbedding(params: KGTriggerEmbeddingParams): void {
+    this.sendToProcess({ type: 'kg:trigger-embedding', data: params })
+  }
+
+  /**
+   * 查询嵌入状态
+   */
+  async queryEmbeddingStatus(): Promise<KGEmbeddingProgressData> {
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+
+    return this.sendRequest<KGEmbeddingProgressData>(requestId, {
+      type: 'kg:query-embedding-status',
+      requestId
+    })
+  }
+
   // ==========================================================================
   // 事件监听
   // ==========================================================================
@@ -285,7 +317,15 @@ export class KnowledgeGraphBridge {
     return () => this.buildProgressListeners.delete(listener)
   }
 
-  onBuildCompleted(listener: (taskId: string) => void): () => void {
+  onBuildCompleted(
+    listener: (
+      taskId: string,
+      targetNamespace?: string,
+      targetDatabase?: string,
+      graphTableBase?: string,
+      embeddingConfigId?: string
+    ) => void
+  ): () => void {
     this.buildCompletedListeners.add(listener)
     return () => this.buildCompletedListeners.delete(listener)
   }
@@ -314,6 +354,11 @@ export class KnowledgeGraphBridge {
   onGraphDataCancelled(listener: (sessionId: string) => void): () => void {
     this.graphDataCancelledListeners.add(listener)
     return () => this.graphDataCancelledListeners.delete(listener)
+  }
+
+  onEmbeddingProgress(listener: (data: KGEmbeddingProgressData) => void): () => void {
+    this.embeddingProgressListeners.add(listener)
+    return () => this.embeddingProgressListeners.delete(listener)
   }
 
   // ==========================================================================
@@ -432,7 +477,13 @@ export class KnowledgeGraphBridge {
 
       case 'kg:build-completed':
         for (const listener of this.buildCompletedListeners) {
-          listener(msg.taskId)
+          listener(
+            msg.taskId,
+            msg.targetNamespace,
+            msg.targetDatabase,
+            msg.graphTableBase,
+            msg.embeddingConfigId
+          )
         }
         break
 
@@ -501,6 +552,23 @@ export class KnowledgeGraphBridge {
           listener(msg.sessionId)
         }
         break
+
+      // 嵌入相关消息
+      case 'kg:embedding-progress':
+        for (const listener of this.embeddingProgressListeners) {
+          listener(msg.data)
+        }
+        break
+
+      case 'kg:embedding-status': {
+        const pending = this.pendingRequests.get(msg.requestId)
+        if (pending) {
+          clearTimeout(pending.timeoutId)
+          this.pendingRequests.delete(msg.requestId)
+          pending.resolve(msg.data)
+        }
+        break
+      }
 
       default:
         logger.warn('[KnowledgeGraphBridge] Unknown message type:', (msg as any).type)

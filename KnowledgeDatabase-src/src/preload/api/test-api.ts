@@ -90,7 +90,9 @@ export const testAPI = {
   /**
    * 监听流式错误
    */
-  onLlmStreamError: (callback: (data: { sessionId: string; error: string }) => void): (() => void) => {
+  onLlmStreamError: (
+    callback: (data: { sessionId: string; error: string }) => void
+  ): (() => void) => {
     const handler = (_event: any, data: { sessionId: string; error: string }) => callback(data)
     ipcRenderer.on('test:llmstream:error', handler)
     return () => ipcRenderer.removeListener('test:llmstream:error', handler)

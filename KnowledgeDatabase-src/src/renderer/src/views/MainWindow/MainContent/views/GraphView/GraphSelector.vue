@@ -26,7 +26,7 @@ const emit = defineEmits<{
 }>()
 
 const selectOptions = computed(() =>
-  props.options.map(opt => ({
+  props.options.map((opt) => ({
     label: `${opt.kbName} / ${opt.configName}`,
     value: opt.configId
   }))
@@ -37,7 +37,7 @@ function handleChange(configId: string | number | null): void {
     emit('update:modelValue', null)
     return
   }
-  const opt = props.options.find(o => o.configId === configId) ?? null
+  const opt = props.options.find((o) => o.configId === configId) ?? null
   emit('update:modelValue', opt)
 }
 </script>

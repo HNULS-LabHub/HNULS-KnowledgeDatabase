@@ -8,6 +8,7 @@ import { TaskSubmissionService } from './service/task-submission'
 import { GraphQueryService } from './service/graph-query'
 import { TaskScheduler } from './core/task-scheduler'
 import { GraphBuildScheduler } from './core/graph-build-scheduler'
+import { EmbeddingScheduler } from './core/embedding-scheduler'
 import { MessageHandler } from './bridge/message-handler'
 import type { MainToKGMessage, KGToMainMessage } from '@shared/knowledge-graph-ipc.types'
 
@@ -143,12 +144,14 @@ const taskSubmission = new TaskSubmissionService(surrealClient)
 const graphQueryService = new GraphQueryService(surrealClient, sendMessage)
 const scheduler = new TaskScheduler(surrealClient, sendMessage, requestConcurrency)
 const graphBuildScheduler = new GraphBuildScheduler(surrealClient, sendMessage)
+const embeddingScheduler = new EmbeddingScheduler(surrealClient, sendMessage)
 const messageHandler = new MessageHandler(
   surrealClient,
   taskSubmission,
   scheduler,
   graphBuildScheduler,
   graphQueryService,
+  embeddingScheduler,
   sendMessage
 )
 
@@ -162,6 +165,7 @@ scheduler.start().catch((error) => {
 graphBuildScheduler.start().catch((error) => {
   console.error('[KnowledgeGraph] Failed to start graph build scheduler:', error)
 })
+embeddingScheduler.start()
 
 // ============================================================================
 // 消息处理

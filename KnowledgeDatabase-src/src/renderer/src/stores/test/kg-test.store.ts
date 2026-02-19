@@ -89,9 +89,7 @@ export const useKgTestStore = defineStore('kg-test', () => {
     return prompt
   })
 
-  const canSend = computed(
-    () => selectedModels.value.length > 0 && config.value.inputText.trim()
-  )
+  const canSend = computed(() => selectedModels.value.length > 0 && config.value.inputText.trim())
 
   const isAnyLoading = computed(() =>
     Array.from(testResults.values()).some((r) => r.status === 'loading')
@@ -144,9 +142,7 @@ export const useKgTestStore = defineStore('kg-test', () => {
   /** 计算性能指标 */
   function getMetrics(result: ModelTestResult): ModelMetrics {
     const totalTime = result.endTime ? result.endTime - result.startTime : null
-    const firstTokenTime = result.firstTokenTime
-      ? result.firstTokenTime - result.startTime
-      : null
+    const firstTokenTime = result.firstTokenTime ? result.firstTokenTime - result.startTime : null
 
     let tokensPerSecond: number | null = null
     if (totalTime && result.usage?.completionTokens) {

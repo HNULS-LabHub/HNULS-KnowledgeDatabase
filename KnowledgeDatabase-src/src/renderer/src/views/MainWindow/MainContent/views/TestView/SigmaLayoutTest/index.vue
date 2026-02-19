@@ -1,7 +1,9 @@
 <template>
   <div class="ts-sigma-layout-test flex h-full bg-slate-100">
     <!-- 左侧控制面板 -->
-    <div class="ts-control-panel w-[280px] flex-shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden">
+    <div
+      class="ts-control-panel w-[280px] flex-shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden"
+    >
       <div class="p-4 border-b border-slate-100">
         <h2 class="text-sm font-semibold text-slate-800">Sigma 布局测试</h2>
         <p class="text-xs text-slate-500 mt-1">10,000 节点 · 10,000 边</p>
@@ -16,9 +18,11 @@
               v-for="layout in layouts"
               :key="layout.id"
               class="w-full px-3 py-2 text-left text-xs rounded-lg border transition-all"
-              :class="currentLayout === layout.id 
-                ? 'bg-blue-50 border-blue-300 text-blue-700' 
-                : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'"
+              :class="
+                currentLayout === layout.id
+                  ? 'bg-blue-50 border-blue-300 text-blue-700'
+                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
+              "
               @click="switchLayout(layout.id)"
             >
               <div class="font-medium">{{ layout.name }}</div>
@@ -41,7 +45,13 @@
                 }"
               />
               <span class="text-xs text-slate-600">
-                {{ layoutState === 'running' ? '布局计算中...' : layoutState === 'done' ? '布局完成' : '布局错误' }}
+                {{
+                  layoutState === 'running'
+                    ? '布局计算中...'
+                    : layoutState === 'done'
+                      ? '布局完成'
+                      : '布局错误'
+                }}
               </span>
             </div>
             <div v-if="layoutTime > 0" class="text-[10px] text-slate-500 mt-1">
@@ -87,7 +97,7 @@
     <!-- 右侧渲染区 -->
     <div class="flex-1 relative">
       <div ref="containerRef" class="w-full h-full" />
-      
+
       <!-- 布局运行指示器 -->
       <div
         v-if="layoutState === 'running'"
@@ -145,22 +155,24 @@ let graph: Graph | null = null
 let sigma: Sigma | null = null
 let fa2Layout: FA2Layout | null = null
 
-const currentLayoutName = computed(() => layouts.find(l => l.id === currentLayout.value)?.name ?? '')
+const currentLayoutName = computed(
+  () => layouts.find((l) => l.id === currentLayout.value)?.name ?? ''
+)
 
 // ============ 颜色配置 ============
 
 // 偏白的柔和颜色（不使用 alpha）
 const TYPE_COLORS = [
-  '#93c5fd',   // blue-300
-  '#6ee7b7',   // emerald-300
-  '#fcd34d',   // amber-300
-  '#fca5a5',   // red-300
-  '#c4b5fd',   // violet-300
-  '#f9a8d4',   // pink-300
-  '#67e8f9',   // cyan-300
-  '#bef264',   // lime-300
-  '#fdba74',   // orange-300
-  '#a5b4fc'    // indigo-300
+  '#93c5fd', // blue-300
+  '#6ee7b7', // emerald-300
+  '#fcd34d', // amber-300
+  '#fca5a5', // red-300
+  '#c4b5fd', // violet-300
+  '#f9a8d4', // pink-300
+  '#67e8f9', // cyan-300
+  '#bef264', // lime-300
+  '#fdba74', // orange-300
+  '#a5b4fc' // indigo-300
 ]
 
 // ============ 数据生成 ============
@@ -199,7 +211,7 @@ function generateTestGraph(): Graph {
   while (edgesAdded < EDGE_COUNT) {
     const sourceIdx = Math.floor(Math.random() * NODE_COUNT)
     const targetIdx = Math.floor(Math.random() * NODE_COUNT)
-    
+
     if (sourceIdx === targetIdx) continue
 
     const source = nodes[sourceIdx]
@@ -229,7 +241,10 @@ function generateTestGraph(): Graph {
   })
 
   // 为平行边计算曲率
-  indexParallelEdgesIndex(g, { edgeIndexAttribute: 'parallelIndex', edgeMaxIndexAttribute: 'parallelMaxIndex' })
+  indexParallelEdgesIndex(g, {
+    edgeIndexAttribute: 'parallelIndex',
+    edgeMaxIndexAttribute: 'parallelMaxIndex'
+  })
 
   nodeCount.value = g.order
   edgeCount.value = g.size
@@ -238,15 +253,15 @@ function generateTestGraph(): Graph {
 }
 
 // ============ 常量：节点间距至少 25 倍半径 ============
-const MIN_SPACING_RATIO = 25  // 节点间距 = 节点半径 * 25
-const AVG_NODE_SIZE = 4       // 平均节点大小
-const BASE_SPACING = AVG_NODE_SIZE * MIN_SPACING_RATIO  // 基础间距 = 100
+const MIN_SPACING_RATIO = 25 // 节点间距 = 节点半径 * 25
+const AVG_NODE_SIZE = 4 // 平均节点大小
+const BASE_SPACING = AVG_NODE_SIZE * MIN_SPACING_RATIO // 基础间距 = 100
 
 // ============ 布局算法 ============
 
 /**
  * 有机布局 (Organic Layout)
- * 
+ *
  * 核心特点：
  * 1. 聚类之间距离很远（好几倍直径的间隔）
  * 2. 跨类型关联的节点直接放到聚类之间的空白区域（像桥梁一样）
@@ -262,13 +277,13 @@ async function applyOrganicLayout(g: Graph): Promise<void> {
   })
 
   const types = Array.from(typeGroups.keys())
-  
+
   // ========== 第一步：计算聚类中心位置（间隔很远） ==========
   const clusterCenters = new Map<string, { x: number; y: number; size: number }>()
-  
+
   types.forEach((type, i) => {
     const count = typeGroups.get(type)!.length
-    const clusterRadius = Math.sqrt(count) * 35  // 聚类本身紧凑
+    const clusterRadius = Math.sqrt(count) * 35 // 聚类本身紧凑
     const angle = (i / types.length) * 2 * Math.PI
     // 随机扰动
     const angleJitter = (Math.random() - 0.5) * 0.8
@@ -284,10 +299,10 @@ async function applyOrganicLayout(g: Graph): Promise<void> {
 
   // 聚类间力导向迭代 - 保证聚类间距至少 5 倍直径
   const iterations = 50
-  
+
   for (let iter = 0; iter < iterations; iter++) {
     const forces = new Map<string, { fx: number; fy: number }>()
-    types.forEach(t => forces.set(t, { fx: 0, fy: 0 }))
+    types.forEach((t) => forces.set(t, { fx: 0, fy: 0 }))
 
     for (let i = 0; i < types.length; i++) {
       for (let j = i + 1; j < types.length; j++) {
@@ -296,16 +311,16 @@ async function applyOrganicLayout(g: Graph): Promise<void> {
         const dx = c2.x - c1.x
         const dy = c2.y - c1.y
         const dist = Math.sqrt(dx * dx + dy * dy) || 1
-        
+
         // 最小距离 = 两个聚类直径之和 * 5（非常远）
         const minDist = (c1.size + c2.size) * 2 * 5
-        
+
         if (dist < minDist) {
           const overlap = minDist - dist
           const force = overlap * 2
           const fx = (dx / dist) * force
           const fy = (dy / dist) * force
-          
+
           forces.get(types[i])!.fx -= fx
           forces.get(types[i])!.fy -= fy
           forces.get(types[j])!.fx += fx
@@ -315,14 +330,14 @@ async function applyOrganicLayout(g: Graph): Promise<void> {
     }
 
     // 轻微向心力
-    types.forEach(type => {
+    types.forEach((type) => {
       const c = clusterCenters.get(type)!
       const f = forces.get(type)!
       f.fx -= c.x * 0.01
       f.fy -= c.y * 0.01
     })
 
-    types.forEach(type => {
+    types.forEach((type) => {
       const c = clusterCenters.get(type)!
       const f = forces.get(type)!
       c.x += f.fx * 0.4
@@ -331,33 +346,33 @@ async function applyOrganicLayout(g: Graph): Promise<void> {
   }
 
   // 聚类中心随机扰动
-  types.forEach(type => {
+  types.forEach((type) => {
     const c = clusterCenters.get(type)!
     c.x += (Math.random() - 0.5) * c.size * 0.8
     c.y += (Math.random() - 0.5) * c.size * 0.8
   })
 
   // ========== 预计算：每个节点的跨类型邻居 ==========
-  const crossTypeNeighbors = new Map<string, Set<string>>()  // node -> Set<neighborType>
-  
+  const crossTypeNeighbors = new Map<string, Set<string>>() // node -> Set<neighborType>
+
   g.forEachNode((node, attrs) => {
     const myType = attrs.entityType as string
     const neighborTypes = new Set<string>()
-    
+
     g.forEachNeighbor(node, (_neighbor, neighborAttrs) => {
       const nType = neighborAttrs.entityType as string
       if (nType !== myType) {
         neighborTypes.add(nType)
       }
     })
-    
+
     if (neighborTypes.size > 0) {
       crossTypeNeighbors.set(node, neighborTypes)
     }
   })
 
   // ========== 第二步：放置节点 ==========
-  types.forEach(type => {
+  types.forEach((type) => {
     const nodes = typeGroups.get(type)!
     const center = clusterCenters.get(type)!
     const count = nodes.length
@@ -365,8 +380,8 @@ async function applyOrganicLayout(g: Graph): Promise<void> {
     // 分离：纯内部节点 vs 跨类型节点
     const pureNodes: string[] = []
     const bridgeNodes: string[] = []
-    
-    nodes.forEach(node => {
+
+    nodes.forEach((node) => {
       if (crossTypeNeighbors.has(node)) {
         bridgeNodes.push(node)
       } else {
@@ -380,15 +395,15 @@ async function applyOrganicLayout(g: Graph): Promise<void> {
       const maxR = center.size * 0.9
       const rRatio = Math.sqrt((i + 1) / (pureCount || 1))
       let r = maxR * rRatio
-      
+
       // 随机扰动
       const theta = Math.random() * 2 * Math.PI
       const jitterR = (Math.random() - 0.5) * center.size * 0.5
       r = Math.max(5, r + jitterR)
-      
+
       const x = center.x + r * Math.cos(theta)
       const y = center.y + r * Math.sin(theta)
-      
+
       g.setNodeAttribute(node, 'x', x)
       g.setNodeAttribute(node, 'y', y)
     })
@@ -398,13 +413,13 @@ async function applyOrganicLayout(g: Graph): Promise<void> {
     bridgeNodes.forEach((node, idx) => {
       const neighborTypes = crossTypeNeighbors.get(node)!
       const neighborTypeArray = Array.from(neighborTypes)
-      
+
       // 计算所有关联聚类中心的平均位置
       let sumX = center.x
       let sumY = center.y
       let weight = 1
-      
-      neighborTypeArray.forEach(neighborType => {
+
+      neighborTypeArray.forEach((neighborType) => {
         const neighborCenter = clusterCenters.get(neighborType)
         if (neighborCenter) {
           sumX += neighborCenter.x
@@ -412,38 +427,38 @@ async function applyOrganicLayout(g: Graph): Promise<void> {
           weight++
         }
       })
-      
+
       const avgX = sumX / weight
       const avgY = sumY / weight
-      
+
       // 计算从自己聚类中心到平均位置的方向
       const dirX = avgX - center.x
       const dirY = avgY - center.y
       const dirLen = Math.sqrt(dirX * dirX + dirY * dirY) || 1
-      
+
       // 在整个空白区域分散放置
       // 距离范围：从聚类边缘到接近目标聚类
       const minDist = center.size * 1.2
-      const maxDist = dirLen * 0.85  // 最远到 85% 的距离
+      const maxDist = dirLen * 0.85 // 最远到 85% 的距离
       const distRange = maxDist - minDist
-      
+
       // 使用更大的分散系数
       const t = bridgeCount > 1 ? idx / (bridgeCount - 1) : 0.5
       const baseDistance = minDist + distRange * t
-      
+
       // 垂直方向大幅偏移
       const perpX = -dirY / dirLen
       const perpY = dirX / dirLen
-      const perpRange = 200 + distRange * 0.3  // 垂直方向偏移范围
+      const perpRange = 200 + distRange * 0.3 // 垂直方向偏移范围
       const perpOffset = (Math.random() - 0.5) * perpRange * 2
-      
+
       let x = center.x + (dirX / dirLen) * baseDistance + perpX * perpOffset
       let y = center.y + (dirY / dirLen) * baseDistance + perpY * perpOffset
-      
+
       // 额外大幅随机扰动
       x += (Math.random() - 0.5) * 150
       y += (Math.random() - 0.5) * 150
-      
+
       g.setNodeAttribute(node, 'x', x)
       g.setNodeAttribute(node, 'y', y)
     })
@@ -485,7 +500,7 @@ async function applyOrganicLayout(g: Graph): Promise<void> {
 /** 布局1: 网格聚类 - 按类型分组排列成网格，直接保证间距 */
 function applyGridClusterLayout(g: Graph): void {
   const typeGroups = new Map<string, string[]>()
-  
+
   g.forEachNode((node, attrs) => {
     const type = attrs.entityType as string
     if (!typeGroups.has(type)) typeGroups.set(type, [])
@@ -517,7 +532,7 @@ function applyGridClusterLayout(g: Graph): void {
 /** 布局2: 径向树 - 从中心向外辐射，每层节点数根据周长计算 */
 function applyRadialTreeLayout(g: Graph): void {
   const typeGroups = new Map<string, string[]>()
-  
+
   g.forEachNode((node, attrs) => {
     const type = attrs.entityType as string
     if (!typeGroups.has(type)) typeGroups.set(type, [])
@@ -537,15 +552,15 @@ function applyRadialTreeLayout(g: Graph): void {
 
     let nodeIdx = 0
     let layer = 1
-    
+
     while (nodeIdx < sortedNodes.length) {
       const radius = BASE_SPACING * 2 + layer * layerGap
       // 该层在扇形内能放多少节点
       const arcLength = radius * spreadAngle
       const nodesInLayer = Math.max(1, Math.floor(arcLength / BASE_SPACING))
-      
+
       for (let i = 0; i < nodesInLayer && nodeIdx < sortedNodes.length; i++) {
-        const angle = baseAngle - spreadAngle / 2 + (i + 0.5) / nodesInLayer * spreadAngle
+        const angle = baseAngle - spreadAngle / 2 + ((i + 0.5) / nodesInLayer) * spreadAngle
         g.setNodeAttribute(sortedNodes[nodeIdx], 'x', radius * Math.cos(angle))
         g.setNodeAttribute(sortedNodes[nodeIdx], 'y', radius * Math.sin(angle))
         nodeIdx++
@@ -610,7 +625,10 @@ async function applyForceClusterLayout(g: Graph): Promise<void> {
         fa2Layout.stop()
       }
       // 轻量 noverlap：只做 10 次迭代
-      noverlap.assign(g, { maxIterations: 10, settings: { margin: BASE_SPACING * 0.5, ratio: 1.5 } })
+      noverlap.assign(g, {
+        maxIterations: 10,
+        settings: { margin: BASE_SPACING * 0.5, ratio: 1.5 }
+      })
       resolve()
     }, 3000)
   })
@@ -619,7 +637,7 @@ async function applyForceClusterLayout(g: Graph): Promise<void> {
 /** 布局5: 同心环 - 按度数分层，半径根据节点数动态计算 */
 function applyConcentricRingsLayout(g: Graph): void {
   const nodes = g.nodes()
-  
+
   const degreeGroups = new Map<number, string[]>()
   let maxDegree = 0
 
@@ -633,7 +651,7 @@ function applyConcentricRingsLayout(g: Graph): void {
   const layerCount = 10
   const layerSize = Math.ceil(maxDegree / layerCount)
   const layers: string[][] = Array.from({ length: layerCount }, () => [])
-  
+
   degreeGroups.forEach((groupNodes, degree) => {
     const layerIdx = Math.min(layerCount - 1, Math.floor(degree / layerSize))
     layers[layerIdx].push(...groupNodes)
@@ -647,7 +665,10 @@ function applyConcentricRingsLayout(g: Graph): void {
     if (layerNodes.length === 0) return
 
     // 计算该层所需半径：周长 = 节点数 * 间距
-    const requiredRadius = Math.max(currentRadius, (layerNodes.length * BASE_SPACING) / (2 * Math.PI))
+    const requiredRadius = Math.max(
+      currentRadius,
+      (layerNodes.length * BASE_SPACING) / (2 * Math.PI)
+    )
     const angleStep = (2 * Math.PI) / layerNodes.length
 
     layerNodes.forEach((node, i) => {
@@ -713,13 +734,13 @@ function createSigmaRenderer(g: Graph): Sigma | null {
   // 使用 node-border 程序：白色边框 + 从 color 属性读取填充色
   const NodeBorderProgram = createNodeBorderProgram({
     borders: [
-      { size: { value: 0.12 }, color: { value: '#ffffff' } },  // 外层白色边框
-      { size: { fill: true }, color: { attribute: 'color' } }  // 内层填充，从节点 color 属性读取
+      { size: { value: 0.12 }, color: { value: '#ffffff' } }, // 外层白色边框
+      { size: { fill: true }, color: { attribute: 'color' } } // 内层填充，从节点 color 属性读取
     ]
   })
 
   const s = new Sigma(g, containerRef.value, {
-    renderLabels: false,  // 禁用标签提升性能
+    renderLabels: false, // 禁用标签提升性能
     labelRenderedSizeThreshold: 100,
     defaultNodeColor: '#94a3b8',
     defaultEdgeColor: '#e2e8f0',

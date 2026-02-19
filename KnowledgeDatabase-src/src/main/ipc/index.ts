@@ -98,7 +98,7 @@ export class IPCManager {
     registerVectorIndexerHandlers()
 
     // 注册知识图谱处理器
-    registerKnowledgeGraphHandlers()
+    registerKnowledgeGraphHandlers(knowledgeLibraryService, modelConfigService)
 
     console.log(`Registered ${this.handlers.length} IPC handlers`)
   }

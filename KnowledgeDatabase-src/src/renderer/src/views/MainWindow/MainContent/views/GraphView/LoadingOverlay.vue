@@ -1,8 +1,16 @@
 <template>
-  <div class="gv-loading-overlay absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
+  <div
+    class="gv-loading-overlay absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm"
+  >
     <!-- 动画图标 -->
     <div class="relative mb-6">
-      <svg class="w-16 h-16 text-blue-500 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <svg
+        class="w-16 h-16 text-blue-500 animate-pulse"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
         <circle cx="12" cy="5" r="2" />
         <circle cx="5" cy="19" r="2" />
         <circle cx="19" cy="19" r="2" />
@@ -16,9 +24,8 @@
     <div class="text-center mb-4">
       <p class="text-sm font-medium text-slate-700 mb-1">正在加载图谱数据...</p>
       <p class="text-xs text-slate-400">
-        节点 {{ progress.entitiesLoaded }}/{{ progress.entitiesTotal }}
-        &nbsp;·&nbsp;
-        关系 {{ progress.relationsLoaded }}/{{ progress.relationsTotal }}
+        节点 {{ progress.entitiesLoaded }}/{{ progress.entitiesTotal }} &nbsp;·&nbsp; 关系
+        {{ progress.relationsLoaded }}/{{ progress.relationsTotal }}
       </p>
     </div>
 

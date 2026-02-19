@@ -1,10 +1,18 @@
 <template>
   <div class="gv-root flex flex-col h-full bg-slate-50">
     <!-- 页面头部 -->
-    <header class="gv-header flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white">
+    <header
+      class="gv-header flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white"
+    >
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="w-5 h-5 text-blue-500"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <circle cx="12" cy="5" r="2" />
             <circle cx="5" cy="19" r="2" />
             <circle cx="19" cy="19" r="2" />
@@ -30,7 +38,13 @@
         class="gv-idle absolute inset-0 flex flex-col items-center justify-center text-center px-6"
       >
         <div class="w-20 h-20 mb-6 rounded-2xl bg-slate-100 flex items-center justify-center">
-          <svg class="w-10 h-10 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <svg
+            class="w-10 h-10 text-slate-300"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
             <circle cx="12" cy="5" r="2" />
             <circle cx="5" cy="19" r="2" />
             <circle cx="19" cy="19" r="2" />
@@ -58,7 +72,13 @@
         class="gv-error absolute inset-0 flex flex-col items-center justify-center text-center px-6"
       >
         <div class="w-16 h-16 mb-4 rounded-full bg-red-50 flex items-center justify-center">
-          <svg class="w-8 h-8 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="w-8 h-8 text-red-400"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />

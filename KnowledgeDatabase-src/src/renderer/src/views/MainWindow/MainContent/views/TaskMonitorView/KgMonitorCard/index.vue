@@ -41,6 +41,69 @@
       </div>
     </div>
 
+    <!-- 嵌入状态监控区域 -->
+    <div
+      v-if="embeddingStatus"
+      class="tm-kg-embedding-monitor-a7f2 px-6 py-3 border-b border-slate-200 bg-slate-50/50"
+    >
+      <div class="flex items-center gap-3 flex-wrap">
+        <!-- 状态指示灯 + 标签 -->
+        <div class="flex items-center gap-2">
+          <span class="inline-block w-2 h-2 rounded-full" :class="embeddingStateColor"></span>
+          <span class="text-xs font-medium text-slate-700">向量嵌入</span>
+          <span class="px-1.5 py-0.5 rounded text-[11px] font-medium" :class="embeddingStateBadge">
+            {{ embeddingStateLabel }}
+          </span>
+        </div>
+
+        <!-- 进度条 -->
+        <div v-if="embeddingStatus.total > 0" class="flex items-center gap-2">
+          <div class="w-28 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+            <div
+              class="h-full rounded-full transition-all duration-300"
+              :class="embeddingStatus.state === 'error' ? 'bg-rose-500' : 'bg-blue-500'"
+              :style="{ width: `${embeddingPercent}%` }"
+            ></div>
+          </div>
+          <span class="text-[11px] font-mono text-slate-500">
+            {{ embeddingStatus.completed }}/{{ embeddingStatus.total }}
+          </span>
+        </div>
+
+        <!-- HNSW 索引状态 -->
+        <span
+          v-if="embeddingStatus.hnswIndexReady"
+          class="px-1.5 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700"
+        >
+          HNSW ✓
+        </span>
+
+        <!-- 最近批次摘要 -->
+        <span v-if="embeddingStatus.lastBatchInfo" class="text-[11px] text-slate-400">
+          批次: {{ embeddingStatus.lastBatchInfo.successCount }}成功
+          <template v-if="embeddingStatus.lastBatchInfo.failCount > 0">
+            / {{ embeddingStatus.lastBatchInfo.failCount }}失败
+          </template>
+          ({{ embeddingStatus.lastBatchInfo.durationMs }}ms)
+        </span>
+
+        <!-- 错误信息（可折叠） -->
+        <button
+          v-if="embeddingStatus.lastError"
+          class="text-[11px] text-rose-600 hover:underline cursor-pointer"
+          @click="embeddingErrorExpanded = !embeddingErrorExpanded"
+        >
+          {{ embeddingErrorExpanded ? '收起错误' : '查看错误' }}
+        </button>
+      </div>
+      <div
+        v-if="embeddingStatus.lastError && embeddingErrorExpanded"
+        class="mt-2 p-2 bg-rose-50 rounded text-[11px] text-rose-700 font-mono break-all"
+      >
+        {{ embeddingStatus.lastError }}
+      </div>
+    </div>
+
     <!-- Filters -->
     <div class="px-6 py-3 border-b border-slate-200 flex flex-col md:flex-row gap-3">
       <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
@@ -454,7 +517,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import WhiteSelect from '@renderer/components/select/WhiteSelect.vue'
 import type { WhiteSelectOption } from '@renderer/components/select/WhiteSelect.vue'
 import { useKgMonitorStore } from '@renderer/stores/global-monitor-panel/kg-monitor.store'
@@ -463,8 +526,62 @@ import type {
   KgTaskSortBy,
   KgChunkStatus
 } from '@renderer/stores/global-monitor-panel/kg-monitor.types'
+import type { KGEmbeddingProgressData } from '@preload/types/knowledge-graph.types'
 
 const store = useKgMonitorStore()
+
+// ============================================================================
+// 嵌入状态监控
+// ============================================================================
+const embeddingStatus = ref<KGEmbeddingProgressData | null>(null)
+const embeddingErrorExpanded = ref(false)
+let embeddingPollTimer: number | null = null
+let unsubEmbeddingProgress: (() => void) | null = null
+
+const embeddingPercent = computed(() => {
+  if (!embeddingStatus.value || !embeddingStatus.value.total) return 0
+  return Math.min(
+    100,
+    Math.round((embeddingStatus.value.completed / embeddingStatus.value.total) * 100)
+  )
+})
+
+const embeddingStateLabel = computed(() => {
+  if (!embeddingStatus.value) return ''
+  const map: Record<string, string> = { idle: '空闲', active: '处理中', error: '错误' }
+  return map[embeddingStatus.value.state] ?? embeddingStatus.value.state
+})
+
+const embeddingStateColor = computed(() => {
+  if (!embeddingStatus.value) return 'bg-slate-300'
+  const map: Record<string, string> = {
+    idle: 'bg-emerald-500',
+    active: 'bg-blue-500 animate-pulse',
+    error: 'bg-rose-500'
+  }
+  return map[embeddingStatus.value.state] ?? 'bg-slate-300'
+})
+
+const embeddingStateBadge = computed(() => {
+  if (!embeddingStatus.value) return ''
+  const map: Record<string, string> = {
+    idle: 'bg-emerald-50 text-emerald-700',
+    active: 'bg-blue-50 text-blue-700',
+    error: 'bg-rose-50 text-rose-700'
+  }
+  return map[embeddingStatus.value.state] ?? ''
+})
+
+async function pollEmbeddingStatus(): Promise<void> {
+  try {
+    const result = await window.api.knowledgeGraph.queryEmbeddingStatus()
+    if (result) {
+      embeddingStatus.value = result
+    }
+  } catch {
+    // 静默忽略
+  }
+}
 
 onMounted(() => {
   store.fetchTasks()
@@ -473,6 +590,15 @@ onMounted(() => {
       store.refresh()
     }
   }, 500)
+
+  // 嵌入状态轮询（0.5s）
+  pollEmbeddingStatus()
+  embeddingPollTimer = window.setInterval(pollEmbeddingStatus, 500)
+
+  // 监听嵌入进度推送
+  unsubEmbeddingProgress = window.api.knowledgeGraph.onEmbeddingProgress((data) => {
+    embeddingStatus.value = data
+  })
 })
 
 let autoRefreshTimer: number | null = null
@@ -482,6 +608,11 @@ onBeforeUnmount(() => {
     window.clearInterval(autoRefreshTimer)
     autoRefreshTimer = null
   }
+  if (embeddingPollTimer) {
+    window.clearInterval(embeddingPollTimer)
+    embeddingPollTimer = null
+  }
+  unsubEmbeddingProgress?.()
 })
 
 const statusOptions = computed<WhiteSelectOption[]>(() =>

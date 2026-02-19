@@ -18,7 +18,9 @@ function hslToHex(h: number, s: number, l: number): string {
   const f = (n: number) => {
     const k = (n + h / 30) % 12
     const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
-    return Math.round(255 * color).toString(16).padStart(2, '0')
+    return Math.round(255 * color)
+      .toString(16)
+      .padStart(2, '0')
   }
   return `#${f(0)}${f(8)}${f(4)}`
 }
@@ -57,7 +59,9 @@ export function getTypeColor(colorMap: Map<string, string>, type: string): strin
 /**
  * 将颜色映射转为图例数组
  */
-export function colorMapToLegend(colorMap: Map<string, string>): Array<{ type: string; color: string }> {
+export function colorMapToLegend(
+  colorMap: Map<string, string>
+): Array<{ type: string; color: string }> {
   return Array.from(colorMap.entries())
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([type, color]) => ({ type, color }))
@@ -80,7 +84,7 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number } {
  * RGB 转 hex
  */
 export function rgbToHex(r: number, g: number, b: number): string {
-  return '#' + [r, g, b].map(x => Math.round(x).toString(16).padStart(2, '0')).join('')
+  return '#' + [r, g, b].map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')
 }
 
 /**

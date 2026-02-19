@@ -222,10 +222,7 @@ export class GraphQueryService {
   /**
    * 分页查询实体
    */
-  private async queryEntitiesBatch(
-    session: QuerySession,
-    start: number
-  ): Promise<KGGraphEntity[]> {
+  private async queryEntitiesBatch(session: QuerySession, start: number): Promise<KGGraphEntity[]> {
     const { targetNamespace, targetDatabase, graphTableBase, batchSize } = session.params
 
     const sql = `

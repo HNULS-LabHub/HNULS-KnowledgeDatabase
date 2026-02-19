@@ -59,7 +59,9 @@ export async function upsertGraphData(
         file_keys = IF file_keys IS NONE
           THEN [$${p}_fk]
           ELSE array::union(file_keys, [$${p}_fk])
-        END;
+        END,
+        embedding = NONE,
+        embedding_hash = '';
     `)
     params[`${p}_name`] = e.name
     params[`${p}_type`] = e.type

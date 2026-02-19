@@ -13,7 +13,8 @@ import type {
   KGGraphQueryParams,
   KGGraphEntity,
   KGGraphRelation,
-  KGGraphDataProgress
+  KGGraphDataProgress,
+  KGEmbeddingProgressData
 } from '../../Public/ShareTypes/knowledge-graph-ipc.types'
 
 // 重新导出供前端使用
@@ -26,7 +27,8 @@ export type {
   KGGraphQueryParams,
   KGGraphEntity,
   KGGraphRelation,
-  KGGraphDataProgress
+  KGGraphDataProgress,
+  KGEmbeddingProgressData
 }
 
 /** 图谱数据批次事件 */
@@ -141,4 +143,18 @@ export interface KnowledgeGraphAPI {
    * 监听图谱数据查询取消
    */
   onGraphDataCancelled(callback: (sessionId: string) => void): () => void
+
+  // ============================================================================
+  // 嵌入状态监控
+  // ============================================================================
+
+  /**
+   * 查询嵌入调度器状态
+   */
+  queryEmbeddingStatus(): Promise<KGEmbeddingProgressData | null>
+
+  /**
+   * 监听嵌入进度事件
+   */
+  onEmbeddingProgress(callback: (data: KGEmbeddingProgressData) => void): () => void
 }

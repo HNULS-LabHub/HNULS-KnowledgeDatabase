@@ -13,11 +13,17 @@
           title="返回节点详情"
           @click="$emit('back-to-node')"
         >
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        
+
         <!-- 标题 -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
@@ -26,7 +32,14 @@
               class="w-3 h-3 rounded-full flex-shrink-0"
               :style="{ backgroundColor: nodeTypeColor }"
             />
-            <svg v-else-if="mode === 'edge'" class="w-4 h-4 text-slate-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              v-else-if="mode === 'edge'"
+              class="w-4 h-4 text-slate-400 flex-shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <line x1="5" y1="12" x2="19" y2="12" />
               <polyline points="12 5 19 12 12 19" />
             </svg>
@@ -42,7 +55,13 @@
           class="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer border-none bg-transparent"
           @click="$emit('close')"
         >
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
@@ -80,7 +99,9 @@
 
           <!-- 关联边列表 -->
           <section v-if="edges.length > 0" class="px-4 py-3">
-            <h5 class="text-xs font-medium text-slate-500 mb-2 m-0">关联关系 ({{ edges.length }})</h5>
+            <h5 class="text-xs font-medium text-slate-500 mb-2 m-0">
+              关联关系 ({{ edges.length }})
+            </h5>
             <div class="space-y-1.5">
               <button
                 v-for="edge in edges"
@@ -92,7 +113,13 @@
                   <span class="text-slate-500 truncate max-w-[80px]">
                     {{ getEdgeSourceName(edge) }}
                   </span>
-                  <svg class="w-3 h-3 text-slate-300 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg
+                    class="w-3 h-3 text-slate-300 flex-shrink-0"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <line x1="5" y1="12" x2="19" y2="12" />
                     <polyline points="12 5 19 12 12 19" />
                   </svg>
@@ -113,12 +140,22 @@
           <!-- 连接信息 -->
           <section class="px-4 py-3 border-b border-slate-50">
             <div class="flex items-center gap-2 text-sm">
-              <span class="text-slate-700 font-medium truncate max-w-[100px]">{{ edgeDetail.sourceName }}</span>
-              <svg class="w-4 h-4 text-slate-300 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <span class="text-slate-700 font-medium truncate max-w-[100px]">{{
+                edgeDetail.sourceName
+              }}</span>
+              <svg
+                class="w-4 h-4 text-slate-300 flex-shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <line x1="5" y1="12" x2="19" y2="12" />
                 <polyline points="12 5 19 12 12 19" />
               </svg>
-              <span class="text-slate-700 font-medium truncate max-w-[100px]">{{ edgeDetail.targetName }}</span>
+              <span class="text-slate-700 font-medium truncate max-w-[100px]">{{
+                edgeDetail.targetName
+              }}</span>
             </div>
             <div v-if="edgeDetail.weight" class="text-xs text-slate-400 mt-1">
               权重: {{ edgeDetail.weight.toFixed(2) }}
@@ -188,12 +225,12 @@ const nodeTypeColor = computed(() => {
 })
 
 function getEdgeSourceName(edge: GraphRelation): string {
-  const entity = props.entities.find(e => e.id === edge.source)
+  const entity = props.entities.find((e) => e.id === edge.source)
   return entity?.name ?? edge.source
 }
 
 function getEdgeTargetName(edge: GraphRelation): string {
-  const entity = props.entities.find(e => e.id === edge.target)
+  const entity = props.entities.find((e) => e.id === edge.target)
   return entity?.name ?? edge.target
 }
 </script>

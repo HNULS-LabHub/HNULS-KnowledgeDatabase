@@ -34,7 +34,9 @@ export const kgTestDatasource = {
   /**
    * 监听流式错误
    */
-  onLlmStreamError: (callback: (data: { sessionId: string; error: string }) => void): (() => void) => {
+  onLlmStreamError: (
+    callback: (data: { sessionId: string; error: string }) => void
+  ): (() => void) => {
     return window.api.test.onLlmStreamError(callback)
   }
 }

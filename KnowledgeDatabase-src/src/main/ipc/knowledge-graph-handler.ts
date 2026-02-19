@@ -6,7 +6,14 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { knowledgeGraphBridge } from '../services/knowledge-graph-bridge'
 import { logger } from '../services/logger'
-import type { KGSubmitTaskParams, KGCreateSchemaParams, KGGraphQueryParams } from '@shared/knowledge-graph-ipc.types'
+import type {
+  KGSubmitTaskParams,
+  KGCreateSchemaParams,
+  KGGraphQueryParams
+} from '@shared/knowledge-graph-ipc.types'
+import type { KnowledgeLibraryService } from '../services/knowledgeBase-library'
+import type { ModelConfigService } from '../services/model-config'
+import { KnowledgeConfigService } from '../services/knowledgeBase-library/knowledge-config-service'
 
 const CH = {
   SUBMIT_TASK: 'knowledge-graph:submit-task',
@@ -17,6 +24,9 @@ const CH = {
   // 图谱数据查询
   QUERY_GRAPH_DATA: 'knowledge-graph:query-graph-data',
   CANCEL_GRAPH_QUERY: 'knowledge-graph:cancel-graph-query',
+  // 嵌入相关
+  QUERY_EMBEDDING_STATUS: 'knowledge-graph:query-embedding-status',
+  EMBEDDING_PROGRESS: 'knowledge-graph:embedding-progress',
   // 事件
   TASK_PROGRESS: 'knowledge-graph:task-progress',
   TASK_COMPLETED: 'knowledge-graph:task-completed',
@@ -48,8 +58,12 @@ let unsubGraphDataBatch: (() => void) | null = null
 let unsubGraphDataComplete: (() => void) | null = null
 let unsubGraphDataError: (() => void) | null = null
 let unsubGraphDataCancelled: (() => void) | null = null
+let unsubEmbeddingProgress: (() => void) | null = null
 
-export function registerKnowledgeGraphHandlers(): void {
+export function registerKnowledgeGraphHandlers(
+  knowledgeLibraryService?: KnowledgeLibraryService,
+  modelConfigService?: ModelConfigService
+): void {
   ipcMain.handle(CH.SUBMIT_TASK, async (_event, params: KGSubmitTaskParams) => {
     logger.info('[KG-IPCHandler] submitTask received params:', params)
     try {
@@ -108,6 +122,16 @@ export function registerKnowledgeGraphHandlers(): void {
     knowledgeGraphBridge.cancelGraphQuery(sessionId)
   })
 
+  // 嵌入状态查询
+  ipcMain.handle(CH.QUERY_EMBEDDING_STATUS, async () => {
+    try {
+      return await knowledgeGraphBridge.queryEmbeddingStatus()
+    } catch (error) {
+      logger.error('[KG-IPCHandler] queryEmbeddingStatus failed:', error)
+      return null
+    }
+  })
+
   // 订阅 bridge 事件，广播到渲染进程
   unsubProgress = knowledgeGraphBridge.onTaskProgress((taskId, completed, failed, total) => {
     broadcast(CH.TASK_PROGRESS, taskId, completed, failed, total)
@@ -127,9 +151,88 @@ export function registerKnowledgeGraphHandlers(): void {
     }
   )
 
-  unsubBuildCompleted = knowledgeGraphBridge.onBuildCompleted((taskId) => {
-    broadcast(CH.BUILD_COMPLETED, taskId)
-  })
+  unsubBuildCompleted = knowledgeGraphBridge.onBuildCompleted(
+    async (taskId, targetNamespace, targetDatabase, graphTableBase, embeddingConfigId) => {
+      broadcast(CH.BUILD_COMPLETED, taskId)
+
+      // 自动触发嵌入：build 完成后，解析嵌入配置并发送 trigger-embedding
+      if (!targetNamespace || !targetDatabase || !graphTableBase || !embeddingConfigId) {
+        logger.info(
+          '[KG-IPCHandler] Build completed but missing target/embedding info, skip auto-trigger'
+        )
+        return
+      }
+      if (!knowledgeLibraryService || !modelConfigService) {
+        logger.warn('[KG-IPCHandler] Services not injected, skip embedding auto-trigger')
+        return
+      }
+
+      try {
+        // 1. 找到对应的知识库（通过 databaseName 匹配）
+        const allKbs = await knowledgeLibraryService.getAll()
+        const kb = allKbs.find((k) => k.databaseName === targetDatabase)
+        if (!kb || !kb.documentPath) {
+          logger.warn(`[KG-IPCHandler] KB not found for database=${targetDatabase}`)
+          return
+        }
+
+        // 2. 读取知识库配置
+        const configService = new KnowledgeConfigService()
+        const kbConfig = await configService.readConfig(kb.documentPath)
+
+        // 3. 找到匹配的 KG 配置
+        const kgConfigs = kbConfig.global.knowledgeGraph?.configs ?? []
+        const kgConfig = kgConfigs.find((c) => c.graphTableBase === graphTableBase)
+        if (!kgConfig) {
+          logger.warn(`[KG-IPCHandler] KG config not found for graphTableBase=${graphTableBase}`)
+          return
+        }
+
+        // 4. 找到嵌入配置
+        const embeddingConfigs = kbConfig.global.embedding?.configs ?? []
+        const embeddingConfig = embeddingConfigs.find((c) => c.id === embeddingConfigId)
+        if (!embeddingConfig || embeddingConfig.candidates.length === 0) {
+          logger.warn(`[KG-IPCHandler] Embedding config not found for id=${embeddingConfigId}`)
+          return
+        }
+
+        const candidate = embeddingConfig.candidates[0]
+
+        // 5. 获取 provider 的 baseUrl 和 apiKey
+        const modelConfig = await modelConfigService.getConfig()
+        const provider = modelConfig.providers.find((p) => p.id === candidate.providerId)
+        if (!provider || !provider.baseUrl || !provider.apiKey) {
+          logger.warn(
+            `[KG-IPCHandler] Provider not found or missing credentials: ${candidate.providerId}`
+          )
+          return
+        }
+
+        // 6. 构造参数并触发嵌入
+        const batchSize = kgConfig.embeddingBatchSize ?? 20
+        const maxTokens = kgConfig.embeddingMaxTokens ?? 1500
+        const dimensions = embeddingConfig.dimensions ?? 1536
+
+        knowledgeGraphBridge.triggerEmbedding({
+          targetNamespace,
+          targetDatabase,
+          graphTableBase,
+          baseUrl: provider.baseUrl,
+          apiKey: provider.apiKey,
+          model: candidate.modelId,
+          dimensions,
+          batchSize,
+          maxTokens
+        })
+
+        logger.info(
+          `[KG-IPCHandler] Auto-triggered embedding for ${graphTableBase} (model=${candidate.modelId}, dim=${dimensions}, batch=${batchSize})`
+        )
+      } catch (error) {
+        logger.error('[KG-IPCHandler] Failed to auto-trigger embedding:', error)
+      }
+    }
+  )
 
   unsubBuildFailed = knowledgeGraphBridge.onBuildFailed((taskId, error) => {
     broadcast(CH.BUILD_FAILED, taskId, error)
@@ -152,6 +255,11 @@ export function registerKnowledgeGraphHandlers(): void {
     broadcast(CH.GRAPH_DATA_CANCELLED, sessionId)
   })
 
+  // 嵌入进度事件
+  unsubEmbeddingProgress = knowledgeGraphBridge.onEmbeddingProgress((data) => {
+    broadcast(CH.EMBEDDING_PROGRESS, data)
+  })
+
   logger.info('[KG-IPCHandler] Handlers registered')
 }
 
@@ -162,6 +270,7 @@ export function unregisterKnowledgeGraphHandlers(): void {
   ipcMain.removeHandler(CH.CREATE_GRAPH_SCHEMA)
   ipcMain.removeHandler(CH.QUERY_BUILD_STATUS)
   ipcMain.removeHandler(CH.QUERY_GRAPH_DATA)
+  ipcMain.removeHandler(CH.QUERY_EMBEDDING_STATUS)
   ipcMain.removeAllListeners(CH.CANCEL_GRAPH_QUERY)
   unsubProgress?.()
   unsubCompleted?.()
@@ -173,5 +282,6 @@ export function unregisterKnowledgeGraphHandlers(): void {
   unsubGraphDataComplete?.()
   unsubGraphDataError?.()
   unsubGraphDataCancelled?.()
+  unsubEmbeddingProgress?.()
   logger.info('[KG-IPCHandler] Handlers unregistered')
 }

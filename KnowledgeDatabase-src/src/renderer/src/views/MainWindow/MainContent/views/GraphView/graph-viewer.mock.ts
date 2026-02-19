@@ -41,8 +41,15 @@ export const MOCK_GRAPH_OPTIONS: GraphOption[] = [
 // ============================================================================
 
 const ENTITY_TYPES = [
-  'Person', 'Organization', 'Concept', 'Method',
-  'Data', 'Artifact', 'Event', 'Location', 'Content'
+  'Person',
+  'Organization',
+  'Concept',
+  'Method',
+  'Data',
+  'Artifact',
+  'Event',
+  'Location',
+  'Content'
 ]
 
 function randomType(): string {
@@ -50,12 +57,32 @@ function randomType(): string {
 }
 
 const MOCK_ENTITIES_RAW: Array<{ name: string; type: string; desc: string }> = [
-  { name: 'Transformer', type: 'Method', desc: '一种基于自注意力机制的深度学习架构，广泛应用于 NLP 和 CV 领域。' },
-  { name: 'BERT', type: 'Method', desc: '双向编码器表示模型，通过掩码语言模型和下一句预测进行预训练。' },
+  {
+    name: 'Transformer',
+    type: 'Method',
+    desc: '一种基于自注意力机制的深度学习架构，广泛应用于 NLP 和 CV 领域。'
+  },
+  {
+    name: 'BERT',
+    type: 'Method',
+    desc: '双向编码器表示模型，通过掩码语言模型和下一句预测进行预训练。'
+  },
   { name: 'GPT', type: 'Method', desc: '生成式预训练模型，使用自回归方式生成文本。' },
-  { name: 'Attention Mechanism', type: 'Concept', desc: '允许模型在处理序列时关注不同位置的信息。' },
-  { name: 'Self-Attention', type: 'Concept', desc: '注意力机制的一种，计算序列内部元素之间的关系。' },
-  { name: 'Multi-Head Attention', type: 'Concept', desc: '将注意力分成多个头，捕获不同子空间的信息。' },
+  {
+    name: 'Attention Mechanism',
+    type: 'Concept',
+    desc: '允许模型在处理序列时关注不同位置的信息。'
+  },
+  {
+    name: 'Self-Attention',
+    type: 'Concept',
+    desc: '注意力机制的一种，计算序列内部元素之间的关系。'
+  },
+  {
+    name: 'Multi-Head Attention',
+    type: 'Concept',
+    desc: '将注意力分成多个头，捕获不同子空间的信息。'
+  },
   { name: 'Positional Encoding', type: 'Concept', desc: '为序列中的每个位置添加位置信息。' },
   { name: 'Feed-Forward Network', type: 'Concept', desc: 'Transformer 中的前馈神经网络层。' },
   { name: 'Layer Normalization', type: 'Concept', desc: '对层的输出进行归一化处理。' },
@@ -71,7 +98,11 @@ const MOCK_ENTITIES_RAW: Array<{ name: string; type: string; desc: string }> = [
   { name: 'Fine-Tuning', type: 'Method', desc: '在预训练模型基础上针对特定任务进行微调。' },
   { name: 'Transfer Learning', type: 'Concept', desc: '将一个任务学到的知识迁移到另一个任务。' },
   { name: 'Pre-Training', type: 'Concept', desc: '在大规模无标注数据上进行的初始训练阶段。' },
-  { name: 'Masked Language Model', type: 'Method', desc: 'BERT 的预训练目标之一，预测被遮蔽的词。' },
+  {
+    name: 'Masked Language Model',
+    type: 'Method',
+    desc: 'BERT 的预训练目标之一，预测被遮蔽的词。'
+  },
   { name: 'Autoregressive Model', type: 'Concept', desc: '按顺序生成序列的模型。' },
   { name: 'Cross-Entropy Loss', type: 'Concept', desc: '分类任务中常用的损失函数。' },
   { name: 'Softmax', type: 'Concept', desc: '将向量转换为概率分布的函数。' },
@@ -89,7 +120,7 @@ const MOCK_ENTITIES_RAW: Array<{ name: string; type: string; desc: string }> = [
   { name: 'ViT', type: 'Method', desc: 'Vision Transformer，将 Transformer 应用于图像分类。' },
   { name: 'CLIP', type: 'Method', desc: '对比语言-图像预训练，连接文本和图像。' },
   { name: 'Diffusion Model', type: 'Method', desc: '通过逐步去噪生成数据的模型。' },
-  { name: 'RAG', type: 'Method', desc: '检索增强生成，结合检索和生成提升回答质量。' },
+  { name: 'RAG', type: 'Method', desc: '检索增强生成，结合检索和生成提升回答质量。' }
 ]
 
 export function generateMockEntities(): GraphEntity[] {
@@ -148,21 +179,21 @@ const RELATION_DEFS: Array<[string, string, string, string]> = [
   ['RAG', 'Embedding', '使用', 'RAG 使用嵌入进行检索'],
   ['RAG', 'GPT', '结合', 'RAG 结合 GPT 进行生成'],
   ['Reinforcement Learning', 'GPT', '用于', 'RLHF 用于 GPT 对齐'],
-  ['Batch Normalization', 'CNN', '应用于', 'BN 常应用于 CNN'],
+  ['Batch Normalization', 'CNN', '应用于', 'BN 常应用于 CNN']
 ]
 
 export function generateMockRelations(): GraphRelation[] {
   const entities = generateMockEntities()
-  const idMap = new Map(entities.map(e => [e.name, e.id]))
+  const idMap = new Map(entities.map((e) => [e.name, e.id]))
 
-  return RELATION_DEFS
-    .filter(([src, tgt]) => idMap.has(src) && idMap.has(tgt))
-    .map(([src, tgt, kw, desc], i) => ({
+  return RELATION_DEFS.filter(([src, tgt]) => idMap.has(src) && idMap.has(tgt)).map(
+    ([src, tgt, kw, desc], i) => ({
       id: `rel_${i}`,
       source: idMap.get(src)!,
       target: idMap.get(tgt)!,
       keywords: kw,
       description: desc,
       weight: 0.5 + Math.random() * 1.5
-    }))
+    })
+  )
 }

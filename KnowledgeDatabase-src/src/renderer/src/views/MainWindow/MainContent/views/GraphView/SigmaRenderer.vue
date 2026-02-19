@@ -15,12 +15,12 @@
 /**
  * Sigma.js 图谱渲染器
  * 使用 Sigma.js + Graphology 实现高性能 WebGL 渲染
- * 
+ *
  * 布局流程：
  * 1. 有机布局（Organic Layout）：按类型聚类 + 桥梁节点分离
  * 2. ForceAtlas2 力导向微调（Web Worker 异步）
  * 3. Noverlap 防重叠微调
- * 
+ *
  * 边渲染：使用 @sigma/edge-curve 的贝塞尔曲线
  */
 
@@ -45,170 +45,170 @@ const LAYOUT_CONFIG = {
   // 节点大小配置
   // ═══════════════════════════════════════════════════════════════════════════
   nodeSize: {
-    base: 4,              // 基础大小（度数为0时的大小）
-    degreeScale: 2.5,     // 度数缩放系数：size = base + sqrt(degree) * degreeScale
-                          // 影响：值越大，高度数节点与低度数节点的大小差异越明显
-                          // 互相影响：会影响 spacing.ratio 的实际效果（大节点需要更大间距）
+    base: 4, // 基础大小（度数为0时的大小）
+    degreeScale: 2.5 // 度数缩放系数：size = base + sqrt(degree) * degreeScale
+    // 影响：值越大，高度数节点与低度数节点的大小差异越明显
+    // 互相影响：会影响 spacing.ratio 的实际效果（大节点需要更大间距）
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 节点间距配置
   // ═══════════════════════════════════════════════════════════════════════════
   spacing: {
-    ratio: 6,             // 节点间距系数：最小间距 = (size1 + size2) * ratio / 2
-                          // 影响：值越大，节点之间越稀疏
-                          // 建议范围：2-5，太小会重叠，太大会过于稀疏
-                          // 互相影响：与 nodeSize 共同决定实际间距
-    
-    gridSize: 50,         // 空间分区网格大小（用于快速查找附近节点）
-                          // 影响：值越小，查找越精确但内存占用越大
-                          // 建议范围：30-100，通常不需要调整
+    ratio: 6, // 节点间距系数：最小间距 = (size1 + size2) * ratio / 2
+    // 影响：值越大，节点之间越稀疏
+    // 建议范围：2-5，太小会重叠，太大会过于稀疏
+    // 互相影响：与 nodeSize 共同决定实际间距
+
+    gridSize: 50 // 空间分区网格大小（用于快速查找附近节点）
+    // 影响：值越小，查找越精确但内存占用越大
+    // 建议范围：30-100，通常不需要调整
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 聚类配置（按实体类型分组）
   // ═══════════════════════════════════════════════════════════════════════════
   cluster: {
-    radiusScale: 1.2,     // 聚类半径缩放：radius = sqrt(count) * avgSize * spacing.ratio * radiusScale
-                          // 影响：值越大，聚类内部越稀疏
-                          // 互相影响：与 spacing.ratio 共同决定聚类大小
-    
-    baseDistance: 1500,   // 聚类中心到原点的基础距离（最小聚类的距离）
-                          // 影响：值越大，整体图越大
-                          // 调大原因：800 太小，聚类初始位置太近
-    
-    distanceScale: 8,     // 聚类距离缩放：distance = baseDistance + clusterRadius * distanceScale
-                          // 影响：值越大，大聚类离中心越远，聚类之间间隔越大
-                          // 关键参数：这个值决定了聚类之间的间隔
-                          // 调大原因：5 不够，大聚类需要更远的距离
-    
-    angleJitter: 0.3,     // 聚类角度随机扰动范围（弧度）
-                          // 影响：值越大，聚类分布越不规则
-                          // 建议范围：0-1.0
-                          // 调小原因：0.6 太大可能导致相邻聚类角度重叠
-    
-    radiusJitter: 300,    // 聚类距离随机扰动范围
-                          // 影响：值越大，聚类距离中心的距离变化越大
-    
-    centerJitter: 0.2,    // 聚类中心最终随机扰动（相对于聚类半径的比例）
-                          // 影响：值越大，聚类位置越随机
+    radiusScale: 1.2, // 聚类半径缩放：radius = sqrt(count) * avgSize * spacing.ratio * radiusScale
+    // 影响：值越大，聚类内部越稀疏
+    // 互相影响：与 spacing.ratio 共同决定聚类大小
+
+    baseDistance: 1500, // 聚类中心到原点的基础距离（最小聚类的距离）
+    // 影响：值越大，整体图越大
+    // 调大原因：800 太小，聚类初始位置太近
+
+    distanceScale: 8, // 聚类距离缩放：distance = baseDistance + clusterRadius * distanceScale
+    // 影响：值越大，大聚类离中心越远，聚类之间间隔越大
+    // 关键参数：这个值决定了聚类之间的间隔
+    // 调大原因：5 不够，大聚类需要更远的距离
+
+    angleJitter: 0.3, // 聚类角度随机扰动范围（弧度）
+    // 影响：值越大，聚类分布越不规则
+    // 建议范围：0-1.0
+    // 调小原因：0.6 太大可能导致相邻聚类角度重叠
+
+    radiusJitter: 300, // 聚类距离随机扰动范围
+    // 影响：值越大，聚类距离中心的距离变化越大
+
+    centerJitter: 0.2 // 聚类中心最终随机扰动（相对于聚类半径的比例）
+    // 影响：值越大，聚类位置越随机
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 聚类间斥力配置
   // ═══════════════════════════════════════════════════════════════════════════
   clusterRepulsion: {
-    iterations: 100,      // 聚类间力导向迭代次数
-                          // 影响：值越大，聚类分离越彻底，但计算时间越长
-                          // 建议范围：20-150
-                          // 调大原因：60 次可能不够完全分开
-    
+    iterations: 100, // 聚类间力导向迭代次数
+    // 影响：值越大，聚类分离越彻底，但计算时间越长
+    // 建议范围：20-150
+    // 调大原因：60 次可能不够完全分开
+
     minDistanceScale: 10, // 聚类间最小距离系数：minDist = (r1 + r2) * 2 * minDistanceScale
-                          // 影响：值越大，聚类之间间隔越远
-                          // 关键参数：这个值直接决定聚类间的最小间隔
-                          // 建议范围：6-15
-                          // 调大原因：6 不够，需要更大间隔
-    
-    forceScale: 5,        // 斥力强度系数
-                          // 影响：值越大，重叠时推开的力越强
-                          // 建议范围：1-8
-                          // 调大原因：3 推力不够强
-    
-    damping: 0.4,         // 力的阻尼系数（每次迭代位移 = 力 * damping）
-                          // 影响：值越大，收敛越快但可能不稳定
-                          // 建议范围：0.3-0.6
-    
-    gravity: 0.001,       // 向心力系数（防止聚类飞太远）
-                          // 影响：值越大，聚类越靠近中心
-                          // 建议范围：0.0005-0.01
-                          // 调小原因：0.005 太大，会把聚类拉回中心
+    // 影响：值越大，聚类之间间隔越远
+    // 关键参数：这个值直接决定聚类间的最小间隔
+    // 建议范围：6-15
+    // 调大原因：6 不够，需要更大间隔
+
+    forceScale: 5, // 斥力强度系数
+    // 影响：值越大，重叠时推开的力越强
+    // 建议范围：1-8
+    // 调大原因：3 推力不够强
+
+    damping: 0.4, // 力的阻尼系数（每次迭代位移 = 力 * damping）
+    // 影响：值越大，收敛越快但可能不稳定
+    // 建议范围：0.3-0.6
+
+    gravity: 0.001 // 向心力系数（防止聚类飞太远）
+    // 影响：值越大，聚类越靠近中心
+    // 建议范围：0.0005-0.01
+    // 调小原因：0.005 太大，会把聚类拉回中心
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 桥梁节点配置（跨类型连接的节点）
   // ═══════════════════════════════════════════════════════════════════════════
   bridge: {
-    minDistanceScale: 1.5,  // 桥梁节点到聚类中心的最小距离（相对于聚类半径）
-                            // 影响：值越大，桥梁节点离自己聚类越远
-    
+    minDistanceScale: 1.5, // 桥梁节点到聚类中心的最小距离（相对于聚类半径）
+    // 影响：值越大，桥梁节点离自己聚类越远
+
     maxDistanceRatio: 0.75, // 桥梁节点最大距离（相对于到目标聚类的距离）
-                            // 影响：值越大，桥梁节点可以走得越远
-                            // 问题修复：之前 0.3 太小，导致都挤在中间
-    
-    perpOffset: 400,        // 垂直方向随机偏移范围
-                            // 影响：值越大，桥梁节点在垂直方向分布越广
-    
-    pickRandomTarget: true, // 当连接多个聚类时，随机选一个目标方向（而不是平均）
-                            // 影响：true 时桥梁节点会分散到不同方向，避免都挤在中心
+    // 影响：值越大，桥梁节点可以走得越远
+    // 问题修复：之前 0.3 太小，导致都挤在中间
+
+    perpOffset: 400, // 垂直方向随机偏移范围
+    // 影响：值越大，桥梁节点在垂直方向分布越广
+
+    pickRandomTarget: true // 当连接多个聚类时，随机选一个目标方向（而不是平均）
+    // 影响：true 时桥梁节点会分散到不同方向，避免都挤在中心
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 节点放置配置
   // ═══════════════════════════════════════════════════════════════════════════
   placement: {
-    maxAttempts: 12,      // 放置节点时的最大尝试次数
-                          // 影响：值越大，越不容易重叠，但计算时间越长
-                          // 建议范围：8-20
-    
-    jitterGrowth: 0.8,    // 每次尝试失败后，随机范围增长系数
-                          // 影响：值越大，失败后搜索范围扩大越快
-    
-    pushDistance: 4,      // 所有尝试失败后，向外推开的距离（相对于 spacing.ratio）
-                          // 影响：值越大，失败时推得越远
-    
-    spiralAngleOffset: 0.5, // 螺旋布局每圈的角度偏移（弧度）
-                            // 影响：值越大，螺旋越不规则
+    maxAttempts: 12, // 放置节点时的最大尝试次数
+    // 影响：值越大，越不容易重叠，但计算时间越长
+    // 建议范围：8-20
+
+    jitterGrowth: 0.8, // 每次尝试失败后，随机范围增长系数
+    // 影响：值越大，失败后搜索范围扩大越快
+
+    pushDistance: 4, // 所有尝试失败后，向外推开的距离（相对于 spacing.ratio）
+    // 影响：值越大，失败时推得越远
+
+    spiralAngleOffset: 0.5 // 螺旋布局每圈的角度偏移（弧度）
+    // 影响：值越大，螺旋越不规则
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ForceAtlas2 微调配置
   // ═══════════════════════════════════════════════════════════════════════════
   forceAtlas2: {
-    enabled: true,        // 是否启用 ForceAtlas2 微调
-    
-    gravity: 0.02,        // 向心力：值越大，节点越往中心聚拢
-                          // 影响：太大会破坏聚类结构，太小没效果
-                          // 建议范围：0.01-0.1
-    
-    scalingRatio: 15,     // 斥力缩放：值越大，节点互相推开越强
-                          // 影响：太大会把聚类打散，太小没效果
-                          // 建议范围：5-50
-                          // 互相影响：与 gravity 需要平衡
-    
-    barnesHutTheta: 0.6,  // Barnes-Hut 近似精度：值越大越快但越不精确
-                          // 影响：0.5-0.8 是常用范围
-    
-    adjustSizes: true,    // 是否考虑节点大小
-                          // 影响：true 时大节点会有更大的斥力
-    
-    linLogMode: false,    // 线性-对数模式：true 时分布更均匀
-                          // 影响：对于聚类图，false 通常更好
-    
-    minDuration: 1000,    // 最小运行时间（毫秒）
-    maxDuration: 2000,    // 最大运行时间（毫秒）
-                          // 实际时间 = clamp(nodeCount, minDuration, maxDuration)
+    enabled: true, // 是否启用 ForceAtlas2 微调
+
+    gravity: 0.02, // 向心力：值越大，节点越往中心聚拢
+    // 影响：太大会破坏聚类结构，太小没效果
+    // 建议范围：0.01-0.1
+
+    scalingRatio: 15, // 斥力缩放：值越大，节点互相推开越强
+    // 影响：太大会把聚类打散，太小没效果
+    // 建议范围：5-50
+    // 互相影响：与 gravity 需要平衡
+
+    barnesHutTheta: 0.6, // Barnes-Hut 近似精度：值越大越快但越不精确
+    // 影响：0.5-0.8 是常用范围
+
+    adjustSizes: true, // 是否考虑节点大小
+    // 影响：true 时大节点会有更大的斥力
+
+    linLogMode: false, // 线性-对数模式：true 时分布更均匀
+    // 影响：对于聚类图，false 通常更好
+
+    minDuration: 1000, // 最小运行时间（毫秒）
+    maxDuration: 2000 // 最大运行时间（毫秒）
+    // 实际时间 = clamp(nodeCount, minDuration, maxDuration)
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Noverlap 防重叠配置
   // ═══════════════════════════════════════════════════════════════════════════
   noverlap: {
-    enabled: true,        // 是否启用 noverlap
-    
-    maxIterations: 15,    // 最大迭代次数
-                          // 影响：值越大，防重叠越彻底，但计算时间越长
-                          // 警告：超过 20 在大图上会很慢
-                          // 建议范围：10-20
-    
-    margin: 2,            // 节点间额外边距
-                          // 影响：值越大，节点之间留白越多
-    
-    ratio: 1.2,           // 节点大小缩放比例（用于计算碰撞）
-                          // 影响：值越大，认为节点越大，推开越多
-    
-    gridSize: 20,         // 空间分区网格大小
-                          // 影响：值越小越精确但越慢
-  },
+    enabled: true, // 是否启用 noverlap
+
+    maxIterations: 15, // 最大迭代次数
+    // 影响：值越大，防重叠越彻底，但计算时间越长
+    // 警告：超过 20 在大图上会很慢
+    // 建议范围：10-20
+
+    margin: 2, // 节点间额外边距
+    // 影响：值越大，节点之间留白越多
+
+    ratio: 1.2, // 节点大小缩放比例（用于计算碰撞）
+    // 影响：值越大，认为节点越大，推开越多
+
+    gridSize: 20 // 空间分区网格大小
+    // 影响：值越小越精确但越慢
+  }
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -283,10 +283,12 @@ function buildGraph(entities: GraphEntity[], relations: GraphRelation[]): Graph 
     }
   }
 
-  indexParallelEdgesIndex(g, { edgeIndexAttribute: 'parallelIndex', edgeMaxIndexAttribute: 'parallelMaxIndex' })
+  indexParallelEdgesIndex(g, {
+    edgeIndexAttribute: 'parallelIndex',
+    edgeMaxIndexAttribute: 'parallelMaxIndex'
+  })
   return g
 }
-
 
 // ============ 有机布局 ============
 
@@ -315,7 +317,7 @@ function applyInitialLayout(g: Graph): void {
 
   // 计算每个聚类的平均节点大小
   const clusterAvgSize = new Map<string, number>()
-  types.forEach(type => {
+  types.forEach((type) => {
     const nodes = typeGroups.get(type)!
     const totalSize = nodes.reduce((sum, n) => sum + (nodeSizes.get(n) ?? 6), 0)
     clusterAvgSize.set(type, totalSize / nodes.length)
@@ -332,7 +334,8 @@ function applyInitialLayout(g: Graph): void {
     const angle = (i / types.length) * 2 * Math.PI
     const angleJitter = (Math.random() - 0.5) * cfg.cluster.angleJitter
     const radiusJitter = (Math.random() - 0.5) * cfg.cluster.radiusJitter
-    const distFromCenter = cfg.cluster.baseDistance + clusterRadius * cfg.cluster.distanceScale + radiusJitter
+    const distFromCenter =
+      cfg.cluster.baseDistance + clusterRadius * cfg.cluster.distanceScale + radiusJitter
     clusterCenters.set(type, {
       x: distFromCenter * Math.cos(angle + angleJitter),
       y: distFromCenter * Math.sin(angle + angleJitter),
@@ -343,7 +346,7 @@ function applyInitialLayout(g: Graph): void {
   // 聚类间力导向迭代
   for (let iter = 0; iter < cfg.clusterRepulsion.iterations; iter++) {
     const forces = new Map<string, { fx: number; fy: number }>()
-    types.forEach(t => forces.set(t, { fx: 0, fy: 0 }))
+    types.forEach((t) => forces.set(t, { fx: 0, fy: 0 }))
 
     for (let i = 0; i < types.length; i++) {
       for (let j = i + 1; j < types.length; j++) {
@@ -367,14 +370,14 @@ function applyInitialLayout(g: Graph): void {
       }
     }
 
-    types.forEach(type => {
+    types.forEach((type) => {
       const c = clusterCenters.get(type)!
       const f = forces.get(type)!
       f.fx -= c.x * cfg.clusterRepulsion.gravity
       f.fy -= c.y * cfg.clusterRepulsion.gravity
     })
 
-    types.forEach(type => {
+    types.forEach((type) => {
       const c = clusterCenters.get(type)!
       const f = forces.get(type)!
       c.x += f.fx * cfg.clusterRepulsion.damping
@@ -383,7 +386,7 @@ function applyInitialLayout(g: Graph): void {
   }
 
   // 聚类中心随机扰动
-  types.forEach(type => {
+  types.forEach((type) => {
     const c = clusterCenters.get(type)!
     c.x += (Math.random() - 0.5) * c.size * cfg.cluster.centerJitter
     c.y += (Math.random() - 0.5) * c.size * cfg.cluster.centerJitter
@@ -445,8 +448,11 @@ function applyInitialLayout(g: Graph): void {
         const dx = x - placed.x
         const dy = y - placed.y
         const dist = Math.sqrt(dx * dx + dy * dy)
-        const minDist = (nodeSize + placed.size) * cfg.spacing.ratio / 2
-        if (dist < minDist) { hasOverlap = true; break }
+        const minDist = ((nodeSize + placed.size) * cfg.spacing.ratio) / 2
+        if (dist < minDist) {
+          hasOverlap = true
+          break
+        }
       }
       if (!hasOverlap) return { x, y }
     }
@@ -458,16 +464,19 @@ function applyInitialLayout(g: Graph): void {
 
   // 收集并排序所有节点
   const allNodes: Array<{ node: string; type: string; isBridge: boolean }> = []
-  types.forEach(type => {
-    typeGroups.get(type)!.forEach(node => {
+  types.forEach((type) => {
+    typeGroups.get(type)!.forEach((node) => {
       allNodes.push({ node, type, isBridge: crossTypeNeighbors.has(node) })
     })
   })
   allNodes.sort((a, b) => (nodeSizes.get(b.node) ?? 0) - (nodeSizes.get(a.node) ?? 0))
 
   // 螺旋状态
-  const clusterSpiralState = new Map<string, { radius: number; angleOffset: number; count: number }>()
-  types.forEach(type => {
+  const clusterSpiralState = new Map<
+    string,
+    { radius: number; angleOffset: number; count: number }
+  >()
+  types.forEach((type) => {
     const avgSize = clusterAvgSize.get(type) ?? 6
     clusterSpiralState.set(type, { radius: avgSize * cfg.spacing.ratio, angleOffset: 0, count: 0 })
   })
@@ -481,9 +490,9 @@ function applyInitialLayout(g: Graph): void {
     if (isBridge) {
       const neighborTypes = crossTypeNeighbors.get(node)!
       const neighborTypeArray = Array.from(neighborTypes)
-      
+
       let targetX: number, targetY: number
-      
+
       if (cfg.bridge.pickRandomTarget && neighborTypeArray.length > 0) {
         // 随机选择一个目标聚类方向（避免都挤在中心）
         const randomTarget = neighborTypeArray[Math.floor(Math.random() * neighborTypeArray.length)]
@@ -497,19 +506,29 @@ function applyInitialLayout(g: Graph): void {
         }
       } else {
         // 使用所有目标的平均位置
-        let sumX = 0, sumY = 0, count = 0
-        neighborTypeArray.forEach(neighborType => {
+        let sumX = 0,
+          sumY = 0,
+          count = 0
+        neighborTypeArray.forEach((neighborType) => {
           const neighborCenter = clusterCenters.get(neighborType)
-          if (neighborCenter) { sumX += neighborCenter.x; sumY += neighborCenter.y; count++ }
+          if (neighborCenter) {
+            sumX += neighborCenter.x
+            sumY += neighborCenter.y
+            count++
+          }
         })
         targetX = count > 0 ? sumX / count : center.x
         targetY = count > 0 ? sumY / count : center.y
       }
-      
-      const dirX = targetX - center.x, dirY = targetY - center.y
+
+      const dirX = targetX - center.x,
+        dirY = targetY - center.y
       const dirLen = Math.sqrt(dirX * dirX + dirY * dirY) || 1
-      const dist = center.size * cfg.bridge.minDistanceScale + Math.random() * (dirLen * cfg.bridge.maxDistanceRatio)
-      const perpX = -dirY / dirLen, perpY = dirX / dirLen
+      const dist =
+        center.size * cfg.bridge.minDistanceScale +
+        Math.random() * (dirLen * cfg.bridge.maxDistanceRatio)
+      const perpX = -dirY / dirLen,
+        perpY = dirX / dirLen
       const perpOffset = (Math.random() - 0.5) * cfg.bridge.perpOffset
       baseX = center.x + (dirX / dirLen) * dist + perpX * perpOffset
       baseY = center.y + (dirY / dirLen) * dist + perpY * perpOffset
@@ -535,7 +554,6 @@ function applyInitialLayout(g: Graph): void {
   })
 }
 
-
 // ============ ForceAtlas2 微调 ============
 
 function startAsyncLayout(g: Graph): void {
@@ -545,7 +563,10 @@ function startAsyncLayout(g: Graph): void {
     return
   }
 
-  if (fa2Layout) { fa2Layout.kill(); fa2Layout = null }
+  if (fa2Layout) {
+    fa2Layout.kill()
+    fa2Layout = null
+  }
 
   const sensibleSettings = inferSettings(g)
   fa2Layout = new FA2Layout(g, {
@@ -607,7 +628,7 @@ function createSigma(g: Graph): Sigma | null {
     labelSize: 12,
     labelWeight: 'normal',
     labelColor: { color: '#334155' },
-    renderEdgeLabels: false,  // 默认不渲染边标签，由 forceLabel 控制
+    renderEdgeLabels: false, // 默认不渲染边标签，由 forceLabel 控制
     edgeLabelSize: 10,
     edgeLabelFont: 'system-ui, sans-serif',
     edgeLabelColor: { color: '#3b82f6' },
@@ -620,8 +641,8 @@ function createSigma(g: Graph): Sigma | null {
     zIndex: true,
     enableEdgeEvents: true,
     // 拖拽与点击区分设置
-    dragTimeout: 150,           // 拖拽超时（ms），稍微放宽避免误判
-    draggedEventsTolerance: 5,  // 允许更多 mousemove 事件仍算点击
+    dragTimeout: 150, // 拖拽超时（ms），稍微放宽避免误判
+    draggedEventsTolerance: 5, // 允许更多 mousemove 事件仍算点击
     nodeProgramClasses: { border: NodeBorderProgram },
     edgeProgramClasses: { curvedArrow: EdgeCurvedArrowProgram }
   })
@@ -697,11 +718,23 @@ function updateHighlight(): void {
 
 function initGraph(): void {
   if (props.entities.length === 0) return
-  console.log('[GraphView] Building graph:', props.entities.length, 'nodes,', props.relations.length, 'edges')
+  console.log(
+    '[GraphView] Building graph:',
+    props.entities.length,
+    'nodes,',
+    props.relations.length,
+    'edges'
+  )
 
   stopAsyncLayout()
-  if (fa2Layout) { fa2Layout.kill(); fa2Layout = null }
-  if (sigma) { sigma.kill(); sigma = null }
+  if (fa2Layout) {
+    fa2Layout.kill()
+    fa2Layout = null
+  }
+  if (sigma) {
+    sigma.kill()
+    sigma = null
+  }
 
   graph = buildGraph(props.entities, props.relations)
   applyInitialLayout(graph)
@@ -716,14 +749,27 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopAsyncLayout()
-  if (fa2Layout) { fa2Layout.kill(); fa2Layout = null }
-  if (sigma) { sigma.kill(); sigma = null }
+  if (fa2Layout) {
+    fa2Layout.kill()
+    fa2Layout = null
+  }
+  if (sigma) {
+    sigma.kill()
+    sigma = null
+  }
   graph = null
 })
 
-watch(() => [props.entities, props.relations] as const, ([ents]) => {
-  if (ents.length > 0) nextTick(() => initGraph())
-}, { deep: true })
+watch(
+  () => [props.entities, props.relations] as const,
+  ([ents]) => {
+    if (ents.length > 0) nextTick(() => initGraph())
+  },
+  { deep: true }
+)
 
-watch(() => [props.selectedNodeId, props.selectedEdgeId, props.hoveredNodeId], () => updateHighlight())
+watch(
+  () => [props.selectedNodeId, props.selectedEdgeId, props.hoveredNodeId],
+  () => updateHighlight()
+)
 </script>

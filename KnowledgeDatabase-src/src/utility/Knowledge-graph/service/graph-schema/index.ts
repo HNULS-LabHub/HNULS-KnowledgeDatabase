@@ -53,6 +53,9 @@ DEFINE FIELD IF NOT EXISTS file_keys     ON ${t.entity} TYPE array<string> DEFAU
 DEFINE FIELD IF NOT EXISTS meta          ON ${t.entity} FLEXIBLE TYPE object DEFAULT {};
 DEFINE FIELD IF NOT EXISTS created_at    ON ${t.entity} TYPE datetime DEFAULT time::now();
 DEFINE FIELD IF NOT EXISTS updated_at    ON ${t.entity} TYPE datetime VALUE time::now();
+DEFINE FIELD IF NOT EXISTS embedding      ON ${t.entity} TYPE option<array<float>>;
+DEFINE FIELD IF NOT EXISTS embedding_hash  ON ${t.entity} TYPE string DEFAULT '';
+DEFINE FIELD IF NOT EXISTS embedding_at    ON ${t.entity} TYPE option<datetime>;
 DEFINE INDEX IF NOT EXISTS uniq_entity_name ON ${t.entity} COLUMNS entity_name UNIQUE;
 DEFINE INDEX IF NOT EXISTS idx_entity_type  ON ${t.entity} COLUMNS entity_type;
 

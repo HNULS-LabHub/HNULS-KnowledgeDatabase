@@ -8,12 +8,14 @@ import type { TaskSubmissionService } from '../service/task-submission'
 import type { TaskScheduler } from '../core/task-scheduler'
 import type { GraphBuildScheduler } from '../core/graph-build-scheduler'
 import type { GraphQueryService } from '../service/graph-query'
+import type { EmbeddingScheduler } from '../core/embedding-scheduler'
 import type {
   MainToKGMessage,
   KGToMainMessage,
   KGDBConfig,
   KGCreateSchemaParams,
-  KGGraphQueryParams
+  KGGraphQueryParams,
+  KGTriggerEmbeddingParams
 } from '@shared/knowledge-graph-ipc.types'
 import { createGraphSchema } from '../service/graph-schema'
 
@@ -49,6 +51,7 @@ export class MessageHandler {
   private scheduler: TaskScheduler
   private graphBuildScheduler: GraphBuildScheduler
   private graphQueryService: GraphQueryService
+  private embeddingScheduler: EmbeddingScheduler
   private sendMessage: (msg: KGToMainMessage) => void
 
   constructor(
@@ -57,6 +60,7 @@ export class MessageHandler {
     scheduler: TaskScheduler,
     graphBuildScheduler: GraphBuildScheduler,
     graphQueryService: GraphQueryService,
+    embeddingScheduler: EmbeddingScheduler,
     sendMessage: (msg: KGToMainMessage) => void
   ) {
     this.client = client
@@ -64,6 +68,7 @@ export class MessageHandler {
     this.scheduler = scheduler
     this.graphBuildScheduler = graphBuildScheduler
     this.graphQueryService = graphQueryService
+    this.embeddingScheduler = embeddingScheduler
     this.sendMessage = sendMessage
   }
 
@@ -105,6 +110,14 @@ export class MessageHandler {
 
         case 'kg:cancel-graph-query':
           this.handleCancelGraphQuery(msg.sessionId)
+          break
+
+        case 'kg:trigger-embedding':
+          this.handleTriggerEmbedding(msg.data)
+          break
+
+        case 'kg:query-embedding-status':
+          this.handleQueryEmbeddingStatus(msg.requestId)
           break
 
         default:
@@ -264,5 +277,36 @@ export class MessageHandler {
 
   private handleCancelGraphQuery(sessionId: string): void {
     this.graphQueryService.cancelQuery(sessionId)
+  }
+
+  // ==========================================================================
+  // 嵌入调度
+  // ==========================================================================
+
+  private handleTriggerEmbedding(data: KGTriggerEmbeddingParams): void {
+    this.embeddingScheduler.trigger(
+      {
+        baseUrl: data.baseUrl,
+        apiKey: data.apiKey,
+        model: data.model,
+        dimensions: data.dimensions,
+        batchSize: data.batchSize,
+        maxTokens: data.maxTokens
+      },
+      {
+        namespace: data.targetNamespace,
+        database: data.targetDatabase,
+        graphTableBase: data.graphTableBase
+      }
+    )
+  }
+
+  private handleQueryEmbeddingStatus(requestId: string): void {
+    const status = this.embeddingScheduler.getStatus()
+    this.sendMessage({
+      type: 'kg:embedding-status',
+      requestId,
+      data: status
+    })
   }
 }

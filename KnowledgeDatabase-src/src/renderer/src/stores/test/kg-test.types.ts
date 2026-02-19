@@ -84,7 +84,7 @@ export interface ModelTestResult {
 
 /** 计算后的性能指标 */
 export interface ModelMetrics {
-  totalTime: number | null      // 总耗时 ms
+  totalTime: number | null // 总耗时 ms
   firstTokenTime: number | null // 首字时间 ms
   tokensPerSecond: number | null // tokens/s
 }

@@ -309,7 +309,9 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
       id: `kg_cfg_${Date.now()}`,
       ...configData,
       graphTableBase,
-      graphTablesCreated: false
+      graphTablesCreated: false,
+      embeddingBatchSize: configData.embeddingBatchSize ?? 20,
+      embeddingMaxTokens: configData.embeddingMaxTokens ?? 1500
     }
 
     const currentConfigs = getKgConfigs.value(kbId)

@@ -412,7 +412,9 @@ export class GraphBuildScheduler {
           const msg = retryErr?.message ?? String(retryErr)
           if (msg.includes('can be retried') && attempt < MAX_RETRIES) {
             const delay = 200 * Math.pow(2, attempt)
-            log(`Chunk ${chunkIdStr}: write conflict, retry ${attempt + 1}/${MAX_RETRIES} after ${delay}ms`)
+            log(
+              `Chunk ${chunkIdStr}: write conflict, retry ${attempt + 1}/${MAX_RETRIES} after ${delay}ms`
+            )
             await new Promise((r) => setTimeout(r, delay))
             continue
           }
@@ -457,7 +459,9 @@ export class GraphBuildScheduler {
 
   private async reconcileBuildTaskStatus(buildTaskIdStr: string): Promise<void> {
     const taskInfo = this.client.extractRecords(
-      await this.client.query(`SELECT chunks_total, file_key FROM ${buildTaskIdStr};`)
+      await this.client.query(
+        `SELECT chunks_total, file_key, target_namespace, target_database, target_table_base, config FROM ${buildTaskIdStr};`
+      )
     )
     const taskRow = taskInfo[0] ?? {}
     const chunksTotal = Number(taskRow.chunks_total ?? 0)
@@ -519,7 +523,14 @@ export class GraphBuildScheduler {
     })
 
     if (status === 'completed') {
-      this.sendMessage({ type: 'kg:build-completed', taskId: buildTaskIdStr })
+      this.sendMessage({
+        type: 'kg:build-completed',
+        taskId: buildTaskIdStr,
+        targetNamespace: taskRow.target_namespace ?? undefined,
+        targetDatabase: taskRow.target_database ?? undefined,
+        graphTableBase: taskRow.target_table_base ?? undefined,
+        embeddingConfigId: taskRow.config?.embeddingConfigId ?? undefined
+      })
       log(
         `Build task ${buildTaskIdStr} completed: ${entitiesSum} entities, ${relationsSum} relations`
       )

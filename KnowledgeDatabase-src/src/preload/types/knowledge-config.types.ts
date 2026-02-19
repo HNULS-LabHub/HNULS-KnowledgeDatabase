@@ -53,6 +53,10 @@ export interface KnowledgeGraphModelConfig {
   outputLanguage: string
   graphTableBase?: string
   graphTablesCreated?: boolean
+  /** 每批次处理的实体数，默认 20 */
+  embeddingBatchSize?: number
+  /** 描述截断的最大 token 数，默认 1500 */
+  embeddingMaxTokens?: number
 }
 
 export interface KnowledgeGraphSectionConfig {

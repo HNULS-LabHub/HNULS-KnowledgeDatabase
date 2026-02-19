@@ -133,6 +133,58 @@ export interface KGGraphDataProgress {
 }
 
 // ============================================================================
+// 嵌入相关参数与状态
+// ============================================================================
+
+/** 触发嵌入任务的参数（Main → KG） */
+export interface KGTriggerEmbeddingParams {
+  /** 目标 namespace */
+  targetNamespace: string
+  /** 目标 database */
+  targetDatabase: string
+  /** 图谱表基名，如 'kg_emb_cfg_xxx_3072' */
+  graphTableBase: string
+  /** 嵌入 API 基础 URL */
+  baseUrl: string
+  /** 嵌入 API 密钥 */
+  apiKey: string
+  /** 嵌入模型标识 */
+  model: string
+  /** 向量维度 */
+  dimensions: number
+  /** 每批次处理的实体数 */
+  batchSize: number
+  /** 描述截断的最大 token 数 */
+  maxTokens: number
+}
+
+/** 嵌入进度数据（KG → Main） */
+export interface KGEmbeddingProgressData {
+  /** 调度器状态 */
+  state: 'idle' | 'active' | 'error'
+  /** 已完成嵌入的实体数 */
+  completed: number
+  /** 待嵌入的实体数 */
+  pending: number
+  /** 实体总数 */
+  total: number
+  /** HNSW 索引是否就绪 */
+  hnswIndexReady: boolean
+  /** 最近一次错误信息 */
+  lastError: string | null
+  /** 最近一次批次处理摘要 */
+  lastBatchInfo: {
+    successCount: number
+    failCount: number
+    durationMs: number
+    remaining: number
+  } | null
+}
+
+/** 嵌入状态查询响应数据（与 KGEmbeddingProgressData 结构相同） */
+export type KGEmbeddingStatusData = KGEmbeddingProgressData
+
+// ============================================================================
 // Main → KG 消息
 // ============================================================================
 
@@ -148,6 +200,9 @@ export type MainToKGMessage =
   // 图谱数据流式查询
   | { type: 'kg:query-graph-data'; requestId: string; data: KGGraphQueryParams }
   | { type: 'kg:cancel-graph-query'; sessionId: string }
+  // 嵌入相关
+  | { type: 'kg:trigger-embedding'; data: KGTriggerEmbeddingParams }
+  | { type: 'kg:query-embedding-status'; requestId: string }
 
 // ============================================================================
 // KG → Main 消息
@@ -181,7 +236,14 @@ export type KGToMainMessage =
       entitiesTotal: number
       relationsTotal: number
     }
-  | { type: 'kg:build-completed'; taskId: string }
+  | {
+      type: 'kg:build-completed'
+      taskId: string
+      targetNamespace?: string
+      targetDatabase?: string
+      graphTableBase?: string
+      embeddingConfigId?: string
+    }
   | { type: 'kg:build-failed'; taskId: string; error: string }
   | { type: 'kg:build-status'; requestId: string; tasks: KGBuildTaskStatus[] }
   // 图谱数据流式查询响应
@@ -196,6 +258,9 @@ export type KGToMainMessage =
   | { type: 'kg:graph-data-complete'; sessionId: string }
   | { type: 'kg:graph-data-error'; sessionId: string; error: string }
   | { type: 'kg:graph-data-cancelled'; sessionId: string }
+  // 嵌入相关
+  | { type: 'kg:embedding-progress'; data: KGEmbeddingProgressData }
+  | { type: 'kg:embedding-status'; requestId: string; data: KGEmbeddingStatusData }
 
 // ============================================================================
 // Graph Schema 创建参数

@@ -198,15 +198,19 @@ async function handleCreate(data: { name: string; embeddingConfigId: string }) {
     console.error('Cannot create KG config: databaseName not found')
     return
   }
-  const newConfig = await knowledgeConfigStore.createKgConfig(props.knowledgeBaseId, {
-    name: data.name,
-    embeddingConfigId: data.embeddingConfigId,
-    llmProviderId: '',
-    llmModelId: '',
-    chunkConcurrency: 3,
-    entityTypes: ['人物', '组织', '地点', '概念', '事件'],
-    outputLanguage: 'zh-CN'
-  }, dbName)
+  const newConfig = await knowledgeConfigStore.createKgConfig(
+    props.knowledgeBaseId,
+    {
+      name: data.name,
+      embeddingConfigId: data.embeddingConfigId,
+      llmProviderId: '',
+      llmModelId: '',
+      chunkConcurrency: 3,
+      entityTypes: ['人物', '组织', '地点', '概念', '事件'],
+      outputLanguage: 'zh-CN'
+    },
+    dbName
+  )
   // 创建后直接进入详情页
   emit('open-kg-detail', newConfig)
 }
