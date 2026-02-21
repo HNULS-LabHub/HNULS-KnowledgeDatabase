@@ -36,6 +36,7 @@ export async function upsertGraphData(
 ): Promise<UpsertResult> {
   let entitiesUpserted = 0
   let relationsUpserted = 0
+  const SQL_BATCH_SIZE = 30
 
   const statements: string[] = []
   const params: Record<string, any> = {}
@@ -129,7 +130,10 @@ export async function upsertGraphData(
 
   // 在目标库中执行所有语句
   if (statements.length > 0) {
-    await client.queryInDatabase(namespace, database, statements.join('\n'), params)
+    for (let i = 0; i < statements.length; i += SQL_BATCH_SIZE) {
+      const sql = statements.slice(i, i + SQL_BATCH_SIZE).join('\n')
+      await client.queryInDatabase(namespace, database, sql, params)
+    }
     entitiesUpserted = entities.length
     relationsUpserted = relations.length
   }

@@ -76,7 +76,10 @@ export class MessageHandler {
    * 处理来自主进程的消息
    */
   async handle(msg: MainToKGMessage): Promise<void> {
-    log(`Received: ${msg.type}`, msg)
+    // 高频轮询消息不打日志，避免刷屏；保留关键事件日志用于观察状态切换
+    if (msg.type !== 'kg:query-embedding-status' && msg.type !== 'kg:query-status') {
+      log(`Received: ${msg.type}`, msg)
+    }
 
     try {
       switch (msg.type) {

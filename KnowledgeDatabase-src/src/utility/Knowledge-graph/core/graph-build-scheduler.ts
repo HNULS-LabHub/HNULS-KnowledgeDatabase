@@ -11,7 +11,7 @@
 
 import type { KGSurrealClient } from '../db/surreal-client'
 import type { KGToMainMessage } from '@shared/knowledge-graph-ipc.types'
-import { parseRawResponse } from './response-parser'
+import { makeRelationId, parseRawResponse } from './response-parser'
 import { upsertGraphData } from './graph-upsert'
 import { getKgTableNames } from '../service/graph-schema'
 
@@ -47,6 +47,7 @@ export class GraphBuildScheduler {
   private isProcessing = false
   private cleanupDone = false
   private isActive = false
+  private lockTails = new Map<string, Promise<void>>()
 
   private readonly POLL_INTERVAL = 2000
   private readonly BATCH_SIZE = 5
@@ -386,6 +387,7 @@ export class GraphBuildScheduler {
 
       // 3. 解析
       const parsed = parseRawResponse(String(rawResponse))
+      const conflictKeys = this.getConflictKeys(parsed)
 
       if (parsed.entities.length === 0 && parsed.relations.length === 0) {
         console.warn(`[KG-GraphBuild] Chunk ${chunkIdStr}: parsed 0 entities and 0 relations`)
@@ -394,33 +396,35 @@ export class GraphBuildScheduler {
       // 4. upsert 到目标库（含事务冲突重试）
       const tableNames = getKgTableNames(buildTask.target_table_base)
       let result: { entitiesUpserted: number; relationsUpserted: number } | undefined
-      const MAX_RETRIES = 3
-      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-        try {
-          result = await upsertGraphData(
-            this.client,
-            buildTask.target_namespace,
-            buildTask.target_database,
-            tableNames,
-            parsed.entities,
-            parsed.relations,
-            cacheKey,
-            buildTask.file_key ?? ''
-          )
-          break
-        } catch (retryErr: any) {
-          const msg = retryErr?.message ?? String(retryErr)
-          if (msg.includes('can be retried') && attempt < MAX_RETRIES) {
-            const delay = 200 * Math.pow(2, attempt)
-            log(
-              `Chunk ${chunkIdStr}: write conflict, retry ${attempt + 1}/${MAX_RETRIES} after ${delay}ms`
+      await this.withLocks(conflictKeys, async () => {
+        const MAX_RETRIES = 3
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+          try {
+            result = await upsertGraphData(
+              this.client,
+              buildTask.target_namespace,
+              buildTask.target_database,
+              tableNames,
+              parsed.entities,
+              parsed.relations,
+              cacheKey,
+              buildTask.file_key ?? ''
             )
-            await new Promise((r) => setTimeout(r, delay))
-            continue
+            break
+          } catch (retryErr: any) {
+            const msg = retryErr?.message ?? String(retryErr)
+            if (this.isRetryableWriteConflict(msg) && attempt < MAX_RETRIES) {
+              const delay = 200 * Math.pow(2, attempt)
+              log(
+                `Chunk ${chunkIdStr}: write conflict, retry ${attempt + 1}/${MAX_RETRIES} after ${delay}ms`
+              )
+              await new Promise((r) => setTimeout(r, delay))
+              continue
+            }
+            throw retryErr
           }
-          throw retryErr
         }
-      }
+      })
       if (!result) throw new Error('Unexpected: upsert did not return result')
 
       // 5. 标记完成
@@ -443,6 +447,62 @@ export class GraphBuildScheduler {
   // ==========================================================================
   // 状态派生
   // ==========================================================================
+
+  private getConflictKeys(parsed: {
+    entities: Array<{ sanitizedName: string }>
+    relations: Array<{ srcSanitized: string; tgtSanitized: string }>
+  }): string[] {
+    const keys = new Set<string>()
+
+    for (const entity of parsed.entities) {
+      keys.add(`entity:${entity.sanitizedName}`)
+    }
+
+    for (const relation of parsed.relations) {
+      keys.add(`relation:${makeRelationId(relation.srcSanitized, relation.tgtSanitized)}`)
+    }
+
+    return [...keys].sort()
+  }
+
+  private async withLocks<T>(keys: string[], fn: () => Promise<T>): Promise<T> {
+    if (keys.length === 0) return fn()
+
+    const releases: Array<() => void> = []
+    for (const key of keys) {
+      releases.push(await this.acquireLock(key))
+    }
+
+    try {
+      return await fn()
+    } finally {
+      for (let i = releases.length - 1; i >= 0; i--) {
+        releases[i]()
+      }
+    }
+  }
+
+  private async acquireLock(key: string): Promise<() => void> {
+    const prevTail = this.lockTails.get(key) ?? Promise.resolve()
+    let releaseCurrent!: () => void
+    const current = new Promise<void>((resolve) => {
+      releaseCurrent = resolve
+    })
+    const newTail = prevTail.then(() => current)
+    this.lockTails.set(key, newTail)
+    await prevTail
+
+    return () => {
+      releaseCurrent()
+      if (this.lockTails.get(key) === newTail) {
+        this.lockTails.delete(key)
+      }
+    }
+  }
+
+  private isRetryableWriteConflict(message: string): boolean {
+    return message.includes('can be retried') || message.includes('read or write conflict')
+  }
 
   private deriveStatus(stats: {
     total: number

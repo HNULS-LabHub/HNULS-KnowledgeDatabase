@@ -572,11 +572,23 @@ const embeddingStateBadge = computed(() => {
   return map[embeddingStatus.value.state] ?? ''
 })
 
+function isEmbeddingIdleCompleted(data: KGEmbeddingProgressData): boolean {
+  return data.state === 'idle' && data.total > 0 && data.pending === 0
+}
+
+function stopEmbeddingPolling(): void {
+  if (embeddingPollTimer) {
+    window.clearInterval(embeddingPollTimer)
+    embeddingPollTimer = null
+  }
+}
+
 async function pollEmbeddingStatus(): Promise<void> {
   try {
     const result = await window.api.knowledgeGraph.queryEmbeddingStatus()
     if (result) {
       embeddingStatus.value = result
+      if (isEmbeddingIdleCompleted(result)) stopEmbeddingPolling()
     }
   } catch {
     // 静默忽略
@@ -598,6 +610,7 @@ onMounted(() => {
   // 监听嵌入进度推送
   unsubEmbeddingProgress = window.api.knowledgeGraph.onEmbeddingProgress((data) => {
     embeddingStatus.value = data
+    if (isEmbeddingIdleCompleted(data)) stopEmbeddingPolling()
   })
 })
 

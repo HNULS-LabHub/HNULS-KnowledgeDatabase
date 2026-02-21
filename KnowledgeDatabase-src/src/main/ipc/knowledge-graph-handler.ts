@@ -14,6 +14,7 @@ import type {
 import type { KnowledgeLibraryService } from '../services/knowledgeBase-library'
 import type { ModelConfigService } from '../services/model-config'
 import { KnowledgeConfigService } from '../services/knowledgeBase-library/knowledge-config-service'
+import { DocumentService } from '../services/knowledgeBase-library/document-service'
 
 const CH = {
   SUBMIT_TASK: 'knowledge-graph:submit-task',
@@ -177,8 +178,11 @@ export function registerKnowledgeGraphHandlers(
         }
 
         // 2. 读取知识库配置
+        const documentService = new DocumentService()
+        await documentService.ensureKnowledgeBaseDirectory(kb.documentPath)
+        const kbRoot = documentService.getFullDirectoryPath(kb.documentPath)
         const configService = new KnowledgeConfigService()
-        const kbConfig = await configService.readConfig(kb.documentPath)
+        const kbConfig = await configService.readConfig(kbRoot)
 
         // 3. 找到匹配的 KG 配置
         const kgConfigs = kbConfig.global.knowledgeGraph?.configs ?? []
