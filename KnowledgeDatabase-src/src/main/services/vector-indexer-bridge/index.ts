@@ -482,6 +482,7 @@ export class VectorIndexerBridge {
     targetDatabase: string
     documentId: string
     fileKey: string
+    runId?: string
     embeddingConfigId: string
     dimensions: number
     chunkCount: number
@@ -498,14 +499,18 @@ export class VectorIndexerBridge {
     const safeId = String(params.embeddingConfigId).replace(/[^a-zA-Z0-9_]/g, '_')
     const vectorTableName = `emb_cfg_${safeId}_${params.dimensions}_chunks`
 
+    const hasRunId = typeof params.runId === 'string' && params.runId.length > 0
+
     // ✅ 直接查询目标向量表中该文档的实际 chunk 数量（严格模式：失败即报错）
-    //    这样无论分多少批搬运，最终都是准确的实际值
-    const countSql = `SELECT count() AS count FROM \`${vectorTableName}\` WHERE file_key = $fileKey GROUP ALL;`
+    //    run_id 存在时按 run 过滤，避免历史 run 残留影响当前计数
+    const countSql = hasRunId
+      ? `SELECT count() AS count FROM \`${vectorTableName}\` WHERE file_key = $fileKey AND run_id = $runId GROUP ALL;`
+      : `SELECT count() AS count FROM \`${vectorTableName}\` WHERE file_key = $fileKey GROUP ALL;`
     const countResult = await this.queryService.queryInDatabase(
       params.targetNamespace,
       params.targetDatabase,
       countSql,
-      { fileKey: params.fileKey }
+      hasRunId ? { fileKey: params.fileKey, runId: params.runId } : { fileKey: params.fileKey }
     )
 
     const extractRecords = (result: any): any[] => {
@@ -554,6 +559,7 @@ export class VectorIndexerBridge {
         dimensions = $dimensions,
         status = 'completed',
         chunk_count = $chunkCount,
+        task_id = $taskId,
         updated_at = time::now()
       WHERE file_key = $fileKey
         AND embedding_config_id = $embeddingConfigId
@@ -565,11 +571,13 @@ export class VectorIndexerBridge {
       embeddingConfigId: params.embeddingConfigId,
       embeddingConfigName: embeddingConfigName ?? null,
       dimensions: params.dimensions,
-      chunkCount: actualChunkCount
+      chunkCount: actualChunkCount,
+      taskId: hasRunId ? params.runId : null
     })
 
     logger.info('[VectorIndexerBridge] Updated kb_document_embedding status', {
       fileKey: params.fileKey,
+      runId: hasRunId ? params.runId : null,
       embeddingConfigId: params.embeddingConfigId,
       embeddingConfigName,
       dimensions: params.dimensions,

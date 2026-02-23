@@ -174,44 +174,14 @@ export class TaskSubmissionService {
       targetTableBase
     } = params
     const taskConfig: KGSubmitTaskParams['config'] = { ...(config ?? {}) }
+    let expectedChunkCount: number | null = null
+    let expectedRunId: string | null = null
 
-    // 1. 从嵌入表拉 chunks
-    log('Fetching chunks from embedding table', {
-      namespace: sourceNamespace,
-      database: sourceDatabase,
-      table: sourceTable,
-      fileKey
-    })
-
-    const chunksSql = `
-      SELECT chunk_index, content
-      FROM ${sourceTable}
-      WHERE file_key = $fileKey OR document.file_key = $fileKey
-      ORDER BY chunk_index ASC;
-    `
-
-    const rawResult = await this.client.queryInDatabase(
-      sourceNamespace,
-      sourceDatabase,
-      chunksSql,
-      { fileKey }
-    )
-
-    const chunks = this.client.extractRecords(rawResult)
-
-    if (chunks.length === 0) {
-      throw new Error(
-        `No chunks found for fileKey="${fileKey}" in ${sourceNamespace}.${sourceDatabase}.${sourceTable}`
-      )
-    }
-
-    log(`Fetched ${chunks.length} chunks for fileKey="${fileKey}"`)
-
-    // 2. 查询嵌入版本信息（用于重新嵌入判定）
+    // 1. 查询嵌入版本信息（用于重新嵌入判定 + 一致性校验）
     if (taskConfig.embeddingConfigId) {
       try {
         const embeddingSql = `
-          SELECT embedding_config_id, updated_at
+          SELECT embedding_config_id, updated_at, chunk_count, task_id
           FROM kb_document_embedding
           WHERE file_key = $fileKey
             AND embedding_config_id = $embeddingConfigId
@@ -230,12 +200,127 @@ export class TaskSubmissionService {
         if (record?.updated_at) {
           taskConfig.embeddingUpdatedAt = String(record.updated_at)
         }
+        if (record?.chunk_count !== undefined && record?.chunk_count !== null) {
+          const count = Number(record.chunk_count)
+          if (Number.isFinite(count) && count >= 0) {
+            expectedChunkCount = count
+          }
+        }
+        if (record?.task_id) {
+          expectedRunId = String(record.task_id)
+          taskConfig.embeddingRunId = expectedRunId
+        }
       } catch (error) {
         logError('Failed to fetch embedding updated_at, continue without snapshot', error)
       }
+
+      if (expectedChunkCount === null) {
+        logError('Embedding snapshot missing, rejecting task submission', {
+          fileKey,
+          sourceNamespace,
+          sourceDatabase,
+          embeddingConfigId: taskConfig.embeddingConfigId
+        })
+        throw new Error(
+          `Embedding snapshot not found for fileKey="${fileKey}", embeddingConfigId="${taskConfig.embeddingConfigId}"`
+        )
+      }
     }
 
-    // 3. 创建 kg_task 记录
+    // 2. 从嵌入表拉 chunks（run_id 可用时只读当前 run）
+    log('Fetching chunks from embedding table', {
+      namespace: sourceNamespace,
+      database: sourceDatabase,
+      table: sourceTable,
+      fileKey,
+      expectedChunkCount,
+      expectedRunId
+    })
+
+    const chunksSql = expectedRunId
+      ? `
+      SELECT chunk_index, content
+      FROM ${sourceTable}
+      WHERE (file_key = $fileKey OR document.file_key = $fileKey)
+        AND run_id = $runId
+      ORDER BY chunk_index ASC;
+    `
+      : `
+      SELECT chunk_index, content
+      FROM ${sourceTable}
+      WHERE file_key = $fileKey OR document.file_key = $fileKey
+      ORDER BY chunk_index ASC;
+    `
+
+    const rawResult = await this.client.queryInDatabase(sourceNamespace, sourceDatabase, chunksSql, {
+      fileKey,
+      runId: expectedRunId
+    })
+
+    const rawChunks = this.client.extractRecords(rawResult)
+
+    if (rawChunks.length === 0) {
+      throw new Error(
+        `No chunks found for fileKey="${fileKey}" in ${sourceNamespace}.${sourceDatabase}.${sourceTable}`
+      )
+    }
+
+    // 3. file_key 级去重与一致性校验
+    const chunks: Array<{ chunk_index: number; content: string }> = []
+    const seenChunkIndex = new Set<number>()
+    const duplicateChunkIndexes = new Set<number>()
+
+    for (const chunk of rawChunks) {
+      const chunkIndex = Number(chunk.chunk_index)
+      if (!Number.isFinite(chunkIndex)) {
+        throw new Error(
+          `Invalid chunk_index for fileKey="${fileKey}" in ${sourceNamespace}.${sourceDatabase}.${sourceTable}: ${String(chunk.chunk_index)}`
+        )
+      }
+      if (seenChunkIndex.has(chunkIndex)) {
+        duplicateChunkIndexes.add(chunkIndex)
+        continue
+      }
+      seenChunkIndex.add(chunkIndex)
+      chunks.push({
+        chunk_index: chunkIndex,
+        content: String(chunk.content ?? '')
+      })
+    }
+
+    if (duplicateChunkIndexes.size > 0) {
+      const duplicateIndexes = Array.from(duplicateChunkIndexes).sort((a, b) => a - b)
+      logError('Chunk validation failed: duplicate chunk_index detected', {
+        fileKey,
+        sourceNamespace,
+        sourceDatabase,
+        sourceTable,
+        duplicates: duplicateIndexes,
+        expectedRunId
+      })
+      throw new Error(
+        `Chunk validation failed for fileKey="${fileKey}": duplicated chunk_index detected (${duplicateIndexes.join(', ')})`
+      )
+    }
+
+    if (expectedChunkCount !== null && chunks.length !== expectedChunkCount) {
+      logError('Chunk count mismatch detected, rejecting task submission', {
+        fileKey,
+        sourceNamespace,
+        sourceDatabase,
+        sourceTable,
+        expectedChunkCount,
+        fetchedChunkCount: chunks.length,
+        expectedRunId
+      })
+      throw new Error(
+        `Chunk count mismatch for fileKey="${fileKey}": expected=${expectedChunkCount}, fetched=${chunks.length}, table=${sourceNamespace}.${sourceDatabase}.${sourceTable}${expectedRunId ? `, runId=${expectedRunId}` : ''}`
+      )
+    }
+
+    log(`Fetched ${rawChunks.length} chunks (validated=${chunks.length}) for fileKey="${fileKey}"`)
+
+    // 4. 创建 kg_task 记录
     const createTaskSql = `
       CREATE kg_task CONTENT {
         status: 'pending',
@@ -275,7 +360,7 @@ export class TaskSubmissionService {
     const taskIdStr = rid(taskId)
     log(`Created task: ${taskIdStr}`)
 
-    // 3. 批量创建 kg_chunk 记录
+    // 5. 批量创建 kg_chunk 记录
     // 分批插入，每批 50 条
     const BATCH_SIZE = 50
     for (let i = 0; i < chunks.length; i += BATCH_SIZE) {

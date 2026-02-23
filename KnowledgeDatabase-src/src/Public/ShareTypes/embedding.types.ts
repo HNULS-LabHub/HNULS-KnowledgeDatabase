@@ -410,6 +410,10 @@ export interface VectorStagingRecord {
   file_key: string
   /** 文件名 */
   file_name: string
+  /** 本次嵌入运行 ID（用于 run 级替换） */
+  run_id: string
+  /** 本次嵌入运行的总 chunk 数（用于完整性校验） */
+  run_total_chunks: number
 
   // === 处理状态 ===
   /** 是否已被搬运到目标表 */

@@ -60,6 +60,37 @@ export class KnowledgeLibraryService {
     }
   }
 
+  private getEmbeddingChunksTableName(configId: string, dimensions: number): string {
+    const safeId = String(configId).replace(/[^a-zA-Z0-9_]/g, '_')
+    return `emb_cfg_${safeId}_${dimensions}_chunks`
+  }
+
+  private extractQueryRecords(result: any): any[] {
+    if (!result) return []
+    if (Array.isArray(result)) {
+      // [[{...}]]
+      if (result.length === 1 && Array.isArray(result[0])) {
+        const inner = result[0]
+        if (inner.length > 0 && typeof inner[0] === 'object' && !Array.isArray(inner[0])) {
+          return inner
+        }
+      }
+      // [{ result: [...] }]
+      for (const entry of result) {
+        if (Array.isArray((entry as any)?.result)) {
+          return (entry as any).result
+        }
+      }
+      // [{...}]
+      if (result.length > 0 && typeof result[0] === 'object' && !(result[0] as any).result) {
+        return result
+      }
+      return []
+    }
+    if (Array.isArray((result as any)?.result)) return (result as any).result
+    return []
+  }
+
   constructor(queryService?: QueryService) {
     this.tracker = new ServiceTracker('KnowledgeLibraryService')
     // 获取用户数据目录下的 data 目录
@@ -493,10 +524,6 @@ export class KnowledgeLibraryService {
 
   /**
    * 删除文件/目录后，同步删除 kb_document、kb_document_embedding 以及关联 chunk
-   *
-   * TODO: 新架构下 chunks 存储在动态分表中（如 emb_cfg_xxx_3072_chunks）
-   * 当前 `DELETE chunk` 语句为旧代码兼容，新分表的 chunks 需要通过
-   * kb_document_embedding 记录的 embedding_config_id 和 dimensions 构造表名后删除
    */
   async syncDeletedPathToSurrealDB(params: {
     knowledgeBaseId: number
@@ -513,8 +540,85 @@ export class KnowledgeLibraryService {
 
     const prefix = normalized.replace(/\/+$/, '') + '/'
 
-    // 注意: 新架构下 chunks 存储在 emb_cfg_{configId}_{dim}_chunks 分表中
-    // 这里的 DELETE chunk 只能清理旧 chunk 表，新分表需要额外处理
+    // 1) 先枚举动态 embedding chunk 分表（emb_cfg_{configId}_{dim}_chunks）并删除 file_key 关联数据
+    const embeddingRefsSql = params.isDirectory
+      ? `
+        SELECT embedding_config_id, dimensions
+        FROM kb_document_embedding
+        WHERE string::starts_with(file_key, $prefix)
+        GROUP BY embedding_config_id, dimensions;
+      `
+      : `
+        SELECT embedding_config_id, dimensions
+        FROM kb_document_embedding
+        WHERE file_key = $fileKey
+        GROUP BY embedding_config_id, dimensions;
+      `
+
+    const tableTargets = new Map<
+      string,
+      {
+        tableName: string
+        embeddingConfigId: string
+        dimensions: number
+      }
+    >()
+
+    try {
+      const refsResult = await this.queryService.queryInDatabase(namespace, kb.databaseName, embeddingRefsSql, {
+        prefix,
+        fileKey: normalized
+      })
+      const refs = this.extractQueryRecords(refsResult)
+      for (const row of refs) {
+        const embeddingConfigId = String(row.embedding_config_id ?? '').trim()
+        const dimensions = Number(row.dimensions)
+        if (!embeddingConfigId || !Number.isFinite(dimensions) || dimensions <= 0) {
+          continue
+        }
+        const tableName = this.getEmbeddingChunksTableName(embeddingConfigId, dimensions)
+        tableTargets.set(`${embeddingConfigId}:${dimensions}`, {
+          tableName,
+          embeddingConfigId,
+          dimensions
+        })
+      }
+    } catch (error) {
+      logger.warn('[KnowledgeLibraryService] Failed to enumerate embedding chunk tables before delete', {
+        knowledgeBaseId: params.knowledgeBaseId,
+        filePath: params.filePath,
+        isDirectory: params.isDirectory,
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
+
+    for (const target of tableTargets.values()) {
+      const deleteDynamicSql = params.isDirectory
+        ? `DELETE FROM \`${target.tableName}\` WHERE string::starts_with(file_key, $prefix) RETURN NONE;`
+        : `DELETE FROM \`${target.tableName}\` WHERE file_key = $fileKey RETURN NONE;`
+
+      try {
+        await this.queryService.queryInDatabase(namespace, kb.databaseName, deleteDynamicSql, {
+          prefix,
+          fileKey: normalized
+        })
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error)
+        if (!msg.includes('not found') && !msg.includes('does not exist')) {
+          logger.warn('[KnowledgeLibraryService] Failed to delete records from dynamic embedding table', {
+            knowledgeBaseId: params.knowledgeBaseId,
+            filePath: params.filePath,
+            isDirectory: params.isDirectory,
+            tableName: target.tableName,
+            embeddingConfigId: target.embeddingConfigId,
+            dimensions: target.dimensions,
+            error: msg
+          })
+        }
+      }
+    }
+
+    // 2) 删除旧 chunk 表兼容数据 + 元数据表
     const sql = params.isDirectory
       ? `
         LET $docIds = (SELECT VALUE id FROM kb_document WHERE string::starts_with(file_key, $prefix));

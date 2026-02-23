@@ -66,6 +66,8 @@ export class EmbeddingEngineBridge {
   private taskToDocumentMap: Map<string, string> = new Map()
   /** 文档 ID -> 提交参数 */
   private taskParamsByDocument: Map<string, SubmitEmbeddingTaskParams> = new Map()
+  /** 文档 ID -> 本次嵌入运行 ID（用于 run 级替换） */
+  private runIdByDocument: Map<string, string> = new Map()
 
   /** 依赖注入 */
   private queryService?: QueryService
@@ -212,8 +214,10 @@ export class EmbeddingEngineBridge {
 
         // 🔥 恢复批量写入暂存表（等任务完成后一次性写入）
         const params = this.taskParamsByDocument.get(result.documentId)
-        this.enqueueSync(result, params)
+        const runId = this.runIdByDocument.get(result.documentId)
+        this.enqueueSync(result, params, runId)
         this.taskParamsByDocument.delete(result.documentId)
+        this.runIdByDocument.delete(result.documentId)
 
         logger.info('[EmbeddingEngineBridge] Task completed, enqueued batch sync', {
           documentId: msg.documentId,
@@ -239,6 +243,7 @@ export class EmbeddingEngineBridge {
           }
         }
         this.taskParamsByDocument.delete(msg.documentId)
+        this.runIdByDocument.delete(msg.documentId)
 
         // 广播到渲染进程
         this.broadcastToRenderers('embedding:failed', error)
@@ -339,17 +344,24 @@ export class EmbeddingEngineBridge {
       }
     })
     this.taskParamsByDocument.set(params.documentId, params)
+    this.runIdByDocument.set(params.documentId, taskId)
 
     // 2. 发送给嵌入引擎
     const requestId = this.generateRequestId()
-    return this.sendWithResponse<string>({
-      type: 'embed:start',
-      requestId,
-      data: {
-        ...params,
-        taskId
-      }
-    })
+    try {
+      return await this.sendWithResponse<string>({
+        type: 'embed:start',
+        requestId,
+        data: {
+          ...params,
+          taskId
+        }
+      })
+    } catch (error) {
+      this.taskParamsByDocument.delete(params.documentId)
+      this.runIdByDocument.delete(params.documentId)
+      throw error
+    }
   }
 
   pauseTask(documentId: string): void {
@@ -515,9 +527,13 @@ export class EmbeddingEngineBridge {
   // 内部：向量同步（写入暂存表）
   // ==========================================================================
 
-  private enqueueSync(result: EmbeddingTaskResult, params?: SubmitEmbeddingTaskParams): void {
+  private enqueueSync(
+    result: EmbeddingTaskResult,
+    params?: SubmitEmbeddingTaskParams,
+    runId?: string
+  ): void {
     this.syncQueue = this.syncQueue
-      .then(() => this.syncToStagingTable(result, params))
+      .then(() => this.syncToStagingTable(result, params, runId))
       .catch((err) => {
         logger.error('[EmbeddingEngineBridge] Failed to write to staging table', err)
       })
@@ -529,7 +545,8 @@ export class EmbeddingEngineBridge {
    */
   private async syncToStagingTable(
     result: EmbeddingTaskResult,
-    params?: SubmitEmbeddingTaskParams
+    params?: SubmitEmbeddingTaskParams,
+    runId?: string
   ): Promise<void> {
     // 校验基础参数
     const knowledgeBaseIdRaw = params?.meta?.knowledgeBaseId
@@ -589,6 +606,8 @@ export class EmbeddingEngineBridge {
 
     const namespace = this.queryService?.getNamespace() || 'knowledge'
     const now = Date.now()
+    const resolvedRunId = runId || `embedding-run-${now}-${Math.random().toString(36).slice(2, 9)}`
+    const expectedRunTotal = chunks.length
 
     // 构建暂存记录
     const stagingRecords = chunks
@@ -610,6 +629,8 @@ export class EmbeddingEngineBridge {
           end_char: chunk.endChar ?? null,
           file_key: fileKey,
           file_name: fileName,
+          run_id: resolvedRunId,
+          run_total_chunks: expectedRunTotal,
           processed: false,
           created_at: now
         } satisfies VectorStagingRecord
@@ -621,12 +642,19 @@ export class EmbeddingEngineBridge {
       return
     }
 
+    if (stagingRecords.length !== expectedRunTotal) {
+      throw new Error(
+        `Embedding run incomplete for fileKey=${fileKey}: expected ${expectedRunTotal} chunks, got ${stagingRecords.length}`
+      )
+    }
+
     try {
       await vectorStagingService.insertBatch(stagingRecords)
 
       logger.info('[EmbeddingEngineBridge] Successfully wrote to staging table', {
         documentId: result.documentId,
         fileKey,
+        runId: resolvedRunId,
         embeddingConfigId,
         dimensions: embeddingDimensions,
         chunkCount: stagingRecords.length
@@ -637,6 +665,7 @@ export class EmbeddingEngineBridge {
       logger.error('[EmbeddingEngineBridge] Failed to write to staging table', {
         documentId: result.documentId,
         fileKey,
+        runId: resolvedRunId,
         error: errorMsg,
         stack: error instanceof Error ? error.stack : undefined
       })

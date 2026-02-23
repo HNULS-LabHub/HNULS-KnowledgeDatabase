@@ -146,6 +146,8 @@ export type IndexerToMainMessage =
       targetDatabase: string
       documentId: string
       fileKey: string
+      /** 本次嵌入运行 ID */
+      runId?: string
       embeddingConfigId: string
       dimensions: number
       chunkCount: number

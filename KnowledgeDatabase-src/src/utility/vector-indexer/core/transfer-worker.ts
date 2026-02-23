@@ -46,6 +46,7 @@ export interface DocumentEmbeddedInfo {
   targetDatabase: string
   documentId: string
   fileKey: string
+  runId?: string
   embeddingConfigId: string
   dimensions: number
   chunkCount: number
@@ -69,6 +70,7 @@ export class TransferWorker {
   private callbacks: TransferCallbacks
   private activeTransfers = new Set<string>()
   private tableCache = new Set<string>()
+  private finalizedRuns = new Set<string>()
   private totalTransferred = 0
 
   constructor(client: SurrealClient, config: IndexerConfig, callbacks: TransferCallbacks = {}) {
@@ -153,7 +155,10 @@ export class TransferWorker {
       // Step 4: 分批插入目标表
       await this.insertToTargetTable(namespace, database, tableName, records)
 
-      // Step 5: 标记已处理（不立即删除，留给 idle 时批量清理）
+      // Step 5: run 级替换（完整 run 到齐后清理旧 run）
+      await this.reconcileCompletedRuns(group)
+
+      // Step 6: 标记已处理（不立即删除，留给 idle 时批量清理）
       const recordIds = records.map((r) => r.id)
       await this.markProcessed(recordIds)
 
@@ -172,9 +177,6 @@ export class TransferWorker {
         0, // 待处理数需要从 poller 获取
         this.activeTransfers.size
       )
-
-      // 🎯 统计每个文档的 chunk 数量并发送嵌入完成通知
-      this.notifyDocumentsEmbedded(group)
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error)
       logError(`Group failed: ${tableName}`, msg)
@@ -337,7 +339,9 @@ export class TransferWorker {
         end_char: record.end_char,
         embedding: record.embedding,
         file_key: record.file_key,
-        file_name: record.file_name
+        file_name: record.file_name,
+        run_id: record.run_id,
+        run_total_chunks: record.run_total_chunks
       }))
 
       // 使用 INSERT（已删除冲突数据）
@@ -351,12 +355,122 @@ export class TransferWorker {
   // ==========================================================================
 
   /**
-   * 统计每个文档的 chunk 数量并发送嵌入完成通知
+   * run 级替换：当某个 fileKey+runId 的行数达到 run_total_chunks 时，
+   * 认为新 run 完整，删除同 fileKey 下旧 run 数据并发送完成通知。
    */
-  private notifyDocumentsEmbedded(group: GroupedRecords): void {
+  private async reconcileCompletedRuns(group: GroupedRecords): Promise<void> {
     if (!this.callbacks.onDocumentEmbedded) return
 
-    // 按文档分组统计 chunk 数量
+    const runEntries = new Map<
+      string,
+      {
+        documentId: string
+        fileKey: string
+        runId: string
+        runTotalChunks: number
+      }
+    >()
+
+    for (const record of group.records) {
+      const runId = String(record.run_id ?? '').trim()
+      const runTotalChunks = Number(record.run_total_chunks ?? 0)
+      if (!runId || !record.file_key || !Number.isFinite(runTotalChunks) || runTotalChunks <= 0) {
+        continue
+      }
+
+      const key = `${record.document_id}::${record.file_key}::${runId}`
+      const existing = runEntries.get(key)
+      if (!existing || runTotalChunks > existing.runTotalChunks) {
+        runEntries.set(key, {
+          documentId: record.document_id,
+          fileKey: record.file_key,
+          runId,
+          runTotalChunks
+        })
+      }
+    }
+
+    // 兼容旧数据：若暂存记录无 run 元信息，则回退到旧逻辑（按批次通知）
+    if (runEntries.size === 0) {
+      this.notifyLegacyDocumentsEmbedded(group)
+      return
+    }
+
+    for (const entry of runEntries.values()) {
+      const finalizedKey = `${group.namespace}.${group.database}.${group.tableName}.${entry.fileKey}.${entry.runId}`
+      if (this.finalizedRuns.has(finalizedKey)) {
+        continue
+      }
+
+      const countSql = `
+        SELECT count() AS count
+        FROM \`${group.tableName}\`
+        WHERE file_key = $fileKey AND run_id = $runId
+        GROUP ALL;
+      `
+      const countResult = await this.client.queryInDatabase(group.namespace, group.database, countSql, {
+        fileKey: entry.fileKey,
+        runId: entry.runId
+      })
+      const countRows = this.client.extractRecords(countResult)
+      const runCount = Number(countRows[0]?.count ?? 0)
+
+      if (!Number.isFinite(runCount) || runCount < 0) {
+        throw new Error(
+          `Invalid run count for ${group.tableName} fileKey=${entry.fileKey} runId=${entry.runId}: ${String(
+            countRows[0]?.count
+          )}`
+        )
+      }
+
+      // 当前 run 还没到齐，等待后续批次
+      if (runCount < entry.runTotalChunks) {
+        continue
+      }
+
+      if (runCount > entry.runTotalChunks) {
+        throw new Error(
+          `Run count overflow for ${group.tableName} fileKey=${entry.fileKey} runId=${entry.runId}: ${runCount} > ${entry.runTotalChunks}`
+        )
+      }
+
+      // 新 run 已完整：清理同 fileKey 下旧 run（包含无 run_id 的历史数据）
+      const cleanupSql = `
+        DELETE FROM \`${group.tableName}\`
+        WHERE file_key = $fileKey
+          AND (run_id != $runId OR run_id = NONE)
+        RETURN NONE;
+      `
+      await this.client.queryInDatabase(group.namespace, group.database, cleanupSql, {
+        fileKey: entry.fileKey,
+        runId: entry.runId
+      })
+
+      this.finalizedRuns.add(finalizedKey)
+
+      this.callbacks.onDocumentEmbedded({
+        targetNamespace: group.namespace,
+        targetDatabase: group.database,
+        documentId: entry.documentId,
+        fileKey: entry.fileKey,
+        runId: entry.runId,
+        embeddingConfigId: group.embeddingConfigId,
+        dimensions: group.dimensions,
+        chunkCount: runCount
+      })
+
+      log('Run replacement completed', {
+        tableName: group.tableName,
+        fileKey: entry.fileKey,
+        runId: entry.runId,
+        chunkCount: runCount
+      })
+    }
+  }
+
+  private notifyLegacyDocumentsEmbedded(group: GroupedRecords): void {
+    if (!this.callbacks.onDocumentEmbedded) return
+
     const documentChunkCounts = new Map<
       string,
       {
@@ -377,7 +491,6 @@ export class TransferWorker {
       }
     }
 
-    // 为每个文档发送嵌入完成通知
     for (const [documentId, info] of documentChunkCounts) {
       this.callbacks.onDocumentEmbedded({
         targetNamespace: group.namespace,

@@ -526,37 +526,45 @@ export class GraphBuildScheduler {
     const taskRow = taskInfo[0] ?? {}
     const chunksTotal = Number(taskRow.chunks_total ?? 0)
 
-    const statsResult = this.client.extractRecords(
+    const groupedStats = this.client.extractRecords(
       await this.client.query(
         `SELECT
-           count(status = 'completed') AS completed,
-           count(status = 'failed') AS failed,
-           count(status = 'pending') AS pending,
-           count(status = 'progressing') AS progressing,
-           count() AS total,
+           status,
+           count() AS count,
            math::sum(entities_count) AS entities_sum,
            math::sum(relations_count) AS relations_sum
-         FROM kg_build_chunk WHERE task_id = $tid GROUP ALL;`,
+         FROM kg_build_chunk
+         WHERE task_id = $tid
+         GROUP BY status;`,
         { tid: buildTaskIdStr }
       )
     )
-    const stats = statsResult[0] ?? {
-      completed: 0,
-      failed: 0,
-      pending: 0,
-      progressing: 0,
-      total: 0,
-      entities_sum: 0,
-      relations_sum: 0
+
+    const statMap = new Map<string, { count: number; entitiesSum: number; relationsSum: number }>()
+    for (const row of groupedStats) {
+      const key = String(row.status ?? '')
+      statMap.set(key, {
+        count: Number(row.count ?? 0),
+        entitiesSum: Number(row.entities_sum ?? 0),
+        relationsSum: Number(row.relations_sum ?? 0)
+      })
     }
 
-    const completed = Number(stats.completed ?? 0)
-    const failed = Number(stats.failed ?? 0)
-    const pending = Number(stats.pending ?? 0)
-    const progressing = Number(stats.progressing ?? 0)
-    const total = chunksTotal || Number(stats.total ?? 0)
-    const entitiesSum = Number(stats.entities_sum ?? 0)
-    const relationsSum = Number(stats.relations_sum ?? 0)
+    const completed = statMap.get('completed')?.count ?? 0
+    const failed = statMap.get('failed')?.count ?? 0
+    const pending = statMap.get('pending')?.count ?? 0
+    const progressing = statMap.get('progressing')?.count ?? 0
+    const total = chunksTotal || completed + failed + pending + progressing
+    const entitiesSum =
+      (statMap.get('completed')?.entitiesSum ?? 0) +
+      (statMap.get('failed')?.entitiesSum ?? 0) +
+      (statMap.get('pending')?.entitiesSum ?? 0) +
+      (statMap.get('progressing')?.entitiesSum ?? 0)
+    const relationsSum =
+      (statMap.get('completed')?.relationsSum ?? 0) +
+      (statMap.get('failed')?.relationsSum ?? 0) +
+      (statMap.get('pending')?.relationsSum ?? 0) +
+      (statMap.get('progressing')?.relationsSum ?? 0)
 
     const status = this.deriveStatus({ total, completed, failed, pending, progressing })
 

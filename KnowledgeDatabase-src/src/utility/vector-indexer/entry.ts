@@ -132,6 +132,7 @@ async function startIndexer(
           targetDatabase: info.targetDatabase,
           documentId: info.documentId,
           fileKey: info.fileKey,
+          runId: info.runId,
           embeddingConfigId: info.embeddingConfigId,
           dimensions: info.dimensions,
           chunkCount: info.chunkCount
