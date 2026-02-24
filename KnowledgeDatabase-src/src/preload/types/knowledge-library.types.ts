@@ -47,4 +47,5 @@ export interface KnowledgeLibraryAPI {
   update(id: number, data: UpdateKnowledgeBaseData): Promise<KnowledgeBaseMeta>
   delete(id: number): Promise<void>
   listEmbeddingTables(knowledgeBaseId: number): Promise<EmbeddingTableInfo[]>
+  resetDatabase(knowledgeBaseId: number): Promise<void>
 }

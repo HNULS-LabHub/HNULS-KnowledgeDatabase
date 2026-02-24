@@ -207,4 +207,31 @@ export class KnowledgeLibraryIPCHandler extends BaseIPCHandler {
       })
     }
   }
+
+  /**
+   * 重置知识库数据库（清空数据，保留表结构）
+   */
+  async handleResetdatabase(_event: IpcMainInvokeEvent, knowledgeBaseId: number) {
+    try {
+      const result = await this.knowledgeLibraryService.resetDatabase(knowledgeBaseId)
+      if (!result.success) {
+        return {
+          success: false,
+          error: {
+            message: result.error || '重置数据库失败',
+            type: 'RESET_ERROR'
+          }
+        }
+      }
+
+      logger.info('Knowledge base database reset successfully', { knowledgeBaseId })
+
+      return {
+        success: true,
+        data: { knowledgeBaseId }
+      }
+    } catch (error) {
+      return this.handleError('knowledge-library:resetdatabase', error, { knowledgeBaseId })
+    }
+  }
 }

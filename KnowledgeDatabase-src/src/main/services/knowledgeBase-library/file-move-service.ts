@@ -4,6 +4,7 @@ import { logger } from '../logger'
 import { DocumentService } from './document-service'
 import { KnowledgeLibraryService } from './knowledge-library-service'
 import { KnowledgeConfigService } from './knowledge-config-service'
+import { safeDocName } from '../chunking/util'
 
 export interface FileMoveOptions {
   conflictPolicy?: 'rename' | 'skip' | 'overwrite'
@@ -312,7 +313,11 @@ export class FileMoveService {
 
         // 删除文件或目录
         const isDirectory = stats.isDirectory()
+
+        // 目录删除前先收集内部文件名（用于后续清理缓存目录）
+        let docNamesToClean: string[] = []
         if (isDirectory) {
+          docNamesToClean = await this.collectDocNamesInDirectory(fullFilePath)
           await fs.rm(fullFilePath, { recursive: true, force: true })
           logger.info('[FileMoveService] Deleted directory', {
             knowledgeBaseId,
@@ -320,6 +325,8 @@ export class FileMoveService {
             fullPath: fullFilePath
           })
         } else {
+          const docName = safeDocName(path.parse(path.basename(filePath)).name)
+          docNamesToClean = [docName]
           await fs.unlink(fullFilePath)
           logger.info('[FileMoveService] Deleted file', {
             knowledgeBaseId,
@@ -327,6 +334,9 @@ export class FileMoveService {
             fullPath: fullFilePath
           })
         }
+
+        // 清理 .ChunkDocument / .ParserDocument 缓存目录
+        await this.cleanupCacheDirectories(baseDirectory, docNamesToClean)
 
         // 清理配置文件中的相关配置
         try {
@@ -439,6 +449,60 @@ export class FileMoveService {
     } catch {
       // 不存在，直接使用
       return targetPath
+    }
+  }
+
+  /**
+   * 递归收集目录内所有文件的 docName（用于缓存清理）
+   */
+  private async collectDocNamesInDirectory(dirPath: string): Promise<string[]> {
+    const docNames: string[] = []
+    try {
+      const entries = await fs.readdir(dirPath, { withFileTypes: true })
+      for (const entry of entries) {
+        if (entry.name.startsWith('.')) continue // 跳过隐藏目录/文件
+        const fullPath = path.join(dirPath, entry.name)
+        if (entry.isDirectory()) {
+          const sub = await this.collectDocNamesInDirectory(fullPath)
+          docNames.push(...sub)
+        } else {
+          docNames.push(safeDocName(path.parse(entry.name).name))
+        }
+      }
+    } catch (error) {
+      logger.warn('[FileMoveService] Failed to scan directory for cache cleanup', {
+        dirPath,
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
+    return docNames
+  }
+
+  /**
+   * 清理 .ChunkDocument 和 .ParserDocument 下对应的缓存目录
+   */
+  private async cleanupCacheDirectories(
+    baseDirectory: string,
+    docNames: string[]
+  ): Promise<void> {
+    for (const docName of docNames) {
+      const chunkDir = path.join(baseDirectory, '.ChunkDocument', docName)
+      const parserDir = path.join(baseDirectory, '.ParserDocument', docName)
+
+      for (const cacheDir of [chunkDir, parserDir]) {
+        try {
+          await fs.rm(cacheDir, { recursive: true, force: true })
+          logger.info('[FileMoveService] Cleaned up cache directory', { cacheDir })
+        } catch (error) {
+          // ENOENT 是正常的（缓存目录可能不存在）
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+            logger.warn('[FileMoveService] Failed to cleanup cache directory', {
+              cacheDir,
+              error: error instanceof Error ? error.message : String(error)
+            })
+          }
+        }
+      }
     }
   }
 }

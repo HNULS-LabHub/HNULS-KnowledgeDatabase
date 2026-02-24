@@ -23,6 +23,9 @@
       ref="contentRef"
       class="kb-settings-content flex-1 overflow-y-auto overflow-x-hidden scroll-smooth"
     >
+      <!-- 基本配置区 -->
+      <BasicSection ref="basicRef" :knowledge-base-id="knowledgeBaseId" />
+
       <!-- 文档解析配置区 -->
       <DocumentParsingSection ref="documentParsingRef" :knowledge-base-id="knowledgeBaseId" />
 
@@ -48,6 +51,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import BasicSection from './BasicSection.vue'
 import DocumentParsingSection from './DocumentParsingSection.vue'
 import ChunkingSection from './ChunkingSection.vue'
 import EmbeddingSection from './EmbeddingSection/index.vue'
@@ -63,6 +67,7 @@ const emit = defineEmits<{
 }>()
 
 const sections = [
+  { id: 'basic', label: '基本' },
   { id: 'document-parsing', label: '文档解析' },
   { id: 'chunking', label: '分块' },
   { id: 'embedding', label: '嵌入' },
@@ -71,12 +76,14 @@ const sections = [
 
 const activeSection = ref<string>(sections[0].id)
 const contentRef = ref<HTMLElement | null>(null)
+const basicRef = ref<InstanceType<typeof BasicSection> | null>(null)
 const documentParsingRef = ref<InstanceType<typeof DocumentParsingSection> | null>(null)
 const chunkingRef = ref<InstanceType<typeof ChunkingSection> | null>(null)
 const embeddingRef = ref<InstanceType<typeof EmbeddingSection> | null>(null)
 const knowledgeGraphRef = ref<InstanceType<typeof KnowledgeGraphSection> | null>(null)
 
 const sectionRefs = {
+  basic: basicRef,
   'document-parsing': documentParsingRef,
   chunking: chunkingRef,
   embedding: embeddingRef,

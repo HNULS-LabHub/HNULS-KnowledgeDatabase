@@ -99,5 +99,20 @@ export const knowledgeLibraryAPI = {
           response.error || `Failed to list embedding tables for knowledge base ${knowledgeBaseId}`
         )
       })
+  },
+
+  /**
+   * 重置知识库数据库（清空数据，保留表结构）
+   */
+  resetDatabase: (knowledgeBaseId: number): Promise<void> => {
+    return ipcRenderer
+      .invoke('knowledge-library:resetdatabase', knowledgeBaseId)
+      .then((response: IPCResponse<{ knowledgeBaseId: number }>) => {
+        if (!response.success) {
+          throw new Error(
+            response.error || `Failed to reset database for knowledge base ${knowledgeBaseId}`
+          )
+        }
+      })
   }
 }

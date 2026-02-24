@@ -7,6 +7,7 @@ import { DocumentService } from './document-service'
 import { FileScannerService } from './file-scanner-service'
 import type { QueryService } from '../surrealdb-service'
 import { kbDocumentTable } from '../surrealdb-service'
+import { kbDocumentEmbeddingTable } from '../surrealdb-service/schema/tables'
 import type {
   KnowledgeBaseMeta,
   KnowledgeLibraryMeta,
@@ -372,6 +373,51 @@ export class KnowledgeLibraryService {
     return true
   }
 
+  /**
+   * 重置知识库的 SurrealDB 数据库
+   * 删除所有数据但保留表结构，以便功能可以继续使用
+   */
+  async resetDatabase(knowledgeBaseId: number): Promise<{ success: boolean; error?: string }> {
+    const kb = await this.getById(knowledgeBaseId)
+    if (!kb) {
+      return { success: false, error: `知识库不存在 (ID: ${knowledgeBaseId})` }
+    }
+    if (!kb.databaseName) {
+      return { success: false, error: '知识库没有关联的数据库' }
+    }
+    if (!this.queryService || !this.queryService.isConnected()) {
+      return { success: false, error: 'QueryService 不可用' }
+    }
+
+    const namespace = this.getNamespace()
+    const dbName = kb.databaseName
+
+    try {
+      // 1) 删除整个数据库（连同所有动态表）
+      await this.queryService.query(`REMOVE DATABASE \`${dbName}\`;`)
+      logger.info(`[resetDatabase] Removed database: ${dbName}`)
+
+      // 2) 重新创建数据库
+      await this.queryService.query(`DEFINE DATABASE \`${dbName}\`;`)
+      logger.info(`[resetDatabase] Re-created database: ${dbName}`)
+
+      // 3) 重建基础 schema（kb_document + kb_document_embedding）
+      await this.queryService.queryInDatabase(namespace, dbName, kbDocumentTable.sql)
+      await this.queryService.queryInDatabase(namespace, dbName, kbDocumentEmbeddingTable.sql)
+      logger.info(`[resetDatabase] Re-initialized schema for: ${dbName}`)
+
+      // 4) 重新扫描本地文档并同步到 kb_document
+      await this.syncLocalDocumentsToKbDocument(kb)
+      logger.info(`[resetDatabase] Re-synced local documents for: ${dbName}`)
+
+      return { success: true }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      logger.error(`[resetDatabase] Failed to reset database for KB ${knowledgeBaseId}`, { error: msg })
+      return { success: false, error: msg }
+    }
+  }
+
   // ==========================================================================
   // SurrealDB：文件同步（导入/移动/删除）
   // ==========================================================================
@@ -648,6 +694,266 @@ export class KnowledgeLibraryService {
         error
       })
     }
+
+    // 3) 级联清理 KG 动态表（entity / relates / entity_chunks / relation_chunks）
+    await this.cascadeDeleteKgData(namespace, kb.databaseName, normalized, prefix, params.isDirectory)
+  }
+
+  /**
+   * 级联删除知识图谱数据
+   *
+   * 策略：精确移除 file_key
+   * - 实体/关系的 file_keys 只含被删文件 → 整条删除（同时删除对应的 chunks 映射）
+   * - 实体/关系的 file_keys 含多个文件 → 仅从数组中移除该 file_key
+   */
+  private async cascadeDeleteKgData(
+    namespace: string,
+    databaseName: string,
+    fileKey: string,
+    prefix: string,
+    isDirectory: boolean
+  ): Promise<void> {
+    if (!this.queryService || !this.queryService.isConnected()) return
+
+    // 枚举数据库中所有 KG 表组（通过 INFO FOR DB 获取表名）
+    let kgTableGroups: Array<{
+      entity: string
+      relates: string
+      entityChunks: string
+      relationChunks: string
+    }> = []
+
+    try {
+      const infoResult = await this.queryService.queryInDatabase<any[]>(
+        namespace,
+        databaseName,
+        'INFO FOR DB;'
+      )
+      const dbInfo = infoResult?.[0]
+      if (!dbInfo?.tables) return
+
+      // 匹配 kg_*_entity 表名，推导出同组的其他三张表
+      const entityPattern = /^(kg_.+)_entity$/
+      for (const tableName in dbInfo.tables) {
+        const match = tableName.match(entityPattern)
+        if (!match) continue
+        const base = match[1]
+        kgTableGroups.push({
+          entity: `${base}_entity`,
+          relates: `${base}_relates`,
+          entityChunks: `${base}_entity_chunks`,
+          relationChunks: `${base}_relation_chunks`
+        })
+      }
+    } catch (error) {
+      logger.warn('[KnowledgeLibraryService] Failed to enumerate KG tables for cascade delete', {
+        databaseName,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      return
+    }
+
+    if (kgTableGroups.length === 0) return
+
+    for (const t of kgTableGroups) {
+      try {
+        await this.cascadeDeleteKgTableGroup(namespace, databaseName, t, fileKey, prefix, isDirectory)
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error)
+        if (!msg.includes('not found') && !msg.includes('does not exist')) {
+          logger.warn('[KnowledgeLibraryService] Failed to cascade delete KG table group', {
+            databaseName,
+            entityTable: t.entity,
+            error: msg
+          })
+        }
+      }
+    }
+  }
+
+  /**
+   * 对单组 KG 表执行级联删除
+   */
+  private async cascadeDeleteKgTableGroup(
+    namespace: string,
+    databaseName: string,
+    tables: { entity: string; relates: string; entityChunks: string; relationChunks: string },
+    fileKey: string,
+    prefix: string,
+    isDirectory: boolean
+  ): Promise<void> {
+    if (!this.queryService) return
+
+    const fileKeyMatch = isDirectory
+      ? `array::any(file_keys, |$fk| string::starts_with($fk, $prefix))`
+      : `$fileKey IN file_keys`
+
+    const fileKeyRemove = isDirectory
+      ? `array::filter(file_keys, |$fk| !string::starts_with($fk, $prefix))`
+      : `array::complement(file_keys, [$fileKey])`
+
+    // --- Entity 清理 ---
+    // 1a) 删除只属于被删文件的实体，同时收集被删实体名用于清理 entity_chunks
+    const deleteOnlyEntitySql = `
+      DELETE FROM \`${tables.entity}\`
+      WHERE ${fileKeyMatch}
+        AND array::len(${fileKeyRemove}) = 0
+      RETURN BEFORE;
+    `
+    // 1b) 多源实体：仅移除 file_key
+    const updateEntitySql = `
+      UPDATE \`${tables.entity}\`
+      SET file_keys = ${fileKeyRemove}
+      WHERE ${fileKeyMatch}
+        AND array::len(${fileKeyRemove}) > 0
+      RETURN NONE;
+    `
+
+    // --- Relates 清理 ---
+    // 先查出要删的 relates 对应的 relation_chunks（通过共享的 record ID 后缀）
+    // relates 和 relation_chunks 的 record ID 后缀都是 makeRelationId 生成的
+    const deleteOnlyRelatesSql = `
+      DELETE FROM \`${tables.relates}\`
+      WHERE ${fileKeyMatch}
+        AND array::len(${fileKeyRemove}) = 0
+      RETURN NONE;
+    `
+    // 单独查询要删的 relates 的 record ID（用于清理 relation_chunks）
+    const selectRelatesSql = `
+      SELECT id FROM \`${tables.relates}\`
+      WHERE ${fileKeyMatch}
+        AND array::len(${fileKeyRemove}) = 0;
+    `
+    const updateRelatesSql = `
+      UPDATE \`${tables.relates}\`
+      SET file_keys = ${fileKeyRemove}
+      WHERE ${fileKeyMatch}
+        AND array::len(${fileKeyRemove}) > 0
+      RETURN NONE;
+    `
+
+    const params = { fileKey, prefix }
+
+    // 执行 Entity 删除
+    let deletedEntityNames: string[] = []
+    try {
+      const result = await this.queryService.queryInDatabase(
+        namespace, databaseName, deleteOnlyEntitySql, params
+      )
+      const records = this.extractQueryRecords(result)
+      deletedEntityNames = records
+        .map((r: any) => r.entity_name)
+        .filter((n: any) => typeof n === 'string')
+    } catch (error) {
+      logger.warn('[KnowledgeLibraryService] KG cascade: failed to delete single-source entities', {
+        table: tables.entity,
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
+
+    // 执行 Entity 更新（多源）
+    try {
+      await this.queryService.queryInDatabase(namespace, databaseName, updateEntitySql, params)
+    } catch (error) {
+      logger.warn('[KnowledgeLibraryService] KG cascade: failed to update multi-source entities', {
+        table: tables.entity,
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
+
+    // 清理被删实体对应的 entity_chunks 映射
+    if (deletedEntityNames.length > 0) {
+      try {
+        const deleteChunksSql = `
+          DELETE FROM \`${tables.entityChunks}\`
+          WHERE entity_name IN $names
+          RETURN NONE;
+        `
+        await this.queryService.queryInDatabase(
+          namespace, databaseName, deleteChunksSql, { names: deletedEntityNames }
+        )
+      } catch (error) {
+        logger.warn('[KnowledgeLibraryService] KG cascade: failed to delete entity_chunks', {
+          table: tables.entityChunks,
+          count: deletedEntityNames.length,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      }
+    }
+
+    // 执行 Relates 删除
+    // 1. 先查出要删的 relates 的 record ID
+    // 2. 提取 ID 后缀（= makeRelationId），用于匹配 relation_chunks
+    // 3. 删除 relates
+    let deletedRelateIdSuffixes: string[] = []
+    try {
+      // 查出要删的 relates ID
+      const idsResult = await this.queryService.queryInDatabase(
+        namespace, databaseName, selectRelatesSql, params
+      )
+      const rawIds = this.extractQueryRecords(idsResult)
+
+      deletedRelateIdSuffixes = rawIds
+        .map((row: any) => {
+          const id = row?.id
+          const idStr = typeof id === 'string' ? id : id?.toString?.() ?? ''
+          const colonIdx = idStr.indexOf(':')
+          if (colonIdx < 0) return null
+          let suffix = idStr.slice(colonIdx + 1)
+          // 去掉 SurrealDB 的 ⟨⟩ 包裹
+          if (suffix.startsWith('\u27E8') && suffix.endsWith('\u27E9')) {
+            suffix = suffix.slice(1, -1)
+          }
+          return suffix || null
+        })
+        .filter((k: any): k is string => typeof k === 'string')
+
+      // 执行删除
+      await this.queryService.queryInDatabase(namespace, databaseName, deleteOnlyRelatesSql, params)
+    } catch (error) {
+      logger.warn('[KnowledgeLibraryService] KG cascade: failed to delete single-source relates', {
+        table: tables.relates,
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
+
+    // 执行 Relates 更新（多源）
+    try {
+      await this.queryService.queryInDatabase(namespace, databaseName, updateRelatesSql, params)
+    } catch (error) {
+      logger.warn('[KnowledgeLibraryService] KG cascade: failed to update multi-source relates', {
+        table: tables.relates,
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
+
+    // 清理被删关系对应的 relation_chunks 映射
+    // relation_chunks 的 record ID 后缀和 relates 的 record ID 后缀相同（都是 makeRelationId 生成）
+    if (deletedRelateIdSuffixes.length > 0) {
+      try {
+        // 逐批删除 relation_chunks（通过构造完整 record ID）
+        const BATCH = 50
+        for (let i = 0; i < deletedRelateIdSuffixes.length; i += BATCH) {
+          const batch = deletedRelateIdSuffixes.slice(i, i + BATCH)
+          const deleteSql = batch
+            .map((suffix) => `DELETE \`${tables.relationChunks}\`:\u27E8${suffix}\u27E9;`)
+            .join('\n')
+          await this.queryService.queryInDatabase(namespace, databaseName, deleteSql)
+        }
+      } catch (error) {
+        logger.warn('[KnowledgeLibraryService] KG cascade: failed to delete relation_chunks', {
+          table: tables.relationChunks,
+          count: deletedRelateIdSuffixes.length,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      }
+    }
+
+    logger.info('[KnowledgeLibraryService] KG cascade delete completed', {
+      entityTable: tables.entity,
+      deletedEntities: deletedEntityNames.length,
+      deletedRelations: deletedRelateIdSuffixes.length
+    })
   }
 
   /**
