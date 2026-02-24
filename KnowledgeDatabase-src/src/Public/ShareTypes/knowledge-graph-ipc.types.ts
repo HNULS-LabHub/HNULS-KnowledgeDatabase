@@ -162,18 +162,35 @@ export interface KGTriggerEmbeddingParams {
 export interface KGEmbeddingProgressData {
   /** 调度器状态 */
   state: 'idle' | 'active' | 'error'
-  /** 已完成嵌入的实体数 */
+  /** 已完成嵌入总数（实体 + 关系） */
   completed: number
-  /** 待嵌入的实体数 */
+  /** 待嵌入总数（实体 + 关系） */
   pending: number
-  /** 实体总数 */
+  /** 总数（实体 + 关系） */
   total: number
-  /** HNSW 索引是否就绪 */
+  /** HNSW 索引是否全部就绪（实体 + 关系） */
   hnswIndexReady: boolean
+  /** 已完成嵌入的实体数 */
+  entityCompleted: number
+  /** 待嵌入的实体数 */
+  entityPending: number
+  /** 实体总数 */
+  entityTotal: number
+  /** 已完成嵌入的关系数 */
+  relationCompleted: number
+  /** 待嵌入的关系数 */
+  relationPending: number
+  /** 关系总数 */
+  relationTotal: number
+  /** 实体 HNSW 索引是否就绪 */
+  entityHnswIndexReady: boolean
+  /** 关系 HNSW 索引是否就绪 */
+  relationHnswIndexReady: boolean
   /** 最近一次错误信息 */
   lastError: string | null
   /** 最近一次批次处理摘要 */
   lastBatchInfo: {
+    target: 'entity' | 'relation'
     successCount: number
     failCount: number
     durationMs: number

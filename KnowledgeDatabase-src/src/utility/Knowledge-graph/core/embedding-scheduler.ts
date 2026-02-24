@@ -1,5 +1,5 @@
 /**
- * @file EmbeddingScheduler - 实体向量嵌入调度器
+ * @file EmbeddingScheduler - 实体/关系向量嵌入调度器
  * @description 常驻单例，运行在 Knowledge-graph 子进程中。
  *   状态机：idle（5s 轮询）→ active（批量嵌入）→ indexing（HNSW）→ idle
  *   纯内存驱动，不建中间表，中断即丢弃当前批次。
@@ -30,8 +30,10 @@ export interface TargetInfo {
 }
 
 export type SchedulerState = 'idle' | 'active' | 'error'
+export type EmbeddingTarget = 'entity' | 'relation'
 
 export interface BatchResult {
+  target: EmbeddingTarget
   successCount: number
   failCount: number
   durationMs: number
@@ -44,6 +46,14 @@ export interface EmbeddingStatus {
   pending: number
   total: number
   hnswIndexReady: boolean
+  entityCompleted: number
+  entityPending: number
+  entityTotal: number
+  relationCompleted: number
+  relationPending: number
+  relationTotal: number
+  entityHnswIndexReady: boolean
+  relationHnswIndexReady: boolean
   lastError: string | null
   lastBatchInfo: BatchResult | null
 }
@@ -53,6 +63,15 @@ interface EntityRow {
   id: string
   entity_name: string
   description: string
+}
+
+/** 扫描到的关系行 */
+interface RelationRow {
+  id: string
+  keywords: string
+  description: string
+  source: string
+  target: string
 }
 
 /** OpenAI 兼容的 Embedding API 响应 */
@@ -99,6 +118,29 @@ export function buildEmbeddingText(name: string, description: string, maxTokens:
   return `${name}: ${accumulated}`
 }
 
+/**
+ * 构造关系嵌入文本：拼接关键词 + 关系端点 + 描述
+ */
+export function buildRelationEmbeddingText(
+  source: string,
+  target: string,
+  keywords: string,
+  description: string,
+  maxTokens: number
+): string {
+  const relationBody = `${keywords}\n${source}\n${target}\n${description}`
+  const charLimit = maxTokens * 4
+  const segments = relationBody.split('\n---\n')
+
+  let accumulated = ''
+  for (const seg of segments) {
+    if (accumulated.length + seg.length > charLimit) break
+    accumulated += seg
+  }
+
+  return `relation: ${accumulated}`
+}
+
 // ============================================================================
 // EmbeddingScheduler 类
 // ============================================================================
@@ -121,10 +163,15 @@ export class EmbeddingScheduler {
   // HNSW 索引缓存
   private hnswCreatedSet: Set<string> = new Set()
 
-  // 统计
-  private completedCount = 0
-  private pendingCount = 0
-  private totalCount = 0
+  // 统计（实体）
+  private entityCompletedCount = 0
+  private entityPendingCount = 0
+  private entityTotalCount = 0
+
+  // 统计（关系）
+  private relationCompletedCount = 0
+  private relationPendingCount = 0
+  private relationTotalCount = 0
 
   // 调试信息
   private lastError: string | null = null
@@ -168,6 +215,14 @@ export class EmbeddingScheduler {
     this.targetInfo = target
     // 清空 HNSW 缓存（可能换了目标库）
     this.hnswCreatedSet.clear()
+    this.entityCompletedCount = 0
+    this.entityPendingCount = 0
+    this.entityTotalCount = 0
+    this.relationCompletedCount = 0
+    this.relationPendingCount = 0
+    this.relationTotalCount = 0
+    this.lastError = null
+    this.lastBatchInfo = null
 
     log('Trigger received', { target: target.graphTableBase, model: config.model })
 
@@ -185,16 +240,49 @@ export class EmbeddingScheduler {
     }
   }
 
+  private async writeRelationBatchToDb(
+    relations: RelationRow[],
+    texts: string[],
+    vectors: number[][]
+  ): Promise<void> {
+    if (!this.targetInfo) return
+
+    const { namespace, database } = this.targetInfo
+
+    const statements = relations.map((relation, i) => {
+      const hash = createHash('sha256').update(texts[i], 'utf8').digest('hex').slice(0, 16)
+      const vecStr = `[${vectors[i].join(',')}]`
+      return `UPDATE ${relation.id} SET embedding = ${vecStr}, embedding_hash = '${hash}', embedding_at = time::now();`
+    })
+
+    const sql = statements.join('\n')
+
+    try {
+      await this.client.queryInDatabase(namespace, database, sql)
+    } catch (error) {
+      logError('writeRelationBatchToDb failed', error)
+      throw error
+    }
+  }
+
   /** 查询当前状态 */
   getStatus(): EmbeddingStatus {
+    const entityHnswIndexReady = this.isEntityHnswIndexReady()
+    const relationHnswIndexReady = this.isRelationHnswIndexReady()
     return {
       state: this.state,
-      completed: this.completedCount,
-      pending: this.pendingCount,
-      total: this.totalCount,
-      hnswIndexReady: this.targetInfo
-        ? this.hnswCreatedSet.has(getKgTableNames(this.targetInfo.graphTableBase).entity)
-        : false,
+      completed: this.getCompletedTotal(),
+      pending: this.getPendingTotal(),
+      total: this.getTotalCount(),
+      hnswIndexReady: entityHnswIndexReady && relationHnswIndexReady,
+      entityCompleted: this.entityCompletedCount,
+      entityPending: this.entityPendingCount,
+      entityTotal: this.entityTotalCount,
+      relationCompleted: this.relationCompletedCount,
+      relationPending: this.relationPendingCount,
+      relationTotal: this.relationTotalCount,
+      entityHnswIndexReady,
+      relationHnswIndexReady,
       lastError: this.lastError,
       lastBatchInfo: this.lastBatchInfo
     }
@@ -208,7 +296,7 @@ export class EmbeddingScheduler {
     const oldState = this.state
     if (oldState === newState) return
     this.state = newState
-    log(`State: ${oldState} → ${newState}`, { reason, pending: this.pendingCount })
+    log(`State: ${oldState} → ${newState}`, { reason, pending: this.getPendingTotal() })
   }
 
   // ==========================================================================
@@ -239,20 +327,44 @@ export class EmbeddingScheduler {
       }
 
       if (this.state === 'idle' || this.state === 'error') {
-        // idle/error 态：扫描是否有待嵌入实体
-        const pending = await this.scanPendingEntities()
-        if (pending.length > 0) {
-          this.setState('active', `found ${pending.length} pending entities`)
-          // 立即处理这批
-          await this.processBatch(pending)
+        // idle/error 态：扫描实体/关系是否有待嵌入
+        const [pendingEntities, pendingRelations] = await Promise.all([
+          this.scanPendingEntities(),
+          this.scanPendingRelations()
+        ])
+
+        if (pendingEntities.length > 0 || pendingRelations.length > 0) {
+          this.setState(
+            'active',
+            `found pending entities=${pendingEntities.length}, relations=${pendingRelations.length}`
+          )
+
+          if (pendingEntities.length > 0) {
+            await this.processEntityBatch(pendingEntities)
+          }
+          if (pendingRelations.length > 0) {
+            await this.processRelationBatch(pendingRelations)
+          }
         }
       } else if (this.state === 'active') {
-        // active 态：快速循环处理批次
-        const pending = await this.scanPendingEntities()
-        if (pending.length > 0) {
-          await this.processBatch(pending)
-        } else {
-          // 所有实体处理完毕 → indexing 阶段
+        // active 态：并列处理实体/关系批次
+        const [pendingEntities, pendingRelations] = await Promise.all([
+          this.scanPendingEntities(),
+          this.scanPendingRelations()
+        ])
+
+        let hasWork = false
+        if (pendingEntities.length > 0) {
+          hasWork = true
+          await this.processEntityBatch(pendingEntities)
+        }
+        if (pendingRelations.length > 0) {
+          hasWork = true
+          await this.processRelationBatch(pendingRelations)
+        }
+
+        if (!hasWork) {
+          // 所有实体/关系处理完毕 → indexing 阶段
           await this.doIndexing()
         }
       }
@@ -277,9 +389,9 @@ export class EmbeddingScheduler {
   // ==========================================================================
 
   private async doIndexing(): Promise<void> {
-    log('All entities embedded, creating HNSW index...')
+    log('All entities/relations embedded, creating HNSW indexes...')
     await this.ensureHnswIndex()
-    this.setState('idle', 'indexing complete, all entities embedded')
+    this.setState('idle', 'indexing complete, all entities/relations embedded')
   }
 
   // ==========================================================================
@@ -307,9 +419,9 @@ export class EmbeddingScheduler {
       )
 
       if (countResult.length > 0) {
-        this.totalCount = Number(countResult[0].total) || 0
-        this.completedCount = Number(countResult[0].completed) || 0
-        this.pendingCount = this.totalCount - this.completedCount
+        this.entityTotalCount = Number(countResult[0].total) || 0
+        this.entityCompletedCount = Number(countResult[0].completed) || 0
+        this.entityPendingCount = Math.max(0, this.entityTotalCount - this.entityCompletedCount)
       }
 
       // 查询待嵌入实体
@@ -336,10 +448,63 @@ export class EmbeddingScheduler {
   }
 
   // ==========================================================================
-  // processBatch
+  // scanPendingRelations
   // ==========================================================================
 
-  private async processBatch(entities: EntityRow[]): Promise<void> {
+  private async scanPendingRelations(): Promise<RelationRow[]> {
+    if (!this.targetInfo || !this.embeddingConfig) return []
+
+    const { namespace, database, graphTableBase } = this.targetInfo
+    const { batchSize } = this.embeddingConfig
+    const relationTable = getKgTableNames(graphTableBase).relates
+
+    try {
+      const countResult = this.client.extractRecords(
+        await this.client.queryInDatabase(
+          namespace,
+          database,
+          `SELECT
+             count() AS total,
+             math::sum(IF embedding IS NONE THEN 0 ELSE 1 END) AS completed
+           FROM ${relationTable} GROUP ALL;`
+        )
+      )
+
+      if (countResult.length > 0) {
+        this.relationTotalCount = Number(countResult[0].total) || 0
+        this.relationCompletedCount = Number(countResult[0].completed) || 0
+        this.relationPendingCount = Math.max(0, this.relationTotalCount - this.relationCompletedCount)
+      }
+
+      const rows = this.client.extractRecords(
+        await this.client.queryInDatabase(
+          namespace,
+          database,
+          `SELECT id, keywords, description, meta::id(in) AS source, meta::id(out) AS target
+           FROM ${relationTable}
+           WHERE embedding IS NONE
+           LIMIT ${batchSize};`
+        )
+      )
+
+      return rows.map((r: any) => ({
+        id: String(r.id),
+        keywords: String(r.keywords ?? ''),
+        description: String(r.description ?? ''),
+        source: String(r.source ?? ''),
+        target: String(r.target ?? '')
+      }))
+    } catch (error) {
+      logError('scanPendingRelations failed', error)
+      return []
+    }
+  }
+
+  // ==========================================================================
+  // processEntityBatch
+  // ==========================================================================
+
+  private async processEntityBatch(entities: EntityRow[]): Promise<void> {
     if (!this.embeddingConfig) return
 
     const startTime = Date.now()
@@ -358,27 +523,29 @@ export class EmbeddingScheduler {
         logError(errMsg)
         this.lastError = errMsg
         this.lastBatchInfo = {
+          target: 'entity',
           successCount: 0,
           failCount: entities.length,
           durationMs: Date.now() - startTime,
-          remaining: this.pendingCount
+          remaining: this.getPendingTotal()
         }
         return
       }
 
       // 4. 批量写入数据库
-      await this.writeBatchToDb(entities, vectors)
+      await this.writeEntityBatchToDb(entities, texts, vectors)
 
       const durationMs = Date.now() - startTime
       // 更新待处理数
-      this.pendingCount = Math.max(0, this.pendingCount - entities.length)
-      this.completedCount += entities.length
+      this.entityPendingCount = Math.max(0, this.entityPendingCount - entities.length)
+      this.entityCompletedCount += entities.length
 
       this.lastBatchInfo = {
+        target: 'entity',
         successCount: entities.length,
         failCount: 0,
         durationMs,
-        remaining: this.pendingCount
+        remaining: this.getPendingTotal()
       }
 
       log('Batch complete', this.lastBatchInfo)
@@ -388,10 +555,11 @@ export class EmbeddingScheduler {
       logError('processBatch failed', error)
 
       this.lastBatchInfo = {
+        target: 'entity',
         successCount: 0,
         failCount: entities.length,
         durationMs: Date.now() - startTime,
-        remaining: this.pendingCount
+        remaining: this.getPendingTotal()
       }
 
       // API 连续失败 → error 状态
@@ -400,20 +568,84 @@ export class EmbeddingScheduler {
   }
 
   // ==========================================================================
+  // processRelationBatch
+  // ==========================================================================
+
+  private async processRelationBatch(relations: RelationRow[]): Promise<void> {
+    if (!this.embeddingConfig) return
+
+    const startTime = Date.now()
+    const { maxTokens } = this.embeddingConfig
+
+    try {
+      const texts = relations.map((r) =>
+        buildRelationEmbeddingText(r.source, r.target, r.keywords, r.description, maxTokens)
+      )
+
+      const vectors = await this.callEmbeddingAPI(texts)
+
+      if (vectors.length !== relations.length) {
+        const errMsg = `Vector count mismatch: expected ${relations.length}, got ${vectors.length}`
+        logError(errMsg)
+        this.lastError = errMsg
+        this.lastBatchInfo = {
+          target: 'relation',
+          successCount: 0,
+          failCount: relations.length,
+          durationMs: Date.now() - startTime,
+          remaining: this.getPendingTotal()
+        }
+        return
+      }
+
+      await this.writeRelationBatchToDb(relations, texts, vectors)
+
+      const durationMs = Date.now() - startTime
+      this.relationPendingCount = Math.max(0, this.relationPendingCount - relations.length)
+      this.relationCompletedCount += relations.length
+
+      this.lastBatchInfo = {
+        target: 'relation',
+        successCount: relations.length,
+        failCount: 0,
+        durationMs,
+        remaining: this.getPendingTotal()
+      }
+
+      log('Relation batch complete', this.lastBatchInfo)
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error)
+      this.lastError = errMsg
+      logError('processRelationBatch failed', error)
+
+      this.lastBatchInfo = {
+        target: 'relation',
+        successCount: 0,
+        failCount: relations.length,
+        durationMs: Date.now() - startTime,
+        remaining: this.getPendingTotal()
+      }
+
+      this.setState('error', errMsg)
+    }
+  }
+
+  // ==========================================================================
   // writeBatchToDb
   // ==========================================================================
 
-  private async writeBatchToDb(entities: EntityRow[], vectors: number[][]): Promise<void> {
+  private async writeEntityBatchToDb(
+    entities: EntityRow[],
+    texts: string[],
+    vectors: number[][]
+  ): Promise<void> {
     if (!this.targetInfo) return
 
     const { namespace, database } = this.targetInfo
 
     // 拼接所有 UPDATE 语句，一次性执行
     const statements = entities.map((entity, i) => {
-      const hash = createHash('sha256')
-        .update(entity.description, 'utf8')
-        .digest('hex')
-        .slice(0, 16)
+      const hash = createHash('sha256').update(texts[i], 'utf8').digest('hex').slice(0, 16)
       const vecStr = `[${vectors[i].join(',')}]`
       // entity.id 已经是 "table:record_id" 格式
       return `UPDATE ${entity.id} SET embedding = ${vecStr}, embedding_hash = '${hash}', embedding_at = time::now();`
@@ -500,21 +732,46 @@ export class EmbeddingScheduler {
 
     const { namespace, database, graphTableBase } = this.targetInfo
     const { dimensions } = this.embeddingConfig
-    const entityTable = getKgTableNames(graphTableBase).entity
+    const tables = getKgTableNames(graphTableBase)
+    const targetTables = [tables.entity, tables.relates]
 
-    // 内存缓存：已创建过则跳过
-    if (this.hnswCreatedSet.has(entityTable)) return
+    for (const tableName of targetTables) {
+      if (this.hnswCreatedSet.has(tableName)) continue
 
-    const sql = `DEFINE INDEX IF NOT EXISTS idx_${entityTable}_embedding ON ${entityTable} FIELDS embedding HNSW DIMENSION ${dimensions} DIST COSINE CONCURRENTLY;`
+      const sql = `DEFINE INDEX IF NOT EXISTS idx_${tableName}_embedding ON ${tableName} FIELDS embedding HNSW DIMENSION ${dimensions} DIST COSINE CONCURRENTLY;`
 
-    try {
-      await this.client.queryInDatabase(namespace, database, sql)
-      this.hnswCreatedSet.add(entityTable)
-      log('HNSW index created', { entityTable, dimensions })
-    } catch (error) {
-      // 失败记录日志但不阻塞
-      logError('ensureHnswIndex failed', error)
+      try {
+        await this.client.queryInDatabase(namespace, database, sql)
+        this.hnswCreatedSet.add(tableName)
+        log('HNSW index created', { tableName, dimensions })
+      } catch (error) {
+        logError('ensureHnswIndex failed', error)
+      }
     }
+  }
+
+  private getCompletedTotal(): number {
+    return this.entityCompletedCount + this.relationCompletedCount
+  }
+
+  private getPendingTotal(): number {
+    return this.entityPendingCount + this.relationPendingCount
+  }
+
+  private getTotalCount(): number {
+    return this.entityTotalCount + this.relationTotalCount
+  }
+
+  private isEntityHnswIndexReady(): boolean {
+    if (!this.targetInfo) return false
+    const entityTable = getKgTableNames(this.targetInfo.graphTableBase).entity
+    return this.hnswCreatedSet.has(entityTable)
+  }
+
+  private isRelationHnswIndexReady(): boolean {
+    if (!this.targetInfo) return false
+    const relationTable = getKgTableNames(this.targetInfo.graphTableBase).relates
+    return this.hnswCreatedSet.has(relationTable)
   }
 
   // ==========================================================================
@@ -522,14 +779,23 @@ export class EmbeddingScheduler {
   // ==========================================================================
 
   private sendProgressMessage(): void {
+    const entityHnswIndexReady = this.isEntityHnswIndexReady()
+    const relationHnswIndexReady = this.isRelationHnswIndexReady()
+
     const data: KGEmbeddingProgressData = {
       state: this.state,
-      completed: this.completedCount,
-      pending: this.pendingCount,
-      total: this.totalCount,
-      hnswIndexReady: this.targetInfo
-        ? this.hnswCreatedSet.has(getKgTableNames(this.targetInfo.graphTableBase).entity)
-        : false,
+      completed: this.getCompletedTotal(),
+      pending: this.getPendingTotal(),
+      total: this.getTotalCount(),
+      hnswIndexReady: entityHnswIndexReady && relationHnswIndexReady,
+      entityCompleted: this.entityCompletedCount,
+      entityPending: this.entityPendingCount,
+      entityTotal: this.entityTotalCount,
+      relationCompleted: this.relationCompletedCount,
+      relationPending: this.relationPendingCount,
+      relationTotal: this.relationTotalCount,
+      entityHnswIndexReady,
+      relationHnswIndexReady,
       lastError: this.lastError,
       lastBatchInfo: this.lastBatchInfo
     }

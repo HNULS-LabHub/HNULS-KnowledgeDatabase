@@ -337,16 +337,11 @@ export class GraphBuildScheduler {
     let totalEntities = 0
     let totalRelations = 0
 
-    // 并行处理一批
-    const results = await Promise.allSettled(
-      pendingChunks.map((c: any) => this.processBuildChunk(c, buildTask))
-    )
-
-    for (const r of results) {
-      if (r.status === 'fulfilled') {
-        totalEntities += r.value.entitiesUpserted
-        totalRelations += r.value.relationsUpserted
-      }
+    // 串行处理：避免共享连接在 queryInDatabase 切库时发生上下文竞争
+    for (const c of pendingChunks) {
+      const result = await this.processBuildChunk(c, buildTask)
+      totalEntities += result.entitiesUpserted
+      totalRelations += result.relationsUpserted
     }
 
     const durationMs = Date.now() - startTime

@@ -56,31 +56,65 @@
           </span>
         </div>
 
-        <!-- 进度条 -->
-        <div v-if="embeddingStatus.total > 0" class="flex items-center gap-2">
-          <div class="w-28 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+        <!-- 并列进度条：实体 / 关系 -->
+        <div v-if="hasEntityEmbedding" class="flex items-center gap-2">
+          <span class="text-[11px] text-slate-500">实体</span>
+          <div class="w-24 bg-slate-200 rounded-full h-1.5 overflow-hidden">
             <div
               class="h-full rounded-full transition-all duration-300"
               :class="embeddingStatus.state === 'error' ? 'bg-rose-500' : 'bg-blue-500'"
-              :style="{ width: `${embeddingPercent}%` }"
+              :style="{ width: `${entityEmbeddingPercent}%` }"
             ></div>
           </div>
           <span class="text-[11px] font-mono text-slate-500">
-            {{ embeddingStatus.completed }}/{{ embeddingStatus.total }}
+            {{ embeddingStatus.entityCompleted }}/{{ embeddingStatus.entityTotal }}
           </span>
+        </div>
+
+        <div v-if="hasRelationEmbedding" class="flex items-center gap-2">
+          <span class="text-[11px] text-slate-500">关系</span>
+          <div class="w-24 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+            <div
+              class="h-full rounded-full transition-all duration-300"
+              :class="embeddingStatus.state === 'error' ? 'bg-rose-500' : 'bg-indigo-500'"
+              :style="{ width: `${relationEmbeddingPercent}%` }"
+            ></div>
+          </div>
+          <span class="text-[11px] font-mono text-slate-500">
+            {{ embeddingStatus.relationCompleted }}/{{ embeddingStatus.relationTotal }}
+          </span>
+        </div>
+
+        <div v-if="embeddingStatus.total > 0" class="text-[11px] text-slate-400">
+          总计: {{ embeddingStatus.completed }}/{{ embeddingStatus.total }}
         </div>
 
         <!-- HNSW 索引状态 -->
         <span
-          v-if="embeddingStatus.hnswIndexReady"
-          class="px-1.5 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700"
+          class="px-1.5 py-0.5 rounded text-[11px] font-medium"
+          :class="
+            embeddingStatus.entityHnswIndexReady
+              ? 'bg-emerald-50 text-emerald-700'
+              : 'bg-slate-100 text-slate-500'
+          "
         >
-          HNSW ✓
+          实体 HNSW {{ embeddingStatus.entityHnswIndexReady ? '✓' : '…' }}
+        </span>
+        <span
+          class="px-1.5 py-0.5 rounded text-[11px] font-medium"
+          :class="
+            embeddingStatus.relationHnswIndexReady
+              ? 'bg-emerald-50 text-emerald-700'
+              : 'bg-slate-100 text-slate-500'
+          "
+        >
+          关系 HNSW {{ embeddingStatus.relationHnswIndexReady ? '✓' : '…' }}
         </span>
 
         <!-- 最近批次摘要 -->
         <span v-if="embeddingStatus.lastBatchInfo" class="text-[11px] text-slate-400">
-          批次: {{ embeddingStatus.lastBatchInfo.successCount }}成功
+          批次[{{ embeddingStatus.lastBatchInfo.target === 'entity' ? '实体' : '关系' }}]:
+          {{ embeddingStatus.lastBatchInfo.successCount }}成功
           <template v-if="embeddingStatus.lastBatchInfo.failCount > 0">
             / {{ embeddingStatus.lastBatchInfo.failCount }}失败
           </template>
@@ -538,11 +572,37 @@ const embeddingErrorExpanded = ref(false)
 let embeddingPollTimer: number | null = null
 let unsubEmbeddingProgress: (() => void) | null = null
 
-const embeddingPercent = computed(() => {
-  if (!embeddingStatus.value || !embeddingStatus.value.total) return 0
+const hasEntityEmbedding = computed(() => {
+  if (!embeddingStatus.value) return false
+  return (
+    embeddingStatus.value.entityTotal > 0 ||
+    embeddingStatus.value.entityCompleted > 0 ||
+    embeddingStatus.value.entityPending > 0
+  )
+})
+
+const hasRelationEmbedding = computed(() => {
+  if (!embeddingStatus.value) return false
+  return (
+    embeddingStatus.value.relationTotal > 0 ||
+    embeddingStatus.value.relationCompleted > 0 ||
+    embeddingStatus.value.relationPending > 0
+  )
+})
+
+const entityEmbeddingPercent = computed(() => {
+  if (!embeddingStatus.value || !embeddingStatus.value.entityTotal) return 0
   return Math.min(
     100,
-    Math.round((embeddingStatus.value.completed / embeddingStatus.value.total) * 100)
+    Math.round((embeddingStatus.value.entityCompleted / embeddingStatus.value.entityTotal) * 100)
+  )
+})
+
+const relationEmbeddingPercent = computed(() => {
+  if (!embeddingStatus.value || !embeddingStatus.value.relationTotal) return 0
+  return Math.min(
+    100,
+    Math.round((embeddingStatus.value.relationCompleted / embeddingStatus.value.relationTotal) * 100)
   )
 })
 

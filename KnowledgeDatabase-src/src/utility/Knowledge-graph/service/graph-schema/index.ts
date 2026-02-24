@@ -69,6 +69,9 @@ DEFINE FIELD IF NOT EXISTS file_keys     ON ${t.relates} TYPE array<string> DEFA
 DEFINE FIELD IF NOT EXISTS meta          ON ${t.relates} FLEXIBLE TYPE object DEFAULT {};
 DEFINE FIELD IF NOT EXISTS created_at    ON ${t.relates} TYPE datetime DEFAULT time::now();
 DEFINE FIELD IF NOT EXISTS updated_at    ON ${t.relates} TYPE datetime VALUE time::now();
+DEFINE FIELD IF NOT EXISTS embedding      ON ${t.relates} TYPE option<array<float>>;
+DEFINE FIELD IF NOT EXISTS embedding_hash  ON ${t.relates} TYPE string DEFAULT '';
+DEFINE FIELD IF NOT EXISTS embedding_at    ON ${t.relates} TYPE option<datetime>;
 
 -- ============ Entity Chunks (溯源映射) ============
 DEFINE TABLE IF NOT EXISTS ${t.entityChunks} SCHEMAFULL;
