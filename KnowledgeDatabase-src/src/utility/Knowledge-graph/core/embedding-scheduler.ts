@@ -235,7 +235,9 @@ export class EmbeddingScheduler {
         this.pollTimer = null
       }
       if (!this.isProcessing) {
-        void this.poll()
+        // 先创建 HNSW 索引再开始嵌入，这样每次写入 embedding 时
+        // SurrealDB 会增量构建索引，而不是最后全量构建
+        void this.ensureHnswIndex().then(() => this.poll())
       }
     }
   }
@@ -389,9 +391,10 @@ export class EmbeddingScheduler {
   // ==========================================================================
 
   private async doIndexing(): Promise<void> {
-    log('All entities/relations embedded, creating HNSW indexes...')
+    log('All entities/relations embedded, verifying HNSW indexes...')
+    // 兜底：确认索引存在（正常情况下 trigger 时已创建）
     await this.ensureHnswIndex()
-    this.setState('idle', 'indexing complete, all entities/relations embedded')
+    this.setState('idle', 'embedding complete, HNSW indexes verified')
   }
 
   // ==========================================================================

@@ -76,6 +76,22 @@
         />
       </div>
 
+      <!-- 嵌入批次大小 -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+        <h3 class="text-lg font-bold text-slate-900">嵌入批次大小</h3>
+        <p class="text-sm text-slate-500">
+          每次调用 Embedding API 处理的实体/关系数量，范围 1-100，较高值加快嵌入速度但可能触发限流
+        </p>
+        <input
+          v-model.number="localConfig.embeddingBatchSize"
+          type="number"
+          min="1"
+          max="100"
+          class="w-full max-w-xs px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+          @blur="autoSave"
+        />
+      </div>
+
       <!-- 实体类型 -->
       <div class="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
         <div class="flex items-center justify-between">
@@ -166,6 +182,7 @@ const props = defineProps<{
     chunkConcurrency: number
     entityTypes: string[]
     outputLanguage: string
+    embeddingBatchSize: number
   }
 }>()
 
@@ -185,7 +202,8 @@ const localConfig = reactive({
   llmModelId: '',
   chunkConcurrency: 3,
   entityTypes: [] as string[],
-  outputLanguage: 'zh-CN'
+  outputLanguage: 'zh-CN',
+  embeddingBatchSize: 20
 })
 
 const languageOptions = [
@@ -201,6 +219,7 @@ onMounted(() => {
   localConfig.chunkConcurrency = props.initialConfig.chunkConcurrency || 3
   localConfig.entityTypes = [...(props.initialConfig.entityTypes || [])]
   localConfig.outputLanguage = props.initialConfig.outputLanguage || 'zh-CN'
+  localConfig.embeddingBatchSize = props.initialConfig.embeddingBatchSize ?? 20
 })
 
 async function autoSave(): Promise<void> {
@@ -213,7 +232,8 @@ async function autoSave(): Promise<void> {
     llmModelId: localConfig.llmModelId,
     chunkConcurrency: localConfig.chunkConcurrency,
     entityTypes: [...localConfig.entityTypes],
-    outputLanguage: localConfig.outputLanguage
+    outputLanguage: localConfig.outputLanguage,
+    embeddingBatchSize: localConfig.embeddingBatchSize
   })
 
   saving.value = false

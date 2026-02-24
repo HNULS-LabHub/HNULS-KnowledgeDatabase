@@ -89,8 +89,11 @@
     </div>
 
     <!-- 知识图谱检索主区域 -->
-    <div v-show="activeTab === 'kg'" class="rag-main">
-      <KGResultPanel />
+    <div v-show="activeTab === 'kg'" class="flex flex-col flex-1 min-h-0 gap-2 overflow-hidden">
+      <KGAdvancedPanel />
+      <div class="flex-1 min-h-0 flex flex-col">
+        <KGResultPanel />
+      </div>
     </div>
   </div>
 </template>
@@ -105,6 +108,7 @@ import PipelineSteps from './PipelineSteps.vue'
 import ResultPanel from './ResultPanel.vue'
 import KGQueryBar from './KGSearch/KGQueryBar.vue'
 import KGResultPanel from './KGSearch/KGResultPanel.vue'
+import KGAdvancedPanel from './KGSearch/KGAdvancedPanel.vue'
 
 const ragStore = useRagStore()
 const agentStore = useAgentStore()

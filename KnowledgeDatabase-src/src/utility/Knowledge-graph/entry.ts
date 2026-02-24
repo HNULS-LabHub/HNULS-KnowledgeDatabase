@@ -9,8 +9,9 @@ import { GraphQueryService } from './service/graph-query'
 import { TaskScheduler } from './core/task-scheduler'
 import { GraphBuildScheduler } from './core/graph-build-scheduler'
 import { EmbeddingScheduler } from './core/embedding-scheduler'
+import { RetrievalOrchestrator } from './service/kg-retrieval'
 import { MessageHandler } from './bridge/message-handler'
-import type { MainToKGMessage, KGToMainMessage } from '@shared/knowledge-graph-ipc.types'
+import type { MainToKGMessage, KGToMainMessage, KGModelProviderConfig } from '@shared/knowledge-graph-ipc.types'
 
 // ============================================================================
 // 日志转发：子进程 console → postMessage → 主进程 logger
@@ -145,6 +146,7 @@ const graphQueryService = new GraphQueryService(surrealClient, sendMessage)
 const scheduler = new TaskScheduler(surrealClient, sendMessage, requestConcurrency)
 const graphBuildScheduler = new GraphBuildScheduler(surrealClient, sendMessage)
 const embeddingScheduler = new EmbeddingScheduler(surrealClient, sendMessage)
+const retrievalOrchestrator = new RetrievalOrchestrator(surrealClient, new Map<string, KGModelProviderConfig>())
 const messageHandler = new MessageHandler(
   surrealClient,
   taskSubmission,
@@ -152,6 +154,7 @@ const messageHandler = new MessageHandler(
   graphBuildScheduler,
   graphQueryService,
   embeddingScheduler,
+  retrievalOrchestrator,
   sendMessage
 )
 

@@ -11,7 +11,9 @@ import type {
   KGCreateSchemaParams,
   KGBuildTaskStatus,
   KGGraphQueryParams,
-  KGEmbeddingProgressData
+  KGEmbeddingProgressData,
+  KGRetrievalParams,
+  KGRetrievalResult
 } from '../types/knowledge-graph.types'
 
 const CH = {
@@ -26,6 +28,8 @@ const CH = {
   // 嵌入相关
   QUERY_EMBEDDING_STATUS: 'knowledge-graph:query-embedding-status',
   EMBEDDING_PROGRESS: 'knowledge-graph:embedding-progress',
+  // KG 检索
+  RETRIEVAL_SEARCH: 'knowledge-graph:retrieval-search',
   // 事件（main → renderer）
   TASK_PROGRESS: 'knowledge-graph:task-progress',
   TASK_COMPLETED: 'knowledge-graph:task-completed',
@@ -157,5 +161,13 @@ export const knowledgeGraphAPI: KnowledgeGraphAPI = {
     const handler = (_e: any, data: KGEmbeddingProgressData) => callback(data)
     ipcRenderer.on(CH.EMBEDDING_PROGRESS, handler)
     return () => ipcRenderer.removeListener(CH.EMBEDDING_PROGRESS, handler)
+  },
+
+  // ============================================================================
+  // KG 检索
+  // ============================================================================
+
+  async retrievalSearch(params: KGRetrievalParams): Promise<KGRetrievalResult> {
+    return ipcRenderer.invoke(CH.RETRIEVAL_SEARCH, params)
   }
 }

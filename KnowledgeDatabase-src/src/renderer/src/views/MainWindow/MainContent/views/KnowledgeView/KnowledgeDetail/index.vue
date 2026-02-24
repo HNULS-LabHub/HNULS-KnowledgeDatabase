@@ -66,7 +66,8 @@
           llmModelId: selectedKgConfig.llmModelId || '',
           chunkConcurrency: selectedKgConfig.chunkConcurrency || 3,
           entityTypes: selectedKgConfig.entityTypes || [],
-          outputLanguage: selectedKgConfig.outputLanguage || 'zh-CN'
+          outputLanguage: selectedKgConfig.outputLanguage || 'zh-CN',
+          embeddingBatchSize: selectedKgConfig.embeddingBatchSize ?? 20
         }"
         @back="handleBackFromKgDetail"
       />

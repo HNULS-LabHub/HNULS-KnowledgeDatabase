@@ -1,153 +1,211 @@
 <template>
-  <div class="kg-result-panel right-panel flex-1 flex flex-col min-h-0">
-    <!-- 结果头 -->
-    <div class="results-header">
-      <span>图谱检索结果 ({{ kgStore.isSearching ? '...' : kgStore.hitCount }})</span>
-      <span>
-        耗时:
-        <span class="time-badge">
-          {{
-            kgStore.isSearching
-              ? '...'
-              : kgStore.result?.elapsedMs != null
-                ? kgStore.result.elapsedMs + 'ms'
-                : '-'
-          }}
+  <div class="kg-result-panel flex-1 flex flex-col min-h-0">
+    <!-- 错误提示 -->
+    <div v-if="kgStore.error" class="mx-2 mb-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-600 flex items-center gap-2 flex-shrink-0">
+      <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>
+      </svg>
+      <span>{{ kgStore.error }}</span>
+    </div>
+
+    <!-- Meta 栏 -->
+    <div v-if="kgStore.hasResult" class="results-header mb-2">
+      <div class="flex items-center gap-3">
+        <span class="text-xs px-1.5 py-0.5 rounded bg-teal-50 text-teal-600 font-medium">
+          {{ kgStore.result!.meta.mode }}
         </span>
-      </span>
+        <span>命中 {{ kgStore.totalCount }} 条</span>
+        <span>
+          耗时 <span class="text-amber-600 font-medium">{{ kgStore.result!.meta.durationMs }}ms</span>
+        </span>
+        <span v-if="kgStore.result!.meta.rerankApplied" class="text-xs px-1.5 py-0.5 rounded bg-purple-50 text-purple-600">
+          Reranked
+        </span>
+      </div>
+      <!-- 提取的关键词 -->
+      <div v-if="hasKeywords" class="flex items-center gap-1 flex-wrap">
+        <span class="text-slate-400 text-[10px]">Keywords:</span>
+        <span
+          v-for="kw in allKeywords"
+          :key="kw"
+          class="text-[10px] px-1 py-0.5 rounded bg-slate-100 text-slate-500"
+        >{{ kw }}</span>
+      </div>
+    </div>
+
+    <!-- Tab 切换 -->
+    <div v-if="kgStore.hasResult" class="flex items-center gap-1 px-2 mb-2 flex-shrink-0">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        class="px-3 py-1 rounded-md text-xs font-medium transition-colors"
+        :class="kgStore.activeResultTab === tab.key
+          ? 'bg-teal-50 text-teal-700 border border-teal-200'
+          : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50 border border-transparent'"
+        @click="kgStore.setResultTab(tab.key)"
+      >
+        {{ tab.label }} ({{ tab.count }})
+      </button>
     </div>
 
     <!-- 结果列表 -->
-    <div class="results-list flex-1 min-h-0 overflow-y-auto">
+    <div class="flex-1 min-h-0 overflow-y-auto px-1 pb-2">
       <template v-if="kgStore.hasResult">
-        <div class="flex flex-col gap-3 p-1">
+        <!-- 实体 Tab -->
+        <div v-if="kgStore.activeResultTab === 'entities'" class="flex flex-col gap-2">
           <div
-            v-for="hit in kgStore.result!.hits"
-            :key="hit.node.id"
-            class="glass-card result-card"
+            v-for="entity in kgStore.result!.entities"
+            :key="entity.id"
+            class="glass-card p-3 !rounded-xl"
           >
-            <!-- 节点头部 -->
-            <div class="result-header">
-              <div class="result-info">
-                <div class="result-icon !w-8 !h-8" :class="nodeTypeColor(hit.node.type)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path :d="nodeTypeIcon(hit.node.type)"></path>
-                  </svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <h4 class="result-title truncate">{{ hit.node.label }}</h4>
-                  <p class="result-meta">
-                    <span
-                      class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600"
-                    >
-                      {{ hit.node.type }}
-                    </span>
-                    <span class="ml-2 text-amber-600 font-semibold"
-                      >Score {{ hit.score.toFixed(2) }}</span
-                    >
-                    <span class="ml-2 text-slate-400"
-                      >{{ hit.edges.length }} 条关系 · {{ hit.neighbors.length }} 个邻居</span
-                    >
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <!-- 高亮片段 -->
-            <p
-              v-if="hit.highlight"
-              class="result-excerpt text-sm text-slate-600 mt-2"
-              v-html="hit.highlight"
-            ></p>
-
-            <!-- 关系列表 -->
-            <div v-if="hit.edges.length > 0" class="mt-3 flex flex-wrap gap-1.5">
-              <span
-                v-for="edge in hit.edges"
-                :key="edge.id"
-                class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-indigo-50 text-indigo-600 border border-indigo-100"
-              >
-                <svg
-                  class="w-3 h-3"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-                {{ edge.relation }}
-                <span class="text-indigo-400">→</span>
-                {{ getNeighborLabel(hit, edge.to) }}
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs px-1.5 py-0.5 rounded font-medium" :class="entityTypeClass(entity.entity_type)">
+                {{ entity.entity_type }}
+              </span>
+              <span class="text-sm font-medium text-slate-800 truncate">{{ entity.name }}</span>
+              <span class="ml-auto text-xs text-amber-600 font-medium flex-shrink-0">
+                {{ entity.score.toFixed(3) }}
               </span>
             </div>
+            <p v-if="entity.description" class="text-xs text-slate-500 line-clamp-3 m-0">
+              {{ entity.description }}
+            </p>
+          </div>
+          <div v-if="kgStore.result!.entities.length === 0" class="text-center text-xs text-slate-400 py-8">
+            无实体结果
+          </div>
+        </div>
+
+        <!-- 关系 Tab -->
+        <div v-if="kgStore.activeResultTab === 'relations'" class="flex flex-col gap-2">
+          <div
+            v-for="rel in kgStore.result!.relations"
+            :key="rel.id"
+            class="glass-card p-3 !rounded-xl"
+          >
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
+              <span class="text-sm font-medium text-indigo-700">{{ rel.source_name }}</span>
+              <svg class="w-4 h-4 text-slate-300 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+              <span class="text-sm font-medium text-indigo-700">{{ rel.target_name }}</span>
+              <span class="ml-auto text-xs text-amber-600 font-medium flex-shrink-0">
+                {{ rel.score.toFixed(3) }}
+              </span>
+            </div>
+            <div v-if="rel.keywords" class="flex items-center gap-1 mb-1 flex-wrap">
+              <span
+                v-for="kw in rel.keywords.split(',').map(s => s.trim()).filter(Boolean)"
+                :key="kw"
+                class="text-[10px] px-1 py-0.5 rounded bg-indigo-50 text-indigo-500"
+              >{{ kw }}</span>
+            </div>
+            <p v-if="rel.description" class="text-xs text-slate-500 line-clamp-3 m-0">
+              {{ rel.description }}
+            </p>
+          </div>
+          <div v-if="kgStore.result!.relations.length === 0" class="text-center text-xs text-slate-400 py-8">
+            无关系结果
+          </div>
+        </div>
+
+        <!-- Chunks Tab -->
+        <div v-if="kgStore.activeResultTab === 'chunks'" class="flex flex-col gap-2">
+          <div
+            v-for="chunk in kgStore.result!.chunks"
+            :key="chunk.id"
+            class="glass-card p-3 !rounded-xl"
+          >
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="text-[10px] px-1.5 py-0.5 rounded font-medium" :class="chunkSourceClass(chunk.source)">
+                {{ chunkSourceLabel(chunk.source) }}
+              </span>
+              <span v-if="chunk.file_name" class="text-xs text-slate-500 truncate">
+                {{ chunk.file_name }}
+              </span>
+              <span v-if="chunk.chunk_index != null" class="text-[10px] text-slate-400">
+                #{{ chunk.chunk_index }}
+              </span>
+              <span class="ml-auto text-xs text-amber-600 font-medium flex-shrink-0">
+                {{ chunk.score.toFixed(3) }}
+              </span>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed line-clamp-5 m-0 whitespace-pre-wrap">{{ chunk.content }}</p>
+          </div>
+          <div v-if="kgStore.result!.chunks.length === 0" class="text-center text-xs text-slate-400 py-8">
+            无文本块结果（请确认已传入 chunkTableName）
           </div>
         </div>
       </template>
 
       <!-- 空状态 -->
-      <div v-else class="empty-results">
-        <div class="empty-results-content">
-          <div class="glow-effect"></div>
-          <svg
-            class="database-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M12 2v4"></path>
-            <path d="M12 18v4"></path>
-            <path d="m4.93 4.93 2.83 2.83"></path>
-            <path d="m16.24 16.24 2.83 2.83"></path>
-            <path d="M2 12h4"></path>
-            <path d="M18 12h4"></path>
-            <path d="m4.93 19.07 2.83-2.83"></path>
-            <path d="m16.24 7.76 2.83-2.83"></path>
-          </svg>
-          <p>{{ kgStore.isSearching ? '正在检索图谱...' : '输入检索词开始知识图谱检索' }}</p>
-        </div>
+      <div v-else class="flex flex-col items-center justify-center h-full text-slate-400">
+        <svg class="w-12 h-12 mb-3 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 2v4"></path><path d="M12 18v4"></path>
+          <path d="m4.93 4.93 2.83 2.83"></path><path d="m16.24 16.24 2.83 2.83"></path>
+          <path d="M2 12h4"></path><path d="M18 12h4"></path>
+          <path d="m4.93 19.07 2.83-2.83"></path><path d="m16.24 7.76 2.83-2.83"></path>
+        </svg>
+        <p class="text-sm">
+          {{ kgStore.isSearching ? '正在检索图谱...' : '选择知识库和图谱配置，输入检索词开始' }}
+        </p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useKGSearchStore } from '@renderer/stores/kg-search/kg-search.store'
-import type { KGSearchHit } from '@renderer/stores/kg-search/kg-search.types'
+import type { KGResultTab } from '@renderer/stores/kg-search/kg-search.types'
 
 const kgStore = useKGSearchStore()
 
-function nodeTypeIcon(type: string): string {
-  switch (type) {
-    case 'concept':
-      return 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'
-    case 'document':
-      return 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6'
-    case 'person':
-      return 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'
-    default:
-      return 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5'
+const tabs = computed<{ key: KGResultTab; label: string; count: number }[]>(() => [
+  { key: 'entities', label: '实体', count: kgStore.entityCount },
+  { key: 'relations', label: '关系', count: kgStore.relationCount },
+  { key: 'chunks', label: '文本块', count: kgStore.chunkCount }
+])
+
+const hasKeywords = computed(() => {
+  if (!kgStore.result) return false
+  const kw = kgStore.result.meta.extractedKeywords
+  return kw.highLevel.length > 0 || kw.lowLevel.length > 0
+})
+
+const allKeywords = computed(() => {
+  if (!kgStore.result) return []
+  const kw = kgStore.result.meta.extractedKeywords
+  return [...kw.highLevel, ...kw.lowLevel]
+})
+
+function entityTypeClass(type: string): string {
+  switch (type.toLowerCase()) {
+    case 'concept': return 'bg-amber-50 text-amber-600'
+    case 'person': return 'bg-emerald-50 text-emerald-600'
+    case 'organization': return 'bg-blue-50 text-blue-600'
+    case 'location': return 'bg-rose-50 text-rose-600'
+    default: return 'bg-slate-100 text-slate-600'
   }
 }
 
-function nodeTypeColor(type: string): string {
-  switch (type) {
-    case 'concept':
-      return '!bg-amber-50 !text-amber-500'
-    case 'document':
-      return '!bg-blue-50 !text-blue-500'
-    case 'person':
-      return '!bg-emerald-50 !text-emerald-500'
-    default:
-      return ''
+function chunkSourceClass(source: string): string {
+  switch (source) {
+    case 'entity_expansion': return 'bg-amber-50 text-amber-600'
+    case 'relation_expansion': return 'bg-indigo-50 text-indigo-600'
+    case 'direct_vector': return 'bg-teal-50 text-teal-600'
+    default: return 'bg-slate-100 text-slate-600'
   }
 }
 
-function getNeighborLabel(hit: KGSearchHit, nodeId: string): string {
-  const neighbor = hit.neighbors.find((n) => n.id === nodeId)
-  return neighbor?.label ?? nodeId
+function chunkSourceLabel(source: string): string {
+  switch (source) {
+    case 'entity_expansion': return '实体扩展'
+    case 'relation_expansion': return '关系扩展'
+    case 'direct_vector': return '向量直检'
+    default: return source
+  }
 }
 </script>

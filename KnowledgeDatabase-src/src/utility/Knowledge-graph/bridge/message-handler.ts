@@ -9,13 +9,15 @@ import type { TaskScheduler } from '../core/task-scheduler'
 import type { GraphBuildScheduler } from '../core/graph-build-scheduler'
 import type { GraphQueryService } from '../service/graph-query'
 import type { EmbeddingScheduler } from '../core/embedding-scheduler'
+import type { RetrievalOrchestrator } from '../service/kg-retrieval'
 import type {
   MainToKGMessage,
   KGToMainMessage,
   KGDBConfig,
   KGCreateSchemaParams,
   KGGraphQueryParams,
-  KGTriggerEmbeddingParams
+  KGTriggerEmbeddingParams,
+  KGRetrievalParams
 } from '@shared/knowledge-graph-ipc.types'
 import { createGraphSchema } from '../service/graph-schema'
 
@@ -52,6 +54,7 @@ export class MessageHandler {
   private graphBuildScheduler: GraphBuildScheduler
   private graphQueryService: GraphQueryService
   private embeddingScheduler: EmbeddingScheduler
+  private retrievalOrchestrator: RetrievalOrchestrator
   private sendMessage: (msg: KGToMainMessage) => void
 
   constructor(
@@ -61,6 +64,7 @@ export class MessageHandler {
     graphBuildScheduler: GraphBuildScheduler,
     graphQueryService: GraphQueryService,
     embeddingScheduler: EmbeddingScheduler,
+    retrievalOrchestrator: RetrievalOrchestrator,
     sendMessage: (msg: KGToMainMessage) => void
   ) {
     this.client = client
@@ -69,6 +73,7 @@ export class MessageHandler {
     this.graphBuildScheduler = graphBuildScheduler
     this.graphQueryService = graphQueryService
     this.embeddingScheduler = embeddingScheduler
+    this.retrievalOrchestrator = retrievalOrchestrator
     this.sendMessage = sendMessage
   }
 
@@ -77,7 +82,7 @@ export class MessageHandler {
    */
   async handle(msg: MainToKGMessage): Promise<void> {
     // 高频轮询消息不打日志，避免刷屏；保留关键事件日志用于观察状态切换
-    if (msg.type !== 'kg:query-embedding-status' && msg.type !== 'kg:query-status') {
+    if (msg.type !== 'kg:query-embedding-status' && msg.type !== 'kg:query-status' && msg.type !== 'kg:retrieval-search') {
       log(`Received: ${msg.type}`, msg)
     }
 
@@ -95,9 +100,16 @@ export class MessageHandler {
         case 'kg:query-status':
           await this.handleQueryStatus(msg.requestId)
           break
-        case 'kg:update-model-providers':
+        case 'kg:update-model-providers': {
           this.scheduler.updateProviders(msg.providers ?? [])
+          // 同步 providers 给检索编排器
+          const providerMap = new Map<import('@shared/knowledge-graph-ipc.types').KGModelProviderConfig['id'], import('@shared/knowledge-graph-ipc.types').KGModelProviderConfig>()
+          for (const p of msg.providers ?? []) {
+            if (p?.id) providerMap.set(p.id, p)
+          }
+          this.retrievalOrchestrator.updateProviders(providerMap)
           break
+        }
 
         case 'kg:create-graph-schema':
           await this.handleCreateGraphSchema(msg.requestId, msg.data)
@@ -121,6 +133,10 @@ export class MessageHandler {
 
         case 'kg:query-embedding-status':
           this.handleQueryEmbeddingStatus(msg.requestId)
+          break
+
+        case 'kg:retrieval-search':
+          await this.handleRetrievalSearch(msg.requestId, msg.data)
           break
 
         default:
@@ -311,5 +327,32 @@ export class MessageHandler {
       requestId,
       data: status
     })
+  }
+
+  // ==========================================================================
+  // KG 检索
+  // ==========================================================================
+
+  private async handleRetrievalSearch(
+    requestId: string,
+    data: KGRetrievalParams
+  ): Promise<void> {
+    try {
+      log(`Retrieval search: mode=${data.mode}, query="${data.query?.slice(0, 60)}..."`)
+      const result = await this.retrievalOrchestrator.search(data)
+      this.sendMessage({
+        type: 'kg:retrieval-result',
+        requestId,
+        data: result
+      })
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error)
+      logError('Retrieval search failed', error)
+      this.sendMessage({
+        type: 'kg:retrieval-error',
+        requestId,
+        error: errMsg
+      })
+    }
   }
 }

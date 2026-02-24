@@ -1,16 +1,13 @@
 /**
  * 知识图谱检索数据源适配器
- * 当前使用 Mock，后续切换为 IPC 调用
+ * 调用真实 IPC：window.api.knowledgeGraph.retrievalSearch
  */
 
-import type { KGSearchMode, KGSearchHit } from './kg-search.types'
-import { mockKGSearch } from './kg-search.mock'
+import type { KGRetrievalParams, KGRetrievalResult } from '@preload/types'
 
 export const KGSearchDataSource = {
   /** 执行知识图谱检索 */
-  async search(query: string, mode: KGSearchMode): Promise<KGSearchHit[]> {
-    // TODO: 后续切换为 IPC 调用 window.api.kgSearch.search(...)
-    console.debug('[Dev Mode] Using Mock KG Search')
-    return mockKGSearch(query, mode)
+  async search(params: KGRetrievalParams): Promise<KGRetrievalResult> {
+    return window.api.knowledgeGraph.retrievalSearch(params)
   }
 }

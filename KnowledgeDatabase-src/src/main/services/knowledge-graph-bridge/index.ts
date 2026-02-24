@@ -20,7 +20,9 @@ import type {
   KGGraphRelation,
   KGGraphDataProgress,
   KGTriggerEmbeddingParams,
-  KGEmbeddingProgressData
+  KGEmbeddingProgressData,
+  KGRetrievalParams,
+  KGRetrievalResult
 } from '@shared/knowledge-graph-ipc.types'
 import { logger } from '../logger'
 
@@ -268,6 +270,19 @@ export class KnowledgeGraphBridge {
    */
   triggerEmbedding(params: KGTriggerEmbeddingParams): void {
     this.sendToProcess({ type: 'kg:trigger-embedding', data: params })
+  }
+
+  /**
+   * KG 检索（短过程 request-response，无进度事件）
+   */
+  async retrievalSearch(params: KGRetrievalParams): Promise<KGRetrievalResult> {
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+
+    return this.sendRequest<KGRetrievalResult>(requestId, {
+      type: 'kg:retrieval-search',
+      requestId,
+      data: params
+    }, 120_000) // 2 分钟超时（涉及多次 API 调用）
   }
 
   /**
@@ -566,6 +581,27 @@ export class KnowledgeGraphBridge {
           clearTimeout(pending.timeoutId)
           this.pendingRequests.delete(msg.requestId)
           pending.resolve(msg.data)
+        }
+        break
+      }
+
+      // KG 检索响应
+      case 'kg:retrieval-result': {
+        const pending = this.pendingRequests.get(msg.requestId)
+        if (pending) {
+          clearTimeout(pending.timeoutId)
+          this.pendingRequests.delete(msg.requestId)
+          pending.resolve(msg.data)
+        }
+        break
+      }
+
+      case 'kg:retrieval-error': {
+        const pending = this.pendingRequests.get(msg.requestId)
+        if (pending) {
+          clearTimeout(pending.timeoutId)
+          this.pendingRequests.delete(msg.requestId)
+          pending.reject(new Error(msg.error))
         }
         break
       }

@@ -9,7 +9,8 @@ import { logger } from '../services/logger'
 import type {
   KGSubmitTaskParams,
   KGCreateSchemaParams,
-  KGGraphQueryParams
+  KGGraphQueryParams,
+  KGRetrievalParams
 } from '@shared/knowledge-graph-ipc.types'
 import type { KnowledgeLibraryService } from '../services/knowledgeBase-library'
 import type { ModelConfigService } from '../services/model-config'
@@ -28,6 +29,8 @@ const CH = {
   // 嵌入相关
   QUERY_EMBEDDING_STATUS: 'knowledge-graph:query-embedding-status',
   EMBEDDING_PROGRESS: 'knowledge-graph:embedding-progress',
+  // KG 检索
+  RETRIEVAL_SEARCH: 'knowledge-graph:retrieval-search',
   // 事件
   TASK_PROGRESS: 'knowledge-graph:task-progress',
   TASK_COMPLETED: 'knowledge-graph:task-completed',
@@ -121,6 +124,20 @@ export function registerKnowledgeGraphHandlers(
   ipcMain.on(CH.CANCEL_GRAPH_QUERY, (_event, sessionId: string) => {
     logger.info('[KG-IPCHandler] cancelGraphQuery:', sessionId)
     knowledgeGraphBridge.cancelGraphQuery(sessionId)
+  })
+
+  // KG 检索
+  ipcMain.handle(CH.RETRIEVAL_SEARCH, async (_event, params: KGRetrievalParams) => {
+    logger.info('[KG-IPCHandler] retrievalSearch received:', {
+      mode: params.mode,
+      query: params.query?.slice(0, 60)
+    })
+    try {
+      return await knowledgeGraphBridge.retrievalSearch(params)
+    } catch (error) {
+      logger.error('[KG-IPCHandler] retrievalSearch failed:', error)
+      throw error
+    }
   })
 
   // 嵌入状态查询
@@ -275,6 +292,7 @@ export function unregisterKnowledgeGraphHandlers(): void {
   ipcMain.removeHandler(CH.QUERY_BUILD_STATUS)
   ipcMain.removeHandler(CH.QUERY_GRAPH_DATA)
   ipcMain.removeHandler(CH.QUERY_EMBEDDING_STATUS)
+  ipcMain.removeHandler(CH.RETRIEVAL_SEARCH)
   ipcMain.removeAllListeners(CH.CANCEL_GRAPH_QUERY)
   unsubProgress?.()
   unsubCompleted?.()

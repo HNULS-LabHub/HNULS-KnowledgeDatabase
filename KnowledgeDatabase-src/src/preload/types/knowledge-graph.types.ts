@@ -14,7 +14,14 @@ import type {
   KGGraphEntity,
   KGGraphRelation,
   KGGraphDataProgress,
-  KGEmbeddingProgressData
+  KGEmbeddingProgressData,
+  KGRetrievalParams,
+  KGRetrievalResult,
+  KGRetrievalMode,
+  KGRetrievalEntity,
+  KGRetrievalRelation,
+  KGRetrievalChunk,
+  KGRetrievalMeta
 } from '../../Public/ShareTypes/knowledge-graph-ipc.types'
 
 // 重新导出供前端使用
@@ -28,7 +35,14 @@ export type {
   KGGraphEntity,
   KGGraphRelation,
   KGGraphDataProgress,
-  KGEmbeddingProgressData
+  KGEmbeddingProgressData,
+  KGRetrievalParams,
+  KGRetrievalResult,
+  KGRetrievalMode,
+  KGRetrievalEntity,
+  KGRetrievalRelation,
+  KGRetrievalChunk,
+  KGRetrievalMeta
 }
 
 /** 图谱数据批次事件 */
@@ -143,6 +157,15 @@ export interface KnowledgeGraphAPI {
    * 监听图谱数据查询取消
    */
   onGraphDataCancelled(callback: (sessionId: string) => void): () => void
+
+  // ============================================================================
+  // KG 检索
+  // ============================================================================
+
+  /**
+   * KG 检索（短过程 request-response，无进度事件）
+   */
+  retrievalSearch(params: KGRetrievalParams): Promise<KGRetrievalResult>
 
   // ============================================================================
   // 嵌入状态监控
