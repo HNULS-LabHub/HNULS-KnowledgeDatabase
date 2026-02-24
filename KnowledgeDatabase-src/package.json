@@ -41,6 +41,7 @@
     "@langchain/openai": "^0.5.0",
     "@sigma/edge-curve": "^3.1.0",
     "@sigma/node-border": "^3.0.0",
+    "cytoscape": "^3.33.1",
     "electron-log": "^5.4.3",
     "electron-updater": "^6.3.9",
     "express": "^5.2.1",
