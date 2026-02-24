@@ -278,11 +278,15 @@ export class KnowledgeGraphBridge {
   async retrievalSearch(params: KGRetrievalParams): Promise<KGRetrievalResult> {
     const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 
-    return this.sendRequest<KGRetrievalResult>(requestId, {
-      type: 'kg:retrieval-search',
+    return this.sendRequest<KGRetrievalResult>(
       requestId,
-      data: params
-    }, 120_000) // 2 分钟超时（涉及多次 API 调用）
+      {
+        type: 'kg:retrieval-search',
+        requestId,
+        data: params
+      },
+      120_000
+    ) // 2 分钟超时（涉及多次 API 调用）
   }
 
   /**

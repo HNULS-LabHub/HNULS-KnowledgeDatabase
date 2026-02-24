@@ -16,6 +16,7 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
   // 按知识库ID缓存配置
   const configByKbId = ref<Map<number, KnowledgeConfig>>(new Map())
   const loading = ref(false)
+  const loadPromisesByKbId = ref<Map<number, Promise<KnowledgeConfig>>>(new Map())
 
   /**
    * 获取知识库配置
@@ -100,6 +101,20 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  async function ensureConfigLoaded(kbId: number): Promise<KnowledgeConfig> {
+    const existing = configByKbId.value.get(kbId)
+    if (existing) return existing
+
+    const pending = loadPromisesByKbId.value.get(kbId)
+    if (pending) return pending
+
+    const promise = loadConfig(kbId).finally(() => {
+      loadPromisesByKbId.value.delete(kbId)
+    })
+    loadPromisesByKbId.value.set(kbId, promise)
+    return promise
   }
 
   /**
@@ -406,11 +421,13 @@ export const useKnowledgeConfigStore = defineStore('knowledge-config', () => {
   return {
     configByKbId,
     loading,
+    loadPromisesByKbId,
     getConfig,
     getGlobalConfig,
     getDocumentConfig,
     hasCustomConfig,
     loadConfig,
+    ensureConfigLoaded,
     updateGlobalConfig,
     updateDocumentConfig,
     clearDocumentConfig,

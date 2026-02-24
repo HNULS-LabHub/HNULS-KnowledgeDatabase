@@ -6,12 +6,24 @@
         class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-colors max-w-[140px]"
         @click="showKbDrop = !showKbDrop"
       >
-        <svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          class="w-3.5 h-3.5 text-slate-400 flex-shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
         </svg>
         <span class="text-slate-700 truncate">{{ selectedKbLabel }}</span>
-        <svg class="w-3 h-3 text-slate-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          class="w-3 h-3 text-slate-400 flex-shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </button>
@@ -26,7 +38,12 @@
           :class="{ 'bg-indigo-50': kb.id === kgStore.selectedKbId }"
           @click="selectKb(kb.id)"
         >
-          <span class="truncate" :class="kb.id === kgStore.selectedKbId ? 'text-indigo-700 font-medium' : 'text-slate-700'">
+          <span
+            class="truncate"
+            :class="
+              kb.id === kgStore.selectedKbId ? 'text-indigo-700 font-medium' : 'text-slate-700'
+            "
+          >
             {{ kb.name }}
           </span>
         </button>
@@ -44,14 +61,29 @@
         :disabled="!kgStore.selectedKbId"
         @click="kgStore.selectedKbId && (showKgCfgDrop = !showKgCfgDrop)"
       >
-        <svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          class="w-3.5 h-3.5 text-slate-400 flex-shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <circle cx="12" cy="12" r="3"></circle>
-          <path d="M12 2v4"></path><path d="M12 18v4"></path>
-          <path d="m4.93 4.93 2.83 2.83"></path><path d="m16.24 16.24 2.83 2.83"></path>
-          <path d="M2 12h4"></path><path d="M18 12h4"></path>
+          <path d="M12 2v4"></path>
+          <path d="M12 18v4"></path>
+          <path d="m4.93 4.93 2.83 2.83"></path>
+          <path d="m16.24 16.24 2.83 2.83"></path>
+          <path d="M2 12h4"></path>
+          <path d="M18 12h4"></path>
         </svg>
         <span class="text-slate-700 truncate">{{ selectedKgCfgLabel }}</span>
-        <svg class="w-3 h-3 text-slate-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          class="w-3 h-3 text-slate-400 flex-shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </button>
@@ -66,12 +98,20 @@
           :class="{ 'bg-teal-50': cfg.id === kgStore.selectedKgConfigId }"
           @click="selectKgCfg(cfg.id)"
         >
-          <span class="text-xs" :class="cfg.id === kgStore.selectedKgConfigId ? 'text-teal-700 font-medium' : 'text-slate-700'">
+          <span
+            class="text-xs"
+            :class="
+              cfg.id === kgStore.selectedKgConfigId ? 'text-teal-700 font-medium' : 'text-slate-700'
+            "
+          >
             {{ cfg.name }}
           </span>
           <span class="text-[10px] text-slate-400">{{ cfg.graphTableBase }}</span>
         </button>
-        <div v-if="kgStore.availableKgConfigs.length === 0" class="px-3 py-2 text-xs text-slate-400">
+        <div
+          v-if="kgStore.availableKgConfigs.length === 0"
+          class="px-3 py-2 text-xs text-slate-400"
+        >
           无可用图谱配置
         </div>
       </div>
@@ -84,7 +124,14 @@
         @click="showModeDrop = !showModeDrop"
       >
         <span class="text-slate-700">{{ currentModeOption?.label ?? '模式' }}</span>
-        <svg class="w-3 h-3 text-slate-400 transition-transform" :class="{ 'rotate-180': showModeDrop }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          class="w-3 h-3 text-slate-400 transition-transform"
+          :class="{ 'rotate-180': showModeDrop }"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </button>
@@ -99,7 +146,10 @@
           :class="{ 'bg-teal-50': opt.value === kgStore.mode }"
           @click="selectMode(opt.value)"
         >
-          <span class="text-xs font-medium" :class="opt.value === kgStore.mode ? 'text-teal-700' : 'text-slate-700'">
+          <span
+            class="text-xs font-medium"
+            :class="opt.value === kgStore.mode ? 'text-teal-700' : 'text-slate-700'"
+          >
             {{ opt.label }}
           </span>
           <span class="text-[10px] text-slate-400">{{ opt.description }}</span>
@@ -133,9 +183,17 @@
       class="flex items-center gap-1 px-2 py-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors rounded-lg hover:bg-slate-50"
       @click="kgStore.advancedExpanded = !kgStore.advancedExpanded"
     >
-      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        class="w-3.5 h-3.5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <circle cx="12" cy="12" r="3"></circle>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        <path
+          d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+        ></path>
       </svg>
     </button>
   </div>
@@ -145,7 +203,10 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useKGSearchStore } from '@renderer/stores/kg-search/kg-search.store'
 import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
-import type { KGRetrievalMode, KGSearchModeOption } from '@renderer/stores/kg-search/kg-search.types'
+import type {
+  KGRetrievalMode,
+  KGSearchModeOption
+} from '@renderer/stores/kg-search/kg-search.types'
 
 const kgStore = useKGSearchStore()
 const kbStore = useKnowledgeLibraryStore()

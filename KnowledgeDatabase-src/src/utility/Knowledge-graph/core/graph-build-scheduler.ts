@@ -251,6 +251,7 @@ export class GraphBuildScheduler {
         target_namespace: $targetNamespace,
         target_database: $targetDatabase,
         target_table_base: $targetTableBase,
+        source_table: $sourceTable,
         config: $config,
         chunks_total: $chunksTotal,
         chunks_completed: 0,
@@ -266,6 +267,7 @@ export class GraphBuildScheduler {
         targetNamespace,
         targetDatabase,
         targetTableBase,
+        sourceTable: task.source_table ?? null,
         config: task.config ?? {},
         chunksTotal: chunks.length
       })
@@ -388,6 +390,13 @@ export class GraphBuildScheduler {
         console.warn(`[KG-GraphBuild] Chunk ${chunkIdStr}: parsed 0 entities and 0 relations`)
       }
 
+      // 3.5 解析真实 chunk Record ID（用于 entity_chunks / relation_chunks 溯源）
+      const resolvedChunkId = await this.resolveRealChunkId(
+        chunk,
+        buildTask,
+        cacheKey
+      )
+
       // 4. upsert 到目标库（含事务冲突重试）
       const tableNames = getKgTableNames(buildTask.target_table_base)
       let result: { entitiesUpserted: number; relationsUpserted: number } | undefined
@@ -402,7 +411,7 @@ export class GraphBuildScheduler {
               tableNames,
               parsed.entities,
               parsed.relations,
-              cacheKey,
+              resolvedChunkId,
               buildTask.file_key ?? ''
             )
             break
@@ -437,6 +446,72 @@ export class GraphBuildScheduler {
       })
       return { entitiesUpserted: 0, relationsUpserted: 0 }
     }
+  }
+
+  // ==========================================================================
+  // 解析真实 chunk Record ID
+  // ==========================================================================
+
+  /**
+   * 通过 file_key + chunk_index 从 emb chunk 表查出真实的 SurrealDB Record ID
+   * 用于写入 entity_chunks / relation_chunks 的 chunk_ids，使检索端能正确关联
+   *
+   * fallback 策略：
+   *   1. 优先用 buildTask.source_table（显式存储的 emb chunk 表名）
+   *   2. 其次从 target_table_base 推导（kg_emb_cfg_X_Y → emb_cfg_X_Y_chunks）
+   *   3. 查不到时降级为 cacheKey（保证构建不中断，但检索会缺失该 chunk）
+   */
+  private async resolveRealChunkId(
+    chunk: any,
+    buildTask: any,
+    fallbackCacheKey: string
+  ): Promise<string> {
+    const chunkIndex = chunk.chunk_index
+    const fileKey = buildTask.file_key
+    if (chunkIndex === undefined || chunkIndex === null || !fileKey) {
+      return fallbackCacheKey
+    }
+
+    // 确定 emb chunk 表名
+    const chunkTable =
+      buildTask.source_table ??
+      this.deriveChunkTableFromBase(buildTask.target_table_base)
+    if (!chunkTable) {
+      return fallbackCacheKey
+    }
+
+    try {
+      const rows = this.client.extractRecords(
+        await this.client.queryInDatabase(
+          buildTask.target_namespace,
+          buildTask.target_database,
+          `SELECT id FROM \`${chunkTable}\` WHERE file_key = $fk AND chunk_index = $ci LIMIT 1;`,
+          { fk: fileKey, ci: chunkIndex }
+        )
+      )
+      if (rows.length > 0 && rows[0]?.id) {
+        return rid(rows[0].id)
+      }
+      log(
+        `resolveRealChunkId: no match in ${chunkTable} for file_key=${fileKey}, chunk_index=${chunkIndex}, falling back to cacheKey`
+      )
+      return fallbackCacheKey
+    } catch (error) {
+      logError(
+        `resolveRealChunkId failed for ${chunkTable} file_key=${fileKey} chunk_index=${chunkIndex}`,
+        error
+      )
+      return fallbackCacheKey
+    }
+  }
+
+  /**
+   * 从 target_table_base 推导 emb chunk 表名
+   * kg_emb_cfg_X_Y → emb_cfg_X_Y_chunks
+   */
+  private deriveChunkTableFromBase(targetTableBase: string): string | null {
+    if (!targetTableBase || !targetTableBase.startsWith('kg_')) return null
+    return targetTableBase.replace(/^kg_/, '') + '_chunks'
   }
 
   // ==========================================================================

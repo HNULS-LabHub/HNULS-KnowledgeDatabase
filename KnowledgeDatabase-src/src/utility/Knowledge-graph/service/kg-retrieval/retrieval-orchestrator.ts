@@ -126,13 +126,34 @@ export class RetrievalOrchestrator {
 
     switch (params.mode) {
       case 'local':
-        result = await this.localSearch(params, embeddingConfig, vsConfig, gtConfig, tokenBudget, tableNames)
+        result = await this.localSearch(
+          params,
+          embeddingConfig,
+          vsConfig,
+          gtConfig,
+          tokenBudget,
+          tableNames
+        )
         break
       case 'global':
-        result = await this.globalSearch(params, embeddingConfig, vsConfig, gtConfig, tokenBudget, tableNames)
+        result = await this.globalSearch(
+          params,
+          embeddingConfig,
+          vsConfig,
+          gtConfig,
+          tokenBudget,
+          tableNames
+        )
         break
       case 'hybrid':
-        result = await this.hybridSearch(params, embeddingConfig, vsConfig, gtConfig, tokenBudget, tableNames)
+        result = await this.hybridSearch(
+          params,
+          embeddingConfig,
+          vsConfig,
+          gtConfig,
+          tokenBudget,
+          tableNames
+        )
         break
       case 'naive':
         result = await this.naiveSearch(params, embeddingConfig, vsConfig, tokenBudget)
@@ -143,7 +164,9 @@ export class RetrievalOrchestrator {
 
     result.meta.durationMs = Date.now() - startTime
 
-    log(`Retrieval completed: mode=${params.mode}, entities=${result.meta.entityCount}, relations=${result.meta.relationCount}, chunks=${result.meta.chunkCount}, duration=${result.meta.durationMs}ms`)
+    log(
+      `Retrieval completed: mode=${params.mode}, entities=${result.meta.entityCount}, relations=${result.meta.relationCount}, chunks=${result.meta.chunkCount}, duration=${result.meta.durationMs}ms`
+    )
 
     return result
   }
@@ -215,10 +238,7 @@ export class RetrievalOrchestrator {
     )
 
     // 6. 重排（可选）
-    const { chunks: finalChunks, rerankApplied } = await this.maybeRerank(
-      params,
-      scoredChunks
-    )
+    const { chunks: finalChunks, rerankApplied } = await this.maybeRerank(params, scoredChunks)
 
     // 7. Token 截断
     const truncatedEntities = this.chunkCollector.truncateDescriptions(
@@ -240,7 +260,14 @@ export class RetrievalOrchestrator {
       entities: truncatedEntities,
       relations: truncatedRelations,
       chunks: this.scoredChunksToRetrieval(truncatedChunks),
-      meta: this.buildMeta(params.mode, keywords, truncatedEntities, truncatedRelations, truncatedChunks, rerankApplied)
+      meta: this.buildMeta(
+        params.mode,
+        keywords,
+        truncatedEntities,
+        truncatedRelations,
+        truncatedChunks,
+        rerankApplied
+      )
     }
   }
 
@@ -308,10 +335,7 @@ export class RetrievalOrchestrator {
     )
 
     // 6. 重排（可选）
-    const { chunks: finalChunks, rerankApplied } = await this.maybeRerank(
-      params,
-      scoredChunks
-    )
+    const { chunks: finalChunks, rerankApplied } = await this.maybeRerank(params, scoredChunks)
 
     // 7. Token 截断
     const truncatedEntities = this.chunkCollector.truncateDescriptions(
@@ -333,7 +357,14 @@ export class RetrievalOrchestrator {
       entities: truncatedEntities,
       relations: truncatedRelations,
       chunks: this.scoredChunksToRetrieval(truncatedChunks),
-      meta: this.buildMeta(params.mode, keywords, truncatedEntities, truncatedRelations, truncatedChunks, rerankApplied)
+      meta: this.buildMeta(
+        params.mode,
+        keywords,
+        truncatedEntities,
+        truncatedRelations,
+        truncatedChunks,
+        rerankApplied
+      )
     }
   }
 
@@ -446,10 +477,7 @@ export class RetrievalOrchestrator {
     const allChunks = [...entityChunks, ...relationChunks]
 
     // 7. 重排（可选）
-    const { chunks: finalChunks, rerankApplied } = await this.maybeRerank(
-      params,
-      allChunks
-    )
+    const { chunks: finalChunks, rerankApplied } = await this.maybeRerank(params, allChunks)
 
     // 8. 合并实体和关系（去重）
     const entityMap = new Map<string, KGRetrievalEntity>()
@@ -490,7 +518,14 @@ export class RetrievalOrchestrator {
       entities: truncatedEntities,
       relations: truncatedRelations,
       chunks: this.scoredChunksToRetrieval(truncatedChunks),
-      meta: this.buildMeta(params.mode, keywords, truncatedEntities, truncatedRelations, truncatedChunks, rerankApplied)
+      meta: this.buildMeta(
+        params.mode,
+        keywords,
+        truncatedEntities,
+        truncatedRelations,
+        truncatedChunks,
+        rerankApplied
+      )
     }
   }
 
@@ -538,10 +573,7 @@ export class RetrievalOrchestrator {
     }))
 
     // 4. 重排（可选）
-    const { chunks: finalChunks, rerankApplied } = await this.maybeRerank(
-      params,
-      scoredChunks
-    )
+    const { chunks: finalChunks, rerankApplied } = await this.maybeRerank(params, scoredChunks)
 
     // 5. Token 截断
     const truncatedChunks = this.chunkCollector.deduplicateAndTruncate(
@@ -619,7 +651,12 @@ export class RetrievalOrchestrator {
   ): Promise<{ chunks: ScoredChunk[]; rerankApplied: boolean }> {
     const rerankConfig = params.rerank
 
-    if (!rerankConfig?.enabled || !rerankConfig.baseUrl || !rerankConfig.apiKey || !rerankConfig.modelId) {
+    if (
+      !rerankConfig?.enabled ||
+      !rerankConfig.baseUrl ||
+      !rerankConfig.apiKey ||
+      !rerankConfig.modelId
+    ) {
       return { chunks, rerankApplied: false }
     }
 
@@ -666,7 +703,11 @@ export class RetrievalOrchestrator {
     if (!params.targetNamespace || !params.targetDatabase || !params.graphTableBase) {
       throw new Error('targetNamespace, targetDatabase, graphTableBase are required')
     }
-    if (!params.embeddingConfig?.baseUrl || !params.embeddingConfig?.apiKey || !params.embeddingConfig?.modelId) {
+    if (
+      !params.embeddingConfig?.baseUrl ||
+      !params.embeddingConfig?.apiKey ||
+      !params.embeddingConfig?.modelId
+    ) {
       throw new Error('embeddingConfig (baseUrl, apiKey, modelId) is required')
     }
     if (params.mode === 'naive' && !params.chunkTableName) {
@@ -707,7 +748,8 @@ export class RetrievalOrchestrator {
     const tb = params.tokenBudget
     return {
       maxEntityDescTokens: tb?.maxEntityDescTokens ?? DEFAULT_TOKEN_BUDGET.maxEntityDescTokens,
-      maxRelationDescTokens: tb?.maxRelationDescTokens ?? DEFAULT_TOKEN_BUDGET.maxRelationDescTokens,
+      maxRelationDescTokens:
+        tb?.maxRelationDescTokens ?? DEFAULT_TOKEN_BUDGET.maxRelationDescTokens,
       maxChunkTokens: tb?.maxChunkTokens ?? DEFAULT_TOKEN_BUDGET.maxChunkTokens,
       maxTotalTokens: tb?.maxTotalTokens ?? DEFAULT_TOKEN_BUDGET.maxTotalTokens
     }
@@ -828,7 +870,10 @@ export class RetrievalOrchestrator {
     }
   }
 
-  private emptyResult(mode: KGRetrievalParams['mode'], keywords: ExtractedKeywords): KGRetrievalResult {
+  private emptyResult(
+    mode: KGRetrievalParams['mode'],
+    keywords: ExtractedKeywords
+  ): KGRetrievalResult {
     return {
       entities: [],
       relations: [],

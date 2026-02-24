@@ -1,9 +1,20 @@
 <template>
   <div class="kg-result-panel flex-1 flex flex-col min-h-0">
     <!-- 错误提示 -->
-    <div v-if="kgStore.error" class="mx-2 mb-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-600 flex items-center gap-2 flex-shrink-0">
-      <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>
+    <div
+      v-if="kgStore.error"
+      class="mx-2 mb-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-600 flex items-center gap-2 flex-shrink-0"
+    >
+      <svg
+        class="w-4 h-4 flex-shrink-0"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="15" y1="9" x2="9" y2="15"></line>
+        <line x1="9" y1="9" x2="15" y2="15"></line>
       </svg>
       <span>{{ kgStore.error }}</span>
     </div>
@@ -16,9 +27,13 @@
         </span>
         <span>命中 {{ kgStore.totalCount }} 条</span>
         <span>
-          耗时 <span class="text-amber-600 font-medium">{{ kgStore.result!.meta.durationMs }}ms</span>
+          耗时
+          <span class="text-amber-600 font-medium">{{ kgStore.result!.meta.durationMs }}ms</span>
         </span>
-        <span v-if="kgStore.result!.meta.rerankApplied" class="text-xs px-1.5 py-0.5 rounded bg-purple-50 text-purple-600">
+        <span
+          v-if="kgStore.result!.meta.rerankApplied"
+          class="text-xs px-1.5 py-0.5 rounded bg-purple-50 text-purple-600"
+        >
           Reranked
         </span>
       </div>
@@ -29,7 +44,8 @@
           v-for="kw in allKeywords"
           :key="kw"
           class="text-[10px] px-1 py-0.5 rounded bg-slate-100 text-slate-500"
-        >{{ kw }}</span>
+          >{{ kw }}</span
+        >
       </div>
     </div>
 
@@ -39,9 +55,11 @@
         v-for="tab in tabs"
         :key="tab.key"
         class="px-3 py-1 rounded-md text-xs font-medium transition-colors"
-        :class="kgStore.activeResultTab === tab.key
-          ? 'bg-teal-50 text-teal-700 border border-teal-200'
-          : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50 border border-transparent'"
+        :class="
+          kgStore.activeResultTab === tab.key
+            ? 'bg-teal-50 text-teal-700 border border-teal-200'
+            : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50 border border-transparent'
+        "
         @click="kgStore.setResultTab(tab.key)"
       >
         {{ tab.label }} ({{ tab.count }})
@@ -59,7 +77,10 @@
             class="glass-card p-3 !rounded-xl"
           >
             <div class="flex items-center gap-2 mb-1">
-              <span class="text-xs px-1.5 py-0.5 rounded font-medium" :class="entityTypeClass(entity.entity_type)">
+              <span
+                class="text-xs px-1.5 py-0.5 rounded font-medium"
+                :class="entityTypeClass(entity.entity_type)"
+              >
                 {{ entity.entity_type }}
               </span>
               <span class="text-sm font-medium text-slate-800 truncate">{{ entity.name }}</span>
@@ -71,7 +92,10 @@
               {{ entity.description }}
             </p>
           </div>
-          <div v-if="kgStore.result!.entities.length === 0" class="text-center text-xs text-slate-400 py-8">
+          <div
+            v-if="kgStore.result!.entities.length === 0"
+            class="text-center text-xs text-slate-400 py-8"
+          >
             无实体结果
           </div>
         </div>
@@ -85,7 +109,13 @@
           >
             <div class="flex items-center gap-2 mb-1 flex-wrap">
               <span class="text-sm font-medium text-indigo-700">{{ rel.source_name }}</span>
-              <svg class="w-4 h-4 text-slate-300 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                class="w-4 h-4 text-slate-300 flex-shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <line x1="5" y1="12" x2="19" y2="12"></line>
                 <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
@@ -96,16 +126,23 @@
             </div>
             <div v-if="rel.keywords" class="flex items-center gap-1 mb-1 flex-wrap">
               <span
-                v-for="kw in rel.keywords.split(',').map(s => s.trim()).filter(Boolean)"
+                v-for="kw in rel.keywords
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean)"
                 :key="kw"
                 class="text-[10px] px-1 py-0.5 rounded bg-indigo-50 text-indigo-500"
-              >{{ kw }}</span>
+                >{{ kw }}</span
+              >
             </div>
             <p v-if="rel.description" class="text-xs text-slate-500 line-clamp-3 m-0">
               {{ rel.description }}
             </p>
           </div>
-          <div v-if="kgStore.result!.relations.length === 0" class="text-center text-xs text-slate-400 py-8">
+          <div
+            v-if="kgStore.result!.relations.length === 0"
+            class="text-center text-xs text-slate-400 py-8"
+          >
             无关系结果
           </div>
         </div>
@@ -118,7 +155,10 @@
             class="glass-card p-3 !rounded-xl"
           >
             <div class="flex items-center gap-2 mb-1.5">
-              <span class="text-[10px] px-1.5 py-0.5 rounded font-medium" :class="chunkSourceClass(chunk.source)">
+              <span
+                class="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                :class="chunkSourceClass(chunk.source)"
+              >
                 {{ chunkSourceLabel(chunk.source) }}
               </span>
               <span v-if="chunk.file_name" class="text-xs text-slate-500 truncate">
@@ -131,9 +171,14 @@
                 {{ chunk.score.toFixed(3) }}
               </span>
             </div>
-            <p class="text-xs text-slate-600 leading-relaxed line-clamp-5 m-0 whitespace-pre-wrap">{{ chunk.content }}</p>
+            <p class="text-xs text-slate-600 leading-relaxed line-clamp-5 m-0 whitespace-pre-wrap">
+              {{ chunk.content }}
+            </p>
           </div>
-          <div v-if="kgStore.result!.chunks.length === 0" class="text-center text-xs text-slate-400 py-8">
+          <div
+            v-if="kgStore.result!.chunks.length === 0"
+            class="text-center text-xs text-slate-400 py-8"
+          >
             无文本块结果（请确认已传入 chunkTableName）
           </div>
         </div>
@@ -141,12 +186,22 @@
 
       <!-- 空状态 -->
       <div v-else class="flex flex-col items-center justify-center h-full text-slate-400">
-        <svg class="w-12 h-12 mb-3 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <svg
+          class="w-12 h-12 mb-3 opacity-30"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+        >
           <circle cx="12" cy="12" r="3"></circle>
-          <path d="M12 2v4"></path><path d="M12 18v4"></path>
-          <path d="m4.93 4.93 2.83 2.83"></path><path d="m16.24 16.24 2.83 2.83"></path>
-          <path d="M2 12h4"></path><path d="M18 12h4"></path>
-          <path d="m4.93 19.07 2.83-2.83"></path><path d="m16.24 7.76 2.83-2.83"></path>
+          <path d="M12 2v4"></path>
+          <path d="M12 18v4"></path>
+          <path d="m4.93 4.93 2.83 2.83"></path>
+          <path d="m16.24 16.24 2.83 2.83"></path>
+          <path d="M2 12h4"></path>
+          <path d="M18 12h4"></path>
+          <path d="m4.93 19.07 2.83-2.83"></path>
+          <path d="m16.24 7.76 2.83-2.83"></path>
         </svg>
         <p class="text-sm">
           {{ kgStore.isSearching ? '正在检索图谱...' : '选择知识库和图谱配置，输入检索词开始' }}
@@ -183,29 +238,42 @@ const allKeywords = computed(() => {
 
 function entityTypeClass(type: string): string {
   switch (type.toLowerCase()) {
-    case 'concept': return 'bg-amber-50 text-amber-600'
-    case 'person': return 'bg-emerald-50 text-emerald-600'
-    case 'organization': return 'bg-blue-50 text-blue-600'
-    case 'location': return 'bg-rose-50 text-rose-600'
-    default: return 'bg-slate-100 text-slate-600'
+    case 'concept':
+      return 'bg-amber-50 text-amber-600'
+    case 'person':
+      return 'bg-emerald-50 text-emerald-600'
+    case 'organization':
+      return 'bg-blue-50 text-blue-600'
+    case 'location':
+      return 'bg-rose-50 text-rose-600'
+    default:
+      return 'bg-slate-100 text-slate-600'
   }
 }
 
 function chunkSourceClass(source: string): string {
   switch (source) {
-    case 'entity_expansion': return 'bg-amber-50 text-amber-600'
-    case 'relation_expansion': return 'bg-indigo-50 text-indigo-600'
-    case 'direct_vector': return 'bg-teal-50 text-teal-600'
-    default: return 'bg-slate-100 text-slate-600'
+    case 'entity_expansion':
+      return 'bg-amber-50 text-amber-600'
+    case 'relation_expansion':
+      return 'bg-indigo-50 text-indigo-600'
+    case 'direct_vector':
+      return 'bg-teal-50 text-teal-600'
+    default:
+      return 'bg-slate-100 text-slate-600'
   }
 }
 
 function chunkSourceLabel(source: string): string {
   switch (source) {
-    case 'entity_expansion': return '实体扩展'
-    case 'relation_expansion': return '关系扩展'
-    case 'direct_vector': return '向量直检'
-    default: return source
+    case 'entity_expansion':
+      return '实体扩展'
+    case 'relation_expansion':
+      return '关系扩展'
+    case 'direct_vector':
+      return '向量直检'
+    default:
+      return source
   }
 }
 </script>

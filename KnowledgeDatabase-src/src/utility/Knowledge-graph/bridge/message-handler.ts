@@ -82,7 +82,11 @@ export class MessageHandler {
    */
   async handle(msg: MainToKGMessage): Promise<void> {
     // 高频轮询消息不打日志，避免刷屏；保留关键事件日志用于观察状态切换
-    if (msg.type !== 'kg:query-embedding-status' && msg.type !== 'kg:query-status' && msg.type !== 'kg:retrieval-search') {
+    if (
+      msg.type !== 'kg:query-embedding-status' &&
+      msg.type !== 'kg:query-status' &&
+      msg.type !== 'kg:retrieval-search'
+    ) {
       log(`Received: ${msg.type}`, msg)
     }
 
@@ -103,7 +107,10 @@ export class MessageHandler {
         case 'kg:update-model-providers': {
           this.scheduler.updateProviders(msg.providers ?? [])
           // 同步 providers 给检索编排器
-          const providerMap = new Map<import('@shared/knowledge-graph-ipc.types').KGModelProviderConfig['id'], import('@shared/knowledge-graph-ipc.types').KGModelProviderConfig>()
+          const providerMap = new Map<
+            import('@shared/knowledge-graph-ipc.types').KGModelProviderConfig['id'],
+            import('@shared/knowledge-graph-ipc.types').KGModelProviderConfig
+          >()
           for (const p of msg.providers ?? []) {
             if (p?.id) providerMap.set(p.id, p)
           }
@@ -333,10 +340,7 @@ export class MessageHandler {
   // KG 检索
   // ==========================================================================
 
-  private async handleRetrievalSearch(
-    requestId: string,
-    data: KGRetrievalParams
-  ): Promise<void> {
+  private async handleRetrievalSearch(requestId: string, data: KGRetrievalParams): Promise<void> {
     try {
       log(`Retrieval search: mode=${data.mode}, query="${data.query?.slice(0, 60)}..."`)
       const result = await this.retrievalOrchestrator.search(data)

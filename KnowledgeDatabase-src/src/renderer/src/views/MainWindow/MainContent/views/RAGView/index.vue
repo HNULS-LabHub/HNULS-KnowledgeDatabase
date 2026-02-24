@@ -102,6 +102,8 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRagStore } from '@renderer/stores/rag/rag.store'
 import { useAgentStore } from '@renderer/stores/rag/agent.store'
+import { useKnowledgeLibraryStore } from '@renderer/stores/knowledge-library/knowledge-library.store'
+import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
 import QueryForm from './QueryForm.vue'
 import ConfigForm from './ConfigForm.vue'
 import PipelineSteps from './PipelineSteps.vue'
@@ -112,6 +114,8 @@ import KGAdvancedPanel from './KGSearch/KGAdvancedPanel.vue'
 
 const ragStore = useRagStore()
 const agentStore = useAgentStore()
+const kbStore = useKnowledgeLibraryStore()
+const configStore = useKnowledgeConfigStore()
 
 /** 当前活跃 Tab */
 const activeTab = ref<'rag' | 'kg'>('rag')
@@ -119,6 +123,19 @@ const activeTab = ref<'rag' | 'kg'>('rag')
 // 初始化 / 清理 IPC 事件监听
 onMounted(() => agentStore.initIPCListener())
 onUnmounted(() => agentStore.destroyIPCListener())
+
+onMounted(async () => {
+  try {
+    if (kbStore.knowledgeBases.length === 0) {
+      await kbStore.fetchAll()
+    }
+
+    const kbIds = kbStore.knowledgeBases.map((kb) => kb.id)
+    await Promise.all(kbIds.map((id) => configStore.ensureConfigLoaded(id)))
+  } catch (error) {
+    console.error('[RAGView] Failed to ensure knowledge configs loaded', error)
+  }
+})
 
 // RAG 查询提交
 async function handleRagSubmit() {

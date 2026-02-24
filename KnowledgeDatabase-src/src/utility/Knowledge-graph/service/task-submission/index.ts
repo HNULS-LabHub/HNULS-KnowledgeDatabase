@@ -82,6 +82,7 @@ DEFINE FIELD IF NOT EXISTS status            ON kg_build_task TYPE string DEFAUL
 DEFINE FIELD IF NOT EXISTS target_namespace  ON kg_build_task TYPE string;
 DEFINE FIELD IF NOT EXISTS target_database   ON kg_build_task TYPE string;
 DEFINE FIELD IF NOT EXISTS target_table_base ON kg_build_task TYPE string;
+DEFINE FIELD IF NOT EXISTS source_table      ON kg_build_task TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS config            ON kg_build_task FLEXIBLE TYPE object DEFAULT {};
 DEFINE FIELD IF NOT EXISTS chunks_total      ON kg_build_task TYPE int DEFAULT 0;
 DEFINE FIELD IF NOT EXISTS chunks_completed  ON kg_build_task TYPE int DEFAULT 0;

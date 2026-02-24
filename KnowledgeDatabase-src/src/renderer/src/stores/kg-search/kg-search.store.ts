@@ -9,16 +9,8 @@ import { KGSearchDataSource } from './kg-search.datasource'
 import { useKnowledgeLibraryStore } from '../knowledge-library/knowledge-library.store'
 import { useKnowledgeConfigStore } from '../knowledge-library/knowledge-config.store'
 import { useUserModelConfigStore } from '../user-config/user-model-config.store'
-import type {
-  KGRetrievalMode,
-  KGRetrievalParams,
-  KGRetrievalResult
-} from '@preload/types'
-import type {
-  KGResultTab,
-  KGVectorSearchUI,
-  KGGraphTraversalUI
-} from './kg-search.types'
+import type { KGRetrievalMode, KGRetrievalParams, KGRetrievalResult } from '@preload/types'
+import type { KGResultTab, KGVectorSearchUI, KGGraphTraversalUI } from './kg-search.types'
 
 export const useKGSearchStore = defineStore('kg-search', () => {
   // ---- 依赖 stores ----
@@ -74,7 +66,9 @@ export const useKGSearchStore = defineStore('kg-search', () => {
   /** 当前知识库可用的 KG 配置列表（仅已建表的） */
   const availableKgConfigs = computed(() => {
     if (!selectedKbId.value) return []
-    return configStore.getKgConfigs(selectedKbId.value).filter((c) => c.graphTablesCreated && c.graphTableBase)
+    return configStore
+      .getKgConfigs(selectedKbId.value)
+      .filter((c) => c.graphTablesCreated && c.graphTableBase)
   })
 
   /** 当前选中的 KG 配置 */

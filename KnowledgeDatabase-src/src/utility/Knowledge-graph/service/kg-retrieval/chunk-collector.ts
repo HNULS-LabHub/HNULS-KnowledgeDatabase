@@ -99,7 +99,7 @@ export class ChunkCollector {
     const sql = `
       SELECT id, content, chunk_index, file_key, file_name
       FROM \`${chunkTableName}\`
-      WHERE id IN $ids;
+      WHERE <string>id IN $ids;
     `
 
     const raw = await this.client.queryInDatabase(namespace, database, sql, { ids: chunkIds })
@@ -160,7 +160,9 @@ export class ChunkCollector {
     }
 
     if (result.length < chunks.length) {
-      log(`Token budget truncation: ${chunks.length} → ${result.length} chunks (${usedTokens}/${maxTokens} tokens)`)
+      log(
+        `Token budget truncation: ${chunks.length} → ${result.length} chunks (${usedTokens}/${maxTokens} tokens)`
+      )
     }
 
     return result

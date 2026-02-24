@@ -4,11 +4,7 @@
  */
 
 import type { KGSurrealClient } from '../../db/surreal-client'
-import type {
-  ExpandedEntity,
-  ExpandedRelation,
-  GraphExpansionResult
-} from './types'
+import type { ExpandedEntity, ExpandedRelation, GraphExpansionResult } from './types'
 
 // ============================================================================
 // 日志
