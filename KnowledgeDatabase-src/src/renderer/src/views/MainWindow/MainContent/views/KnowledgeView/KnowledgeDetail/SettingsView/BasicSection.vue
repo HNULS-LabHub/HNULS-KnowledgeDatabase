@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="kb-basic-section flex flex-col gap-6 p-6 bg-white border-b border-slate-100"
-  >
+  <div class="kb-basic-section flex flex-col gap-6 p-6 bg-white border-b border-slate-100">
     <div class="kb-basic-header">
       <h3 class="kb-basic-title text-lg font-semibold text-slate-900 mb-1">基本</h3>
       <p class="kb-basic-desc text-sm text-slate-500">知识库基础管理操作</p>
@@ -9,7 +7,9 @@
 
     <div class="kb-basic-actions flex flex-col gap-4">
       <!-- 重置数据库 -->
-      <div class="kb-basic-reset flex items-center justify-between p-4 rounded-lg border border-slate-200">
+      <div
+        class="kb-basic-reset flex items-center justify-between p-4 rounded-lg border border-slate-200"
+      >
         <div class="flex flex-col gap-1">
           <span class="text-sm font-medium text-slate-700">重置 SurrealDB 数据库</span>
           <span class="text-xs text-slate-400">

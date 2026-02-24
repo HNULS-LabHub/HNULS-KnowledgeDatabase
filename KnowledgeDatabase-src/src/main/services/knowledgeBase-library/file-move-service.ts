@@ -481,10 +481,7 @@ export class FileMoveService {
   /**
    * 清理 .ChunkDocument 和 .ParserDocument 下对应的缓存目录
    */
-  private async cleanupCacheDirectories(
-    baseDirectory: string,
-    docNames: string[]
-  ): Promise<void> {
+  private async cleanupCacheDirectories(baseDirectory: string, docNames: string[]): Promise<void> {
     for (const docName of docNames) {
       const chunkDir = path.join(baseDirectory, '.ChunkDocument', docName)
       const parserDir = path.join(baseDirectory, '.ParserDocument', docName)

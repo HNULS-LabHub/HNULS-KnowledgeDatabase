@@ -6,12 +6,21 @@
         <!-- RAG 调试 Tab -->
         <button
           class="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-bold transition-all duration-200 cursor-pointer"
-          :class="activeTab === 'rag'
-            ? 'bg-indigo-50 border-indigo-200 text-slate-900'
-            : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300'"
+          :class="
+            activeTab === 'rag'
+              ? 'bg-indigo-50 border-indigo-200 text-slate-900'
+              : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300'
+          "
           @click="activeTab = 'rag'"
         >
-          <svg class="w-4 h-4" :class="activeTab === 'rag' ? 'text-indigo-500' : 'text-slate-400'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="w-4 h-4"
+            :class="activeTab === 'rag' ? 'text-indigo-500' : 'text-slate-400'"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <circle cx="11" cy="11" r="8"></circle>
             <path d="m21 21-4.35-4.35"></path>
           </svg>
@@ -20,16 +29,28 @@
         <!-- 知识图谱检索 Tab -->
         <button
           class="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-bold transition-all duration-200 cursor-pointer"
-          :class="activeTab === 'kg'
-            ? 'bg-teal-50 border-teal-200 text-slate-900'
-            : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300'"
+          :class="
+            activeTab === 'kg'
+              ? 'bg-teal-50 border-teal-200 text-slate-900'
+              : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300'
+          "
           @click="activeTab = 'kg'"
         >
-          <svg class="w-4 h-4" :class="activeTab === 'kg' ? 'text-teal-500' : 'text-slate-400'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="w-4 h-4"
+            :class="activeTab === 'kg' ? 'text-teal-500' : 'text-slate-400'"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <circle cx="12" cy="12" r="3"></circle>
-            <path d="M12 2v4"></path><path d="M12 18v4"></path>
-            <path d="m4.93 4.93 2.83 2.83"></path><path d="m16.24 16.24 2.83 2.83"></path>
-            <path d="M2 12h4"></path><path d="M18 12h4"></path>
+            <path d="M12 2v4"></path>
+            <path d="M12 18v4"></path>
+            <path d="m4.93 4.93 2.83 2.83"></path>
+            <path d="m16.24 16.24 2.83 2.83"></path>
+            <path d="M2 12h4"></path>
+            <path d="M18 12h4"></path>
           </svg>
           图谱检索
         </button>

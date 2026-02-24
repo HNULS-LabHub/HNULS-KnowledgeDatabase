@@ -473,7 +473,10 @@ export class EmbeddingScheduler {
       if (countResult.length > 0) {
         this.relationTotalCount = Number(countResult[0].total) || 0
         this.relationCompletedCount = Number(countResult[0].completed) || 0
-        this.relationPendingCount = Math.max(0, this.relationTotalCount - this.relationCompletedCount)
+        this.relationPendingCount = Math.max(
+          0,
+          this.relationTotalCount - this.relationCompletedCount
+        )
       }
 
       const rows = this.client.extractRecords(

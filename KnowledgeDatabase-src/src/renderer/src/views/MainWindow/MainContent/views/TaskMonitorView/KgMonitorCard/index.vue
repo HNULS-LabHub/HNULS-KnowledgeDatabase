@@ -602,7 +602,9 @@ const relationEmbeddingPercent = computed(() => {
   if (!embeddingStatus.value || !embeddingStatus.value.relationTotal) return 0
   return Math.min(
     100,
-    Math.round((embeddingStatus.value.relationCompleted / embeddingStatus.value.relationTotal) * 100)
+    Math.round(
+      (embeddingStatus.value.relationCompleted / embeddingStatus.value.relationTotal) * 100
+    )
   )
 })
 

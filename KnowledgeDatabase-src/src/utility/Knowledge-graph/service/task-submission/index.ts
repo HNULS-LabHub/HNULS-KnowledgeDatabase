@@ -252,10 +252,15 @@ export class TaskSubmissionService {
       ORDER BY chunk_index ASC;
     `
 
-    const rawResult = await this.client.queryInDatabase(sourceNamespace, sourceDatabase, chunksSql, {
-      fileKey,
-      runId: expectedRunId
-    })
+    const rawResult = await this.client.queryInDatabase(
+      sourceNamespace,
+      sourceDatabase,
+      chunksSql,
+      {
+        fileKey,
+        runId: expectedRunId
+      }
+    )
 
     const rawChunks = this.client.extractRecords(rawResult)
 

@@ -413,7 +413,9 @@ export class KnowledgeLibraryService {
       return { success: true }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error)
-      logger.error(`[resetDatabase] Failed to reset database for KB ${knowledgeBaseId}`, { error: msg })
+      logger.error(`[resetDatabase] Failed to reset database for KB ${knowledgeBaseId}`, {
+        error: msg
+      })
       return { success: false, error: msg }
     }
   }
@@ -611,10 +613,15 @@ export class KnowledgeLibraryService {
     >()
 
     try {
-      const refsResult = await this.queryService.queryInDatabase(namespace, kb.databaseName, embeddingRefsSql, {
-        prefix,
-        fileKey: normalized
-      })
+      const refsResult = await this.queryService.queryInDatabase(
+        namespace,
+        kb.databaseName,
+        embeddingRefsSql,
+        {
+          prefix,
+          fileKey: normalized
+        }
+      )
       const refs = this.extractQueryRecords(refsResult)
       for (const row of refs) {
         const embeddingConfigId = String(row.embedding_config_id ?? '').trim()
@@ -630,12 +637,15 @@ export class KnowledgeLibraryService {
         })
       }
     } catch (error) {
-      logger.warn('[KnowledgeLibraryService] Failed to enumerate embedding chunk tables before delete', {
-        knowledgeBaseId: params.knowledgeBaseId,
-        filePath: params.filePath,
-        isDirectory: params.isDirectory,
-        error: error instanceof Error ? error.message : String(error)
-      })
+      logger.warn(
+        '[KnowledgeLibraryService] Failed to enumerate embedding chunk tables before delete',
+        {
+          knowledgeBaseId: params.knowledgeBaseId,
+          filePath: params.filePath,
+          isDirectory: params.isDirectory,
+          error: error instanceof Error ? error.message : String(error)
+        }
+      )
     }
 
     for (const target of tableTargets.values()) {
@@ -651,15 +661,18 @@ export class KnowledgeLibraryService {
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         if (!msg.includes('not found') && !msg.includes('does not exist')) {
-          logger.warn('[KnowledgeLibraryService] Failed to delete records from dynamic embedding table', {
-            knowledgeBaseId: params.knowledgeBaseId,
-            filePath: params.filePath,
-            isDirectory: params.isDirectory,
-            tableName: target.tableName,
-            embeddingConfigId: target.embeddingConfigId,
-            dimensions: target.dimensions,
-            error: msg
-          })
+          logger.warn(
+            '[KnowledgeLibraryService] Failed to delete records from dynamic embedding table',
+            {
+              knowledgeBaseId: params.knowledgeBaseId,
+              filePath: params.filePath,
+              isDirectory: params.isDirectory,
+              tableName: target.tableName,
+              embeddingConfigId: target.embeddingConfigId,
+              dimensions: target.dimensions,
+              error: msg
+            }
+          )
         }
       }
     }
@@ -696,7 +709,13 @@ export class KnowledgeLibraryService {
     }
 
     // 3) 级联清理 KG 动态表（entity / relates / entity_chunks / relation_chunks）
-    await this.cascadeDeleteKgData(namespace, kb.databaseName, normalized, prefix, params.isDirectory)
+    await this.cascadeDeleteKgData(
+      namespace,
+      kb.databaseName,
+      normalized,
+      prefix,
+      params.isDirectory
+    )
   }
 
   /**
@@ -757,7 +776,14 @@ export class KnowledgeLibraryService {
 
     for (const t of kgTableGroups) {
       try {
-        await this.cascadeDeleteKgTableGroup(namespace, databaseName, t, fileKey, prefix, isDirectory)
+        await this.cascadeDeleteKgTableGroup(
+          namespace,
+          databaseName,
+          t,
+          fileKey,
+          prefix,
+          isDirectory
+        )
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         if (!msg.includes('not found') && !msg.includes('does not exist')) {
@@ -838,7 +864,10 @@ export class KnowledgeLibraryService {
     let deletedEntityNames: string[] = []
     try {
       const result = await this.queryService.queryInDatabase(
-        namespace, databaseName, deleteOnlyEntitySql, params
+        namespace,
+        databaseName,
+        deleteOnlyEntitySql,
+        params
       )
       const records = this.extractQueryRecords(result)
       deletedEntityNames = records
@@ -869,9 +898,9 @@ export class KnowledgeLibraryService {
           WHERE entity_name IN $names
           RETURN NONE;
         `
-        await this.queryService.queryInDatabase(
-          namespace, databaseName, deleteChunksSql, { names: deletedEntityNames }
-        )
+        await this.queryService.queryInDatabase(namespace, databaseName, deleteChunksSql, {
+          names: deletedEntityNames
+        })
       } catch (error) {
         logger.warn('[KnowledgeLibraryService] KG cascade: failed to delete entity_chunks', {
           table: tables.entityChunks,
@@ -889,14 +918,17 @@ export class KnowledgeLibraryService {
     try {
       // 查出要删的 relates ID
       const idsResult = await this.queryService.queryInDatabase(
-        namespace, databaseName, selectRelatesSql, params
+        namespace,
+        databaseName,
+        selectRelatesSql,
+        params
       )
       const rawIds = this.extractQueryRecords(idsResult)
 
       deletedRelateIdSuffixes = rawIds
         .map((row: any) => {
           const id = row?.id
-          const idStr = typeof id === 'string' ? id : id?.toString?.() ?? ''
+          const idStr = typeof id === 'string' ? id : (id?.toString?.() ?? '')
           const colonIdx = idStr.indexOf(':')
           if (colonIdx < 0) return null
           let suffix = idStr.slice(colonIdx + 1)

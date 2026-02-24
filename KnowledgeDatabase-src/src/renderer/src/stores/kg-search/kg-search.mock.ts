@@ -46,8 +46,21 @@ export async function mockKGSearch(query: string, mode: KGSearchMode): Promise<K
         properties: { definition: `关于 ${query} 的核心定义`, source: '知识库A' }
       },
       edges: [
-        { id: 'edge_001', from: 'node_001', to: 'node_002', relation: 'related_to', properties: {} },
-        { id: 'edge_002', from: 'node_001', to: 'node_003', relation: 'part_of', weight: 0.85, properties: {} }
+        {
+          id: 'edge_001',
+          from: 'node_001',
+          to: 'node_002',
+          relation: 'related_to',
+          properties: {}
+        },
+        {
+          id: 'edge_002',
+          from: 'node_001',
+          to: 'node_003',
+          relation: 'part_of',
+          weight: 0.85,
+          properties: {}
+        }
       ],
       neighbors: [
         { id: 'node_002', label: '相关文档A', type: 'document', properties: { pages: 12 } },

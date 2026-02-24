@@ -6,7 +6,13 @@
       <span>
         耗时:
         <span class="time-badge">
-          {{ kgStore.isSearching ? '...' : kgStore.result?.elapsedMs != null ? kgStore.result.elapsedMs + 'ms' : '-' }}
+          {{
+            kgStore.isSearching
+              ? '...'
+              : kgStore.result?.elapsedMs != null
+                ? kgStore.result.elapsedMs + 'ms'
+                : '-'
+          }}
         </span>
       </span>
     </div>
@@ -31,18 +37,28 @@
                 <div class="flex-1 min-w-0">
                   <h4 class="result-title truncate">{{ hit.node.label }}</h4>
                   <p class="result-meta">
-                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
+                    <span
+                      class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600"
+                    >
                       {{ hit.node.type }}
                     </span>
-                    <span class="ml-2 text-amber-600 font-semibold">Score {{ hit.score.toFixed(2) }}</span>
-                    <span class="ml-2 text-slate-400">{{ hit.edges.length }} 条关系 · {{ hit.neighbors.length }} 个邻居</span>
+                    <span class="ml-2 text-amber-600 font-semibold"
+                      >Score {{ hit.score.toFixed(2) }}</span
+                    >
+                    <span class="ml-2 text-slate-400"
+                      >{{ hit.edges.length }} 条关系 · {{ hit.neighbors.length }} 个邻居</span
+                    >
                   </p>
                 </div>
               </div>
             </div>
 
             <!-- 高亮片段 -->
-            <p v-if="hit.highlight" class="result-excerpt text-sm text-slate-600 mt-2" v-html="hit.highlight"></p>
+            <p
+              v-if="hit.highlight"
+              class="result-excerpt text-sm text-slate-600 mt-2"
+              v-html="hit.highlight"
+            ></p>
 
             <!-- 关系列表 -->
             <div v-if="hit.edges.length > 0" class="mt-3 flex flex-wrap gap-1.5">
@@ -51,7 +67,13 @@
                 :key="edge.id"
                 class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-indigo-50 text-indigo-600 border border-indigo-100"
               >
-                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg
+                  class="w-3 h-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                   <polyline points="12 5 19 12 12 19"></polyline>
                 </svg>
@@ -68,12 +90,22 @@
       <div v-else class="empty-results">
         <div class="empty-results-content">
           <div class="glow-effect"></div>
-          <svg class="database-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="database-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <circle cx="12" cy="12" r="3"></circle>
-            <path d="M12 2v4"></path><path d="M12 18v4"></path>
-            <path d="m4.93 4.93 2.83 2.83"></path><path d="m16.24 16.24 2.83 2.83"></path>
-            <path d="M2 12h4"></path><path d="M18 12h4"></path>
-            <path d="m4.93 19.07 2.83-2.83"></path><path d="m16.24 7.76 2.83-2.83"></path>
+            <path d="M12 2v4"></path>
+            <path d="M12 18v4"></path>
+            <path d="m4.93 4.93 2.83 2.83"></path>
+            <path d="m16.24 16.24 2.83 2.83"></path>
+            <path d="M2 12h4"></path>
+            <path d="M18 12h4"></path>
+            <path d="m4.93 19.07 2.83-2.83"></path>
+            <path d="m16.24 7.76 2.83-2.83"></path>
           </svg>
           <p>{{ kgStore.isSearching ? '正在检索图谱...' : '输入检索词开始知识图谱检索' }}</p>
         </div>
@@ -103,10 +135,14 @@ function nodeTypeIcon(type: string): string {
 
 function nodeTypeColor(type: string): string {
   switch (type) {
-    case 'concept': return '!bg-amber-50 !text-amber-500'
-    case 'document': return '!bg-blue-50 !text-blue-500'
-    case 'person': return '!bg-emerald-50 !text-emerald-500'
-    default: return ''
+    case 'concept':
+      return '!bg-amber-50 !text-amber-500'
+    case 'document':
+      return '!bg-blue-50 !text-blue-500'
+    case 'person':
+      return '!bg-emerald-50 !text-emerald-500'
+    default:
+      return ''
   }
 }
 

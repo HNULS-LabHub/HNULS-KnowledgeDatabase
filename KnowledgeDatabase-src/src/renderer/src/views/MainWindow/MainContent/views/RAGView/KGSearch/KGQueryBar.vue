@@ -6,11 +6,24 @@
         class="flex items-center gap-2 px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-colors"
         @click="showDropdown = !showDropdown"
       >
-        <svg class="w-4 h-4 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          class="w-4 h-4 text-slate-500"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <path :d="currentModeOption?.icon ?? ''"></path>
         </svg>
         <span class="text-slate-700">{{ currentModeOption?.label }}</span>
-        <svg class="w-3 h-3 text-slate-400 transition-transform" :class="{ 'rotate-180': showDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          class="w-3 h-3 text-slate-400 transition-transform"
+          :class="{ 'rotate-180': showDropdown }"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </button>
@@ -25,11 +38,23 @@
           :class="{ 'bg-indigo-50': opt.value === kgStore.mode }"
           @click="selectMode(opt.value)"
         >
-          <svg class="w-4 h-4 mt-0.5 flex-shrink-0" :class="opt.value === kgStore.mode ? 'text-indigo-500' : 'text-slate-400'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="w-4 h-4 mt-0.5 flex-shrink-0"
+            :class="opt.value === kgStore.mode ? 'text-indigo-500' : 'text-slate-400'"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <path :d="opt.icon"></path>
           </svg>
           <div class="min-w-0">
-            <div class="text-sm font-medium" :class="opt.value === kgStore.mode ? 'text-indigo-700' : 'text-slate-700'">{{ opt.label }}</div>
+            <div
+              class="text-sm font-medium"
+              :class="opt.value === kgStore.mode ? 'text-indigo-700' : 'text-slate-700'"
+            >
+              {{ opt.label }}
+            </div>
             <div class="text-xs text-slate-400 mt-0.5">{{ opt.description }}</div>
           </div>
         </button>

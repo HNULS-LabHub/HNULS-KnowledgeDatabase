@@ -408,10 +408,15 @@ export class TransferWorker {
         WHERE file_key = $fileKey AND run_id = $runId
         GROUP ALL;
       `
-      const countResult = await this.client.queryInDatabase(group.namespace, group.database, countSql, {
-        fileKey: entry.fileKey,
-        runId: entry.runId
-      })
+      const countResult = await this.client.queryInDatabase(
+        group.namespace,
+        group.database,
+        countSql,
+        {
+          fileKey: entry.fileKey,
+          runId: entry.runId
+        }
+      )
       const countRows = this.client.extractRecords(countResult)
       const runCount = Number(countRows[0]?.count ?? 0)
 
