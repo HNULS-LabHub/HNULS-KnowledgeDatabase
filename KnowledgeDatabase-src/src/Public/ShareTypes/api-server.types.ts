@@ -3,6 +3,11 @@
  * @description Express API 服务的 IPC 协议和 REST API 契约
  */
 
+import type {
+  KGRetrievalParams,
+  KGRetrievalResult
+} from './knowledge-graph-ipc.types'
+
 // ============================================================================
 // 配置类型
 // ============================================================================
@@ -70,6 +75,22 @@ export type MainToApiServerMessage =
       data?: RerankModelInfo[]
       error?: string
     }
+  | {
+      /** 响应 KG 检索请求 */
+      type: 'kg:retrieval-result'
+      requestId: string
+      success: boolean
+      data?: KGRetrievalResult
+      error?: string
+    }
+  | {
+      /** 响应 KG 模型列表请求 */
+      type: 'kg:list-models-result'
+      requestId: string
+      success: boolean
+      data?: KGModelsListResult
+      error?: string
+    }
 
 /**
  * ApiServer → Main 消息
@@ -88,6 +109,17 @@ export type ApiServerToMainMessage =
   | {
       /** 列出当前可用的重排模型（脱敏） */
       type: 'model:list'
+      requestId: string
+    }
+  | {
+      /** 请求 KG 检索 */
+      type: 'kg:retrieval-search'
+      requestId: string
+      params: Partial<KGRetrievalParams> // 允许部分参数（如 credentials）由 Main 补全
+    }
+  | {
+      /** 请求 KG 模型列表 */
+      type: 'kg:list-models'
       requestId: string
     }
 

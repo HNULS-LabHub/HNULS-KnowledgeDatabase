@@ -18,6 +18,9 @@ import type {
 import { logger } from '../logger'
 import type { VectorRetrievalService } from '../vector-retrieval/vector-retrieval-service'
 import { ModelConfigService } from '../model-config'
+import { knowledgeGraphBridge } from '../knowledge-graph-bridge'
+import type { KGRetrievalParams } from '@shared/knowledge-graph-ipc.types'
+import type { KGModelsListResult, KGModelInfo } from '@shared/api-server.types'
 
 // ============================================================================
 // 类型定义
@@ -270,6 +273,156 @@ export class ApiServerBridge {
         this.handleModelList(msg.requestId)
         break
       }
+
+      case 'kg:list-models': {
+        this.handleKGModelList(msg.requestId)
+        break
+      }
+
+      case 'kg:retrieval-search': {
+        this.handleKGRetrievalSearch(msg.requestId, msg.params)
+        break
+      }
+    }
+  }
+
+  /**
+   * 处理 KG 模型列表请求
+   */
+  private async handleKGModelList(requestId: string): Promise<void> {
+    try {
+      const modelConfigService = new ModelConfigService()
+      const config = await modelConfigService.getConfig()
+      const embeddingModels: KGModelInfo[] = []
+      const rerankModels: KGModelInfo[] = []
+      const seen = new Set<string>()
+
+      for (const p of config.providers || []) {
+        if (!p?.enabled || !p.baseUrl || !p.apiKey) continue
+        if (!Array.isArray(p.models) || p.models.length === 0) continue
+
+        for (const m of p.models) {
+          const id = String(m?.id || '').trim()
+          if (!id || seen.has(`${p.id}:${id}`)) continue
+          seen.add(`${p.id}:${id}`)
+
+          const info: KGModelInfo = {
+            id,
+            displayName: m.displayName || id,
+            providerId: p.id,
+            providerName: p.name,
+            type: m.type === 'embedding' ? 'embedding' : 'rerank', // 简单映射，实际可能需要更严谨判断
+            dimensions: m.dimensions,
+            maxTokens: m.maxTokens
+          }
+
+          if (m.type === 'embedding') {
+            embeddingModels.push(info)
+          } else if (m.type === 'rerank') {
+            info.type = 'rerank'
+            rerankModels.push(info)
+          }
+        }
+      }
+
+      const result: KGModelsListResult = {
+        embeddingModels,
+        rerankModels
+      }
+
+      this.send({
+        type: 'kg:list-models-result',
+        requestId,
+        success: true,
+        data: result
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      logger.error('[ApiServerBridge] kg:list-models failed:', message)
+      this.send({
+        type: 'kg:list-models-result',
+        requestId,
+        success: false,
+        error: message
+      })
+    }
+  }
+
+  /**
+   * 处理 KG 检索请求
+   * 负责补全 credentials
+   */
+  private async handleKGRetrievalSearch(
+    requestId: string,
+    params: Partial<KGRetrievalParams>
+  ): Promise<void> {
+    try {
+      // 1. 补全 Embedding Config
+      if (params.embeddingConfig) {
+        const { providerId, modelId, apiKey, baseUrl } = params.embeddingConfig
+        // 如果缺少 apiKey 或 baseUrl，尝试从系统配置查找
+        if (!apiKey || !baseUrl) {
+          const modelConfigService = new ModelConfigService()
+          const config = await modelConfigService.getConfig()
+          const provider = config.providers.find((p) => p.id === providerId)
+          if (provider) {
+             if (!baseUrl) params.embeddingConfig.baseUrl = provider.baseUrl
+             if (!apiKey) params.embeddingConfig.apiKey = provider.apiKey
+             // 同时也尝试补全 headers 如果有的话 (虽然类型里只有 headers Record)
+          }
+        }
+      }
+
+      // 2. 补全 Rerank Config
+      if (params.rerank && params.rerank.enabled && params.rerank.providerId) {
+        const { providerId, apiKey, baseUrl } = params.rerank
+        if (!apiKey || !baseUrl) {
+          const modelConfigService = new ModelConfigService()
+          const config = await modelConfigService.getConfig()
+          const provider = config.providers.find((p) => p.id === providerId)
+          if (provider) {
+             if (!baseUrl) params.rerank.baseUrl = provider.baseUrl
+             if (!apiKey) params.rerank.apiKey = provider.apiKey
+          }
+        }
+      }
+
+      // 3. 补全 LLM Config (Keyword Extraction)
+      // 注意：KGRetrievalParams.keywordExtraction 只包含 llmProviderId, 并没有 full config
+      // KG 内部 retrievalOrchestrator 会通过 providerId 查找配置，
+      // 但前提是 KG 进程持有 providers 列表。
+      // KnowledgeGraphBridge.updateModelProviders() 负责同步 providers 到 KG 进程。
+      // 所以这里不需要补全 LLM 的 apiKey，只需要确保 KG 进程有最新的 providers。
+      // 这是一个假设：KG 进程应该已经同步了 providers。
+
+      // 4. 调用 KG Bridge
+      // 强制类型转换为完整参数，假设经过补全后是完整的
+      // 实际还需要校验必填项
+      if (
+        !params.embeddingConfig?.baseUrl ||
+        !params.embeddingConfig?.apiKey ||
+        !params.embeddingConfig?.dimensions
+      ) {
+         throw new Error('Missing embedding configuration (provider not found or invalid params)')
+      }
+
+      const result = await knowledgeGraphBridge.retrievalSearch(params as KGRetrievalParams)
+
+      this.send({
+        type: 'kg:retrieval-result',
+        requestId,
+        success: true,
+        data: result
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      logger.error('[ApiServerBridge] kg:retrieval-search failed:', message)
+      this.send({
+        type: 'kg:retrieval-result',
+        requestId,
+        success: false,
+        error: message
+      })
     }
   }
 

@@ -9,6 +9,7 @@ import type { SurrealClient } from './db/surreal-client'
 import { createKnowledgeRoutes } from './routes/knowledge'
 import { createRetrievalRoutes } from './routes/retrieval'
 import { createRerankModelRoutes } from './routes/rerank-models'
+import { createKGRoutes } from './routes/kg'
 import { mainBridge } from './ipc/main-bridge'
 
 // ============================================================================
@@ -116,6 +117,14 @@ export function createApp(dbClient: SurrealClient, metaFilePath: string): Expres
   const rerankModelRouter = Router()
   createRerankModelRoutes(rerankModelRouter, mainBridge)
   app.use('/api/v1', rerankModelRouter)
+
+  // ==========================================================================
+  // 知识图谱路由
+  // ==========================================================================
+
+  const kgRouter = Router()
+  createKGRoutes(kgRouter, mainBridge, dbClient, metaFilePath)
+  app.use('/api/v1', kgRouter)
 
   // ==========================================================================
   // 404 处理

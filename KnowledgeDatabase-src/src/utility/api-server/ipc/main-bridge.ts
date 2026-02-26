@@ -8,7 +8,9 @@ import type {
   MainToApiServerMessage,
   RetrievalSearchParams,
   RetrievalHit,
-  RerankModelInfo
+  KGRetrievalResult,
+  KGModelsListResult,
+  KGRetrievalParams
 } from '@shared/api-server.types'
 
 // ============================================================================
@@ -33,6 +35,18 @@ export interface ModelListResult {
   error?: string
 }
 
+export interface KGRetrievalResponse {
+  success: boolean
+  data?: KGRetrievalResult
+  error?: string
+}
+
+export interface KGModelsListResponse {
+  success: boolean
+  data?: KGModelsListResult
+  error?: string
+}
+
 // ============================================================================
 // 日志
 // ============================================================================
@@ -53,6 +67,8 @@ export class MainBridge {
   private parentPort: Electron.ParentPort | null = null
   private pendingRetrievalRequests: Map<string, PendingRequest<RetrievalSearchResult>> = new Map()
   private pendingModelListRequests: Map<string, PendingRequest<ModelListResult>> = new Map()
+  private pendingKGRetrievalRequests: Map<string, PendingRequest<KGRetrievalResponse>> = new Map()
+  private pendingKGModelListRequests: Map<string, PendingRequest<KGModelsListResponse>> = new Map()
   private requestCounter = 0
 
   /**
@@ -96,6 +112,35 @@ export class MainBridge {
         }
         pending.resolve(result)
       }
+      return
+    }
+
+    if (msg.type === 'kg:retrieval-result') {
+      const pending = this.pendingKGRetrievalRequests.get(msg.requestId)
+      if (pending) {
+        clearTimeout(pending.timeoutId)
+        this.pendingKGRetrievalRequests.delete(msg.requestId)
+        pending.resolve({
+          success: msg.success,
+          data: msg.data,
+          error: msg.error
+        })
+      }
+      return
+    }
+
+    if (msg.type === 'kg:list-models-result') {
+      const pending = this.pendingKGModelListRequests.get(msg.requestId)
+      if (pending) {
+        clearTimeout(pending.timeoutId)
+        this.pendingKGModelListRequests.delete(msg.requestId)
+        pending.resolve({
+          success: msg.success,
+          data: msg.data,
+          error: msg.error
+        })
+      }
+      return
     }
   }
 
@@ -156,6 +201,70 @@ export class MainBridge {
       const msg: ApiServerToMainMessage = {
         type: 'model:list',
         requestId
+      }
+
+      this.parentPort!.postMessage(msg)
+    })
+  }
+
+  async listKGModels(timeoutMs = 10000): Promise<KGModelsListResponse> {
+    if (!this.parentPort) {
+      return { success: false, error: 'MainBridge not bound to parentPort' }
+    }
+
+    const requestId = this.generateRequestId('kg-models')
+
+    return new Promise<KGModelsListResponse>((resolve) => {
+      const timeoutId = setTimeout(() => {
+        if (this.pendingKGModelListRequests.has(requestId)) {
+          this.pendingKGModelListRequests.delete(requestId)
+          resolve({ success: false, error: 'KG Model list request timeout' })
+        }
+      }, timeoutMs)
+
+      this.pendingKGModelListRequests.set(requestId, {
+        resolve,
+        reject: () => {},
+        timeoutId
+      })
+
+      const msg: ApiServerToMainMessage = {
+        type: 'kg:list-models',
+        requestId
+      }
+
+      this.parentPort!.postMessage(msg)
+    })
+  }
+
+  async sendKGRetrievalSearch(
+    params: Partial<KGRetrievalParams>,
+    timeoutMs = 120000
+  ): Promise<KGRetrievalResponse> {
+    if (!this.parentPort) {
+      return { success: false, error: 'MainBridge not bound to parentPort' }
+    }
+
+    const requestId = this.generateRequestId('kg-ret')
+
+    return new Promise<KGRetrievalResponse>((resolve) => {
+      const timeoutId = setTimeout(() => {
+        if (this.pendingKGRetrievalRequests.has(requestId)) {
+          this.pendingKGRetrievalRequests.delete(requestId)
+          resolve({ success: false, error: 'KG Retrieval request timeout' })
+        }
+      }, timeoutMs)
+
+      this.pendingKGRetrievalRequests.set(requestId, {
+        resolve,
+        reject: () => {},
+        timeoutId
+      })
+
+      const msg: ApiServerToMainMessage = {
+        type: 'kg:retrieval-search',
+        requestId,
+        params
       }
 
       this.parentPort!.postMessage(msg)

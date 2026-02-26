@@ -176,6 +176,15 @@ parentPort.on('message', async (event: { data: MainToApiServerMessage }) => {
         break
       }
 
+      case 'retrieval:result':
+      case 'model:list:result':
+      case 'kg:retrieval-result':
+      case 'kg:list-models-result': {
+        // 这些消息是主进程对 mainBridge 发起的请求的响应，需要转发给 mainBridge
+        mainBridge.handleMessage(msg)
+        break
+      }
+
       default: {
         const unknownType = (msg as { type?: unknown }).type
         log(`Unknown message type: ${typeof unknownType === 'string' ? unknownType : 'unknown'}`)
