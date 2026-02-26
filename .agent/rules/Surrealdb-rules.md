@@ -1,5 +1,6 @@
 ---
 description: 应用于HNULS-KnowledgeDatabase项目下
+trigger: always_on
 ---
 # 单一实例统一注入
 # SurrealDB 服务实例管理注意事项

@@ -1,5 +1,6 @@
 ---
 description: 应用于HNULS-KnowledgeDatabase项目下
+trigger: always_on
 ---
 # 项目基本原则（Rules）草案 
 
