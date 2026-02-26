@@ -16,9 +16,13 @@
             />
             <span class="text-slate-600">使用 LLM 提取</span>
           </label>
-          <span v-if="kgStore.keywordUseLLM && kgStore.selectedKgConfig" class="text-slate-400">
-            ({{ kgStore.selectedKgConfig.llmModelId || '未配置' }})
-          </span>
+          <button
+            v-if="kgStore.keywordUseLLM"
+            @click="showLLMModelDialog = true"
+            class="text-slate-400 hover:text-teal-600 transition-colors text-xs underline"
+          >
+            {{ llmModelDisplayText }}
+          </button>
         </div>
         <div v-if="!kgStore.keywordUseLLM" class="mt-2 flex gap-2">
           <input
@@ -110,35 +114,99 @@
           />
           <span class="text-slate-500 font-medium">启用 Rerank</span>
         </label>
-        <div v-if="kgStore.rerankEnabled" class="flex gap-2">
-          <select
-            v-model="kgStore.rerankProviderId"
-            class="flex-1 px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-teal-300 bg-white"
+        <div v-if="kgStore.rerankEnabled" class="flex items-center gap-2">
+          <button
+            @click="showRerankModelDialog = true"
+            class="flex-1 px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none hover:border-teal-300 bg-white text-left transition-colors"
           >
-            <option :value="null" disabled>选择提供商</option>
-            <option v-for="p in enabledProviders" :key="p.id" :value="p.id">
-              {{ p.name }}
-            </option>
-          </select>
-          <input
-            v-model="kgStore.rerankModelId"
-            type="text"
-            placeholder="Rerank Model ID"
-            class="flex-1 px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-teal-300"
-          />
+            <span class="text-slate-600">{{ rerankModelDisplayText }}</span>
+          </button>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- LLM 模型选择弹窗 -->
+  <Teleport to="body">
+    <ModelSelectDialog
+      v-model="showLLMModelDialog"
+      title="选择 LLM 提取模型"
+      description="选择用于关键词提取的 LLM 模型"
+      :current-provider-id="kgStore.selectedKgConfig?.llmProviderId"
+      :current-model-id="kgStore.selectedKgConfig?.llmModelId"
+      @select="handleLLMModelSelect"
+    />
+  </Teleport>
+
+  <!-- Rerank 模型选择弹窗 -->
+  <Teleport to="body">
+    <ModelSelectDialog
+      v-model="showRerankModelDialog"
+      title="选择 Rerank 模型"
+      description="选择用于结果重排序的 Rerank 模型"
+      :current-provider-id="kgStore.rerankProviderId"
+      :current-model-id="kgStore.rerankModelId"
+      @select="handleRerankModelSelect"
+    />
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useKGSearchStore } from '@renderer/stores/kg-search/kg-search.store'
 import { useUserModelConfigStore } from '@renderer/stores/user-config/user-model-config.store'
+import { useKnowledgeConfigStore } from '@renderer/stores/knowledge-library/knowledge-config.store'
+import ModelSelectDialog from '@renderer/components/ModelSelectDialog/index.vue'
+import type { ModelSelection } from '@renderer/components/ModelSelectDialog/index.vue'
 
 const kgStore = useKGSearchStore()
 const modelStore = useUserModelConfigStore()
+const configStore = useKnowledgeConfigStore()
 
-const enabledProviders = computed(() => modelStore.providers.filter((p) => p.enabled))
+const showLLMModelDialog = ref(false)
+const showRerankModelDialog = ref(false)
+
+const llmModelDisplayText = computed(() => {
+  if (!kgStore.selectedKgConfig?.llmModelId) {
+    return '点击选择模型'
+  }
+  const provider = modelStore.providers.find((p) =>
+    p.models.some((m) => m.id === kgStore.selectedKgConfig?.llmModelId)
+  )
+  const model = provider?.models.find((m) => m.id === kgStore.selectedKgConfig?.llmModelId)
+  return model ? `${model.name} (${provider?.name})` : kgStore.selectedKgConfig.llmModelId
+})
+
+const rerankModelDisplayText = computed(() => {
+  if (!kgStore.rerankModelId) {
+    return '点击选择 Rerank 模型'
+  }
+  const provider = modelStore.providers.find((p) => p.models.some((m) => m.id === kgStore.rerankModelId))
+  const model = provider?.models.find((m) => m.id === kgStore.rerankModelId)
+  return model ? `${model.name} (${provider?.name})` : kgStore.rerankModelId
+})
+
+async function handleLLMModelSelect(selection: ModelSelection): Promise<void> {
+  const kbId = kgStore.selectedKbId
+  const kgConfig = kgStore.selectedKgConfig
+  
+  if (!kbId || !kgConfig) {
+    console.error('No knowledge base or KG config selected')
+    return
+  }
+
+  try {
+    await configStore.updateKgConfig(kbId, kgConfig.id, {
+      llmProviderId: selection.providerId,
+      llmModelId: selection.modelId
+    })
+  } catch (error) {
+    console.error('Failed to update LLM model:', error)
+  }
+}
+
+function handleRerankModelSelect(selection: ModelSelection): void {
+  kgStore.rerankProviderId = selection.providerId
+  kgStore.rerankModelId = selection.modelId
+}
 </script>
