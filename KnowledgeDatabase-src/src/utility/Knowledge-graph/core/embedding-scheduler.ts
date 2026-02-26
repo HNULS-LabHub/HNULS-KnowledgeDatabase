@@ -305,7 +305,9 @@ export class EmbeddingScheduler {
     }
 
     try {
-      // 从 kg_build_task 中获取 distinct 的目标库信息
+      // 从 kg_task 获取 distinct 的目标库信息（不依赖 kg_build_task，
+      // 因为 GraphBuildScheduler 启动清理会先删除 completed build_task，
+      // 导致此处查不到需要恢复嵌入的目标库）
       const rows = this.client.extractRecords(
         await this.client.query(
           `SELECT
@@ -313,16 +315,15 @@ export class EmbeddingScheduler {
              target_database,
              target_table_base,
              config.embeddingConfigId AS embedding_config_id
-           FROM kg_build_task
-           WHERE status = 'completed'
-             AND target_namespace IS NOT NONE
+           FROM kg_task
+           WHERE target_namespace IS NOT NONE
              AND target_table_base IS NOT NONE
            GROUP BY target_namespace, target_database, target_table_base, config.embeddingConfigId;`
         )
       )
 
       if (rows.length === 0) {
-        log('selfCheck: no completed build tasks found, nothing to recover')
+        log('selfCheck: no tasks with target info found, nothing to recover')
         return
       }
 
