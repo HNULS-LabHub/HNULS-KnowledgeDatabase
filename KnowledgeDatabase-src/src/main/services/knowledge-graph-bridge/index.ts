@@ -21,6 +21,7 @@ import type {
   KGGraphDataProgress,
   KGTriggerEmbeddingParams,
   KGEmbeddingProgressData,
+  KGEmbeddingRecoveryItem,
   KGRetrievalParams,
   KGRetrievalResult
 } from '@shared/knowledge-graph-ipc.types'
@@ -97,6 +98,9 @@ export class KnowledgeGraphBridge {
 
   /** 嵌入进度事件监听器 */
   private embeddingProgressListeners: Set<(data: KGEmbeddingProgressData) => void> = new Set()
+
+  /** 嵌入恢复事件监听器 */
+  private embeddingRecoveryListeners: Set<(items: KGEmbeddingRecoveryItem[]) => void> = new Set()
 
   // ==========================================================================
   // 生命周期
@@ -380,6 +384,11 @@ export class KnowledgeGraphBridge {
     return () => this.embeddingProgressListeners.delete(listener)
   }
 
+  onEmbeddingRecoveryNeeded(listener: (items: KGEmbeddingRecoveryItem[]) => void): () => void {
+    this.embeddingRecoveryListeners.add(listener)
+    return () => this.embeddingRecoveryListeners.delete(listener)
+  }
+
   // ==========================================================================
   // 消息处理
   // ==========================================================================
@@ -588,6 +597,12 @@ export class KnowledgeGraphBridge {
         }
         break
       }
+
+      case 'kg:embedding-recovery-needed':
+        for (const listener of this.embeddingRecoveryListeners) {
+          listener(msg.items)
+        }
+        break
 
       // KG 检索响应
       case 'kg:retrieval-result': {

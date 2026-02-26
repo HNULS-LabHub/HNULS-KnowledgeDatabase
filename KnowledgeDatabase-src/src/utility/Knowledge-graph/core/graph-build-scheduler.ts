@@ -391,11 +391,7 @@ export class GraphBuildScheduler {
       }
 
       // 3.5 解析真实 chunk Record ID（用于 entity_chunks / relation_chunks 溯源）
-      const resolvedChunkId = await this.resolveRealChunkId(
-        chunk,
-        buildTask,
-        cacheKey
-      )
+      const resolvedChunkId = await this.resolveRealChunkId(chunk, buildTask, cacheKey)
 
       // 4. upsert 到目标库（含事务冲突重试）
       const tableNames = getKgTableNames(buildTask.target_table_base)
@@ -474,8 +470,7 @@ export class GraphBuildScheduler {
 
     // 确定 emb chunk 表名
     const chunkTable =
-      buildTask.source_table ??
-      this.deriveChunkTableFromBase(buildTask.target_table_base)
+      buildTask.source_table ?? this.deriveChunkTableFromBase(buildTask.target_table_base)
     if (!chunkTable) {
       return fallbackCacheKey
     }

@@ -13,10 +13,7 @@
           :key="item.type"
           class="flex items-center gap-1 text-[10px] text-slate-500"
         >
-          <span
-            class="w-2 h-2 rounded-full flex-shrink-0"
-            :style="{ background: item.color }"
-          />
+          <span class="w-2 h-2 rounded-full flex-shrink-0" :style="{ background: item.color }" />
           {{ item.type }}
         </span>
       </div>
@@ -257,22 +254,22 @@ async function buildAndAnimate(): Promise<void> {
 
   // 1. 先添加所有节点（大小为0，不可见）
   const addedNodes = cy!.add(nodes)
-  
+
   // 2. 添加所有边（宽度为0，不可见）
   const addedEdges = cy!.add(edges)
-  
+
   // 3. 温和的防重叠：多次迭代，每次小幅度调整
   const entityNodes = addedNodes.filter('[nodeType="entity"]')
   const minDistance = 35 // 最小节点间距
   const iterations = 3 // 迭代次数
-  
+
   for (let iter = 0; iter < iterations; iter++) {
     entityNodes.forEach((node) => {
       const pos = node.position()
       let dx = 0
       let dy = 0
       let count = 0
-      
+
       // 计算与所有其他节点的排斥力
       entityNodes.forEach((otherNode) => {
         if (node === otherNode) return
@@ -280,7 +277,7 @@ async function buildAndAnimate(): Promise<void> {
         const deltaX = pos.x - otherPos.x
         const deltaY = pos.y - otherPos.y
         const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
-        
+
         // 如果距离太近，累加排斥力
         if (dist > 0 && dist < minDistance) {
           const force = (minDistance - dist) / minDistance
@@ -289,7 +286,7 @@ async function buildAndAnimate(): Promise<void> {
           count++
         }
       })
-      
+
       // 应用小幅度调整
       if (count > 0) {
         pos.x += dx * 3 // 调整幅度
@@ -311,9 +308,9 @@ async function buildAndAnimate(): Promise<void> {
   await sleep(400)
 
   // 4. 分离一级边和一级节点
-  const level1Edges = edges.filter(e => e.data.edgeType === 'query-to-entity')
-  const level1Nodes = nodes.filter(n => n.data.level === 1)
-  const relationEdges = edges.filter(e => e.data.edgeType === 'relation')
+  const level1Edges = edges.filter((e) => e.data.edgeType === 'query-to-entity')
+  const level1Nodes = nodes.filter((n) => n.data.level === 1)
+  const relationEdges = edges.filter((e) => e.data.edgeType === 'relation')
 
   console.log('[KGGraphCanvas] Animation start:', {
     level1Edges: level1Edges.length,
@@ -324,7 +321,7 @@ async function buildAndAnimate(): Promise<void> {
   // 5. 逐条播放：边生长 → 节点弹出
   for (let i = 0; i < level1Edges.length; i++) {
     const edgeData = level1Edges[i]
-    const targetNodeData = level1Nodes.find(n => n.data.id === edgeData.data.target)
+    const targetNodeData = level1Nodes.find((n) => n.data.id === edgeData.data.target)
     if (!targetNodeData) {
       console.warn('[KGGraphCanvas] Target node not found for edge:', edgeData.data.id)
       continue

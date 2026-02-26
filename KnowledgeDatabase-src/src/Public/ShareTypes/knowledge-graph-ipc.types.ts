@@ -201,6 +201,15 @@ export interface KGEmbeddingProgressData {
 /** 嵌入状态查询响应数据（与 KGEmbeddingProgressData 结构相同） */
 export type KGEmbeddingStatusData = KGEmbeddingProgressData
 
+/** 嵌入恢复项（自检发现的待恢复目标） */
+export interface KGEmbeddingRecoveryItem {
+  targetNamespace: string
+  targetDatabase: string
+  graphTableBase: string
+  embeddingConfigId: string
+  pendingCount: number
+}
+
 // ============================================================================
 // Main → KG 消息
 // ============================================================================
@@ -280,6 +289,7 @@ export type KGToMainMessage =
   // 嵌入相关
   | { type: 'kg:embedding-progress'; data: KGEmbeddingProgressData }
   | { type: 'kg:embedding-status'; requestId: string; data: KGEmbeddingStatusData }
+  | { type: 'kg:embedding-recovery-needed'; items: KGEmbeddingRecoveryItem[] }
   // KG 检索
   | { type: 'kg:retrieval-result'; requestId: string; data: KGRetrievalResult }
   | { type: 'kg:retrieval-error'; requestId: string; error: string }

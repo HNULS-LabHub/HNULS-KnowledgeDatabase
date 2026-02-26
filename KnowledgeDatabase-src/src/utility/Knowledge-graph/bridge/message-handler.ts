@@ -172,6 +172,10 @@ export class MessageHandler {
       this.graphBuildScheduler.kick()
       this.sendMessage({ type: 'kg:init-result', success: true })
       log('Initialized successfully')
+      // 异步自检：发现未完成的嵌入任务 → 通知主进程重发 trigger
+      this.embeddingScheduler.selfCheck().catch((e) => {
+        logError('Embedding selfCheck failed', e)
+      })
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
       logError('Init failed', error)

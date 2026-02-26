@@ -63,6 +63,7 @@ let unsubGraphDataComplete: (() => void) | null = null
 let unsubGraphDataError: (() => void) | null = null
 let unsubGraphDataCancelled: (() => void) | null = null
 let unsubEmbeddingProgress: (() => void) | null = null
+let unsubEmbeddingRecovery: (() => void) | null = null
 
 export function registerKnowledgeGraphHandlers(
   knowledgeLibraryService?: KnowledgeLibraryService,
@@ -169,89 +170,105 @@ export function registerKnowledgeGraphHandlers(
     }
   )
 
+  // 提取嵌入触发逻辑为可复用函数
+  async function resolveAndTriggerEmbedding(
+    targetNamespace: string,
+    targetDatabase: string,
+    graphTableBase: string,
+    embeddingConfigId: string,
+    reason: string
+  ): Promise<void> {
+    if (!knowledgeLibraryService || !modelConfigService) {
+      logger.warn(`[KG-IPCHandler] Services not injected, skip embedding ${reason}`)
+      return
+    }
+
+    try {
+      // 1. 找到对应的知识库（通过 databaseName 匹配）
+      const allKbs = await knowledgeLibraryService.getAll()
+      const kb = allKbs.find((k) => k.databaseName === targetDatabase)
+      if (!kb || !kb.documentPath) {
+        logger.warn(`[KG-IPCHandler] KB not found for database=${targetDatabase}`)
+        return
+      }
+
+      // 2. 读取知识库配置
+      const documentService = new DocumentService()
+      await documentService.ensureKnowledgeBaseDirectory(kb.documentPath)
+      const kbRoot = documentService.getFullDirectoryPath(kb.documentPath)
+      const configService = new KnowledgeConfigService()
+      const kbConfig = await configService.readConfig(kbRoot)
+
+      // 3. 找到匹配的 KG 配置
+      const kgConfigs = kbConfig.global.knowledgeGraph?.configs ?? []
+      const kgConfig = kgConfigs.find((c) => c.graphTableBase === graphTableBase)
+      if (!kgConfig) {
+        logger.warn(`[KG-IPCHandler] KG config not found for graphTableBase=${graphTableBase}`)
+        return
+      }
+
+      // 4. 找到嵌入配置
+      const embeddingConfigs = kbConfig.global.embedding?.configs ?? []
+      const embeddingConfig = embeddingConfigs.find((c) => c.id === embeddingConfigId)
+      if (!embeddingConfig || embeddingConfig.candidates.length === 0) {
+        logger.warn(`[KG-IPCHandler] Embedding config not found for id=${embeddingConfigId}`)
+        return
+      }
+
+      const candidate = embeddingConfig.candidates[0]
+
+      // 5. 获取 provider 的 baseUrl 和 apiKey
+      const modelConfig = await modelConfigService.getConfig()
+      const provider = modelConfig.providers.find((p) => p.id === candidate.providerId)
+      if (!provider || !provider.baseUrl || !provider.apiKey) {
+        logger.warn(
+          `[KG-IPCHandler] Provider not found or missing credentials: ${candidate.providerId}`
+        )
+        return
+      }
+
+      // 6. 构造参数并触发嵌入
+      const batchSize = kgConfig.embeddingBatchSize ?? 20
+      const maxTokens = kgConfig.embeddingMaxTokens ?? 1500
+      const dimensions = embeddingConfig.dimensions ?? 1536
+
+      knowledgeGraphBridge.triggerEmbedding({
+        targetNamespace,
+        targetDatabase,
+        graphTableBase,
+        baseUrl: provider.baseUrl,
+        apiKey: provider.apiKey,
+        model: candidate.modelId,
+        dimensions,
+        batchSize,
+        maxTokens
+      })
+
+      logger.info(
+        `[KG-IPCHandler] ${reason}: triggered embedding for ${graphTableBase} (model=${candidate.modelId}, dim=${dimensions}, batch=${batchSize})`
+      )
+    } catch (error) {
+      logger.error(`[KG-IPCHandler] Failed to ${reason}:`, error)
+    }
+  }
+
   unsubBuildCompleted = knowledgeGraphBridge.onBuildCompleted(
     async (taskId, targetNamespace, targetDatabase, graphTableBase, embeddingConfigId) => {
       broadcast(CH.BUILD_COMPLETED, taskId)
 
-      // 自动触发嵌入：build 完成后，解析嵌入配置并发送 trigger-embedding
       if (!targetNamespace || !targetDatabase || !graphTableBase || !embeddingConfigId) {
         logger.info(
           '[KG-IPCHandler] Build completed but missing target/embedding info, skip auto-trigger'
         )
         return
       }
-      if (!knowledgeLibraryService || !modelConfigService) {
-        logger.warn('[KG-IPCHandler] Services not injected, skip embedding auto-trigger')
-        return
-      }
-
-      try {
-        // 1. 找到对应的知识库（通过 databaseName 匹配）
-        const allKbs = await knowledgeLibraryService.getAll()
-        const kb = allKbs.find((k) => k.databaseName === targetDatabase)
-        if (!kb || !kb.documentPath) {
-          logger.warn(`[KG-IPCHandler] KB not found for database=${targetDatabase}`)
-          return
-        }
-
-        // 2. 读取知识库配置
-        const documentService = new DocumentService()
-        await documentService.ensureKnowledgeBaseDirectory(kb.documentPath)
-        const kbRoot = documentService.getFullDirectoryPath(kb.documentPath)
-        const configService = new KnowledgeConfigService()
-        const kbConfig = await configService.readConfig(kbRoot)
-
-        // 3. 找到匹配的 KG 配置
-        const kgConfigs = kbConfig.global.knowledgeGraph?.configs ?? []
-        const kgConfig = kgConfigs.find((c) => c.graphTableBase === graphTableBase)
-        if (!kgConfig) {
-          logger.warn(`[KG-IPCHandler] KG config not found for graphTableBase=${graphTableBase}`)
-          return
-        }
-
-        // 4. 找到嵌入配置
-        const embeddingConfigs = kbConfig.global.embedding?.configs ?? []
-        const embeddingConfig = embeddingConfigs.find((c) => c.id === embeddingConfigId)
-        if (!embeddingConfig || embeddingConfig.candidates.length === 0) {
-          logger.warn(`[KG-IPCHandler] Embedding config not found for id=${embeddingConfigId}`)
-          return
-        }
-
-        const candidate = embeddingConfig.candidates[0]
-
-        // 5. 获取 provider 的 baseUrl 和 apiKey
-        const modelConfig = await modelConfigService.getConfig()
-        const provider = modelConfig.providers.find((p) => p.id === candidate.providerId)
-        if (!provider || !provider.baseUrl || !provider.apiKey) {
-          logger.warn(
-            `[KG-IPCHandler] Provider not found or missing credentials: ${candidate.providerId}`
-          )
-          return
-        }
-
-        // 6. 构造参数并触发嵌入
-        const batchSize = kgConfig.embeddingBatchSize ?? 20
-        const maxTokens = kgConfig.embeddingMaxTokens ?? 1500
-        const dimensions = embeddingConfig.dimensions ?? 1536
-
-        knowledgeGraphBridge.triggerEmbedding({
-          targetNamespace,
-          targetDatabase,
-          graphTableBase,
-          baseUrl: provider.baseUrl,
-          apiKey: provider.apiKey,
-          model: candidate.modelId,
-          dimensions,
-          batchSize,
-          maxTokens
-        })
-
-        logger.info(
-          `[KG-IPCHandler] Auto-triggered embedding for ${graphTableBase} (model=${candidate.modelId}, dim=${dimensions}, batch=${batchSize})`
-        )
-      } catch (error) {
-        logger.error('[KG-IPCHandler] Failed to auto-trigger embedding:', error)
-      }
+      await resolveAndTriggerEmbedding(
+        targetNamespace,
+        targetDatabase,
+        graphTableBase,
+        embeddingConfigId,
+        'auto-trigger'
+      )
     }
   )
 
@@ -281,6 +298,20 @@ export function registerKnowledgeGraphHandlers(
     broadcast(CH.EMBEDDING_PROGRESS, data)
   })
 
+  // 嵌入恢复事件：子进程自检发现未完成的嵌入 → 逐个重发 trigger
+  unsubEmbeddingRecovery = knowledgeGraphBridge.onEmbeddingRecoveryNeeded(async (items) => {
+    logger.info(`[KG-IPCHandler] Embedding recovery requested for ${items.length} target(s)`)
+    for (const item of items) {
+      await resolveAndTriggerEmbedding(
+        item.targetNamespace,
+        item.targetDatabase,
+        item.graphTableBase,
+        item.embeddingConfigId,
+        'recovery'
+      )
+    }
+  })
+
   logger.info('[KG-IPCHandler] Handlers registered')
 }
 
@@ -305,5 +336,6 @@ export function unregisterKnowledgeGraphHandlers(): void {
   unsubGraphDataError?.()
   unsubGraphDataCancelled?.()
   unsubEmbeddingProgress?.()
+  unsubEmbeddingRecovery?.()
   logger.info('[KG-IPCHandler] Handlers unregistered')
 }

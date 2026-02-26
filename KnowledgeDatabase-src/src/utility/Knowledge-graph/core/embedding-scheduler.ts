@@ -7,7 +7,11 @@
 
 import { createHash } from 'crypto'
 import type { KGSurrealClient } from '../db/surreal-client'
-import type { KGToMainMessage, KGEmbeddingProgressData } from '@shared/knowledge-graph-ipc.types'
+import type {
+  KGToMainMessage,
+  KGEmbeddingProgressData,
+  KGEmbeddingRecoveryItem
+} from '@shared/knowledge-graph-ipc.types'
 import { getKgTableNames } from '../service/graph-schema'
 
 // ============================================================================
@@ -287,6 +291,97 @@ export class EmbeddingScheduler {
       relationHnswIndexReady,
       lastError: this.lastError,
       lastBatchInfo: this.lastBatchInfo
+    }
+  }
+
+  // ==========================================================================
+  // 启动自检：发现未完成嵌入 → 通知主进程重发 trigger
+  // ==========================================================================
+
+  async selfCheck(): Promise<void> {
+    if (!this.client.isConnected()) {
+      log('selfCheck skipped: not connected')
+      return
+    }
+
+    try {
+      // 从 kg_build_task 中获取 distinct 的目标库信息
+      const rows = this.client.extractRecords(
+        await this.client.query(
+          `SELECT
+             target_namespace,
+             target_database,
+             target_table_base,
+             config.embeddingConfigId AS embedding_config_id
+           FROM kg_build_task
+           WHERE status = 'completed'
+             AND target_namespace IS NOT NONE
+             AND target_table_base IS NOT NONE
+           GROUP BY target_namespace, target_database, target_table_base, config.embeddingConfigId;`
+        )
+      )
+
+      if (rows.length === 0) {
+        log('selfCheck: no completed build tasks found, nothing to recover')
+        return
+      }
+
+      const items: KGEmbeddingRecoveryItem[] = []
+
+      for (const row of rows) {
+        const ns = String(row.target_namespace ?? '')
+        const db = String(row.target_database ?? '')
+        const base = String(row.target_table_base ?? '')
+        const configId = String(row.embedding_config_id ?? '')
+
+        if (!ns || !db || !base || !configId) continue
+
+        // 切到目标库查询未嵌入的实体/关系数量
+        const tables = getKgTableNames(base)
+        try {
+          const countResult = this.client.extractRecords(
+            await this.client.queryInDatabase(
+              ns,
+              db,
+              `SELECT
+                 (SELECT count() FROM ${tables.entity} WHERE embedding IS NONE GROUP ALL)[0].count ?? 0 AS entity_pending,
+                 (SELECT count() FROM ${tables.relates} WHERE embedding IS NONE GROUP ALL)[0].count ?? 0 AS relation_pending;`
+            )
+          )
+
+          const entityPending = Number(countResult[0]?.entity_pending) || 0
+          const relationPending = Number(countResult[0]?.relation_pending) || 0
+          const totalPending = entityPending + relationPending
+
+          if (totalPending > 0) {
+            items.push({
+              targetNamespace: ns,
+              targetDatabase: db,
+              graphTableBase: base,
+              embeddingConfigId: configId,
+              pendingCount: totalPending
+            })
+            log('selfCheck: found pending embeddings', {
+              db,
+              base,
+              entityPending,
+              relationPending
+            })
+          }
+        } catch (err) {
+          // 目标库表可能不存在（被删除了），跳过
+          log(`selfCheck: skipped ${base} in ${db} (table may not exist)`)
+        }
+      }
+
+      if (items.length > 0) {
+        log(`selfCheck: requesting recovery for ${items.length} target(s)`)
+        this.sendMessage({ type: 'kg:embedding-recovery-needed', items })
+      } else {
+        log('selfCheck: all embeddings are complete, no recovery needed')
+      }
+    } catch (error) {
+      logError('selfCheck failed', error)
     }
   }
 
